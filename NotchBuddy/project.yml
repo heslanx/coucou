@@ -134,6 +134,8 @@ targets:
       # What's new after an update, once in the notch (WhatsNewViews.swift; GitHub build)
       - path: Resources/whats-new.json
         buildPhase: resources
+      - path: ../scripts/coucou-mcp.py
+        buildPhase: resources
     info:
       path: Resources/Info.plist
       properties:

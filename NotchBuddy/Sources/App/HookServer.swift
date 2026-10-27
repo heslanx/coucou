@@ -372,6 +372,16 @@ final class HookServer: @unchecked Sendable {
 
         let coucouKind = payload["coucou_kind"] as? String ?? ""
 
+        if coucouKind == "reminder_mcp" {
+            Task { @MainActor in
+                let response = ReminderMCPAdapter.shared.handle(payload)
+                let data = (try? JSONSerialization.data(withJSONObject: response, options: [.fragmentsAllowed])) ?? Data("{}".utf8)
+                self.sendLine(fd: fd, text: String(decoding: data, as: UTF8.self))
+                close(fd)
+            }
+            return
+        }
+
         // statusline payloads are handled separately — no session, no reveal, no sound
         if coucouKind == "statusline" {
             Task { @MainActor in self.processStatusLine(payload: payload) }
@@ -1379,6 +1389,13 @@ final class HookServer: @unchecked Sendable {
         let pyURL = wrapperURL.deletingLastPathComponent().appendingPathComponent("nb-hook.py")
         try? nbHookPythonGitHub.write(to: pyURL, atomically: true, encoding: .utf8)
         _ = try? FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: pyURL.path)
+        if let bundledBridge = Bundle.main.url(forResource: "coucou-mcp", withExtension: "py") {
+            let bridgeURL = wrapperURL.deletingLastPathComponent().appendingPathComponent("coucou-mcp.py")
+            if let data = try? Data(contentsOf: bundledBridge) {
+                try? data.write(to: bridgeURL, options: .atomic)
+                _ = try? FileManager.default.setAttributes([.posixPermissions: 0o700 as NSNumber], ofItemAtPath: bridgeURL.path)
+            }
+        }
         #endif
     }
 

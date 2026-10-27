@@ -48,6 +48,12 @@ jobs:
       - name: Test Mac update (releases, versions, where it may replace itself)
         run: bash scripts/test-mac-update.sh
 
+      - name: Test reminder behavior
+        run: bash scripts/test-reminders.sh
+
+      - name: Test reminder MCP bridge
+        run: bash scripts/test-reminder-mcp.sh
+
       - name: Test What's new
         run: bash scripts/test-whats-new-mac.sh
 

@@ -108,6 +108,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     #endif
 
+    @objc private func openReminders() {
+        UserDefaults.standard.set("reminders", forKey: "settingsSection")
+        openSettings()
+    }
+
     // MARK: - Menu bar
 
     private func setupMenuBarItem() {
@@ -139,6 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: NSLocalizedString("Open Coucou", comment: ""), action: #selector(openIsland), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: NSLocalizedString("Weekly recap", comment: ""), action: #selector(openWeeklyRecap), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Reminders"), action: #selector(openReminders), keyEquivalent: "")
         #if !APPSTORE
         menu.addItem(withTitle: String(localized: "hub.menu"), action: #selector(openFlowHub), keyEquivalent: "")
         #endif
@@ -334,6 +340,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         islandController?.showWindow(nil)
         islandController?.fsm.launch()
         HookServer.shared.start()
+        ReminderManager.shared.start()
         #if !APPSTORE
         _ = VoiceEngine.shared  // registers system observers; starts mic only if the user enabled voice
         FlowDictation.shared.start()  // watches the dictation key only if Flow dictation is on

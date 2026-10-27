@@ -190,6 +190,7 @@ struct SettingsView: View {
                         SettingsSidebarRow(title: "Agents",       icon: "terminal.fill",                     color: "#3B9EFF").tag("agents")
                         SettingsSidebarRow(title: "Chat",         icon: "bubble.left.and.bubble.right.fill", color: "#E07950").tag("chat")
                         SettingsSidebarRow(title: "Integrations", icon: "puzzlepiece.extension.fill",        color: "#7C5CFF").tag("integrations")
+                        SettingsSidebarRow(title: "Reminders",    icon: "bell.badge.fill",                   color: "#F59E0B").tag("reminders")
                         #if !APPSTORE
                         SettingsSidebarRow(title: "Voice",        icon: "mic.fill",                          color: "#F97316").tag("voice")
                         #endif
@@ -266,6 +267,7 @@ struct SettingsView: View {
         case "agents":       return String(localized: "Agents")
         case "chat":         return String(localized: "Chat")
         case "integrations": return String(localized: "Integrations")
+        case "reminders":    return String(localized: "Reminders")
         case "voice":        return String(localized: "Voice")
         case "shortcuts":    return String(localized: "Shortcuts")
         default:             return String(localized: "General")
@@ -278,6 +280,7 @@ struct SettingsView: View {
         case "agents":       agentsSection
         case "chat":         chatSection
         case "integrations": integrationsSection
+        case "reminders":    RemindersSettingsSection()
         #if !APPSTORE
         case "voice":        voiceSection
         #endif
