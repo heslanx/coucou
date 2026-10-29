@@ -5,6 +5,8 @@ The art is generated full-bleed; `build_icons.py` masks it into the macOS plate 
 and adds the drop shadow, so the plate geometry is exact and not left to the generator. Outputs are in `candidates/`;
 B (warm plate) is the icon: the teal owl stands out on light and dark docks, A's dark plate fades into a dark dock and
 C's sky plate is too close to Koru's teal.
+Koru's eyes are now white discs (the owner's choice, after these prompts): `white_eyes.py` turns B's orange eyes white
+and `build_icons.py` builds from that copy.
 
 ## Shared character block
 

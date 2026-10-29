@@ -3,7 +3,8 @@
 
   python3 design/konclui/icon/build_icons.py
 
-- candidates/koru-icon-B-warm.png: the chosen full-bleed generated art (prompts.md). It is masked into the macOS plate (824 px
+- candidates/koru-icon-B-warm-white-eyes.png: the chosen full-bleed generated art (prompts.md) with Koru's white eye discs
+  (white_eyes.py turns the generated orange eyes white). It is masked into the macOS plate (824 px
   rounded square centred on a 1024 canvas, 185 px corners, soft drop shadow) -> app-icon-1024.png, then downsampled
   (premultiplied Lanczos) to every size AppIcon.appiconset lists. 16 px is the hand-tuned pixel map below, since the
   downsample blurs Koru's eyes there.
@@ -22,7 +23,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 ASSETS = os.path.join(ROOT, 'NotchBuddy', 'Assets.xcassets')
-ART = os.path.join(HERE, 'candidates', 'koru-icon-B-warm.png')
+ART = os.path.join(HERE, 'candidates', 'koru-icon-B-warm-white-eyes.png')
 MASTER = os.path.join(HERE, 'app-icon-1024.png')
 GLYPH, GLYPH_1X = os.path.join(HERE, 'menubar.svg'), os.path.join(HERE, 'menubar-1x.svg')
 PREVIEW = os.path.join(HERE, 'preview.png')
@@ -56,7 +57,7 @@ SMALL_COLORS = {
     'd': '#12889A',   # lower body
     'w': '#0E6676',   # wings
     'l': '#46C3D1',   # facial disc
-    'o': '#FEA92D',   # eyes
+    'o': '#EEF3F3',   # eyes (white discs)
     'p': '#0F4652',   # pupils
     'k': '#F59B2A',   # beak
     'K': '#D97A1C',   # beak tip

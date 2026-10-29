@@ -258,8 +258,11 @@ private struct HubSidebar: View {
                 // hops and hats): lifted so his body lines up with the name.
                 HubLiveMochi(size: 28)
                     .offset(y: -4)
-                Text(verbatim: "Coucou")
-                    .font(.system(size: 18, weight: .bold))
+                Image("KoncluiLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 16)
+                    .accessibilityLabel(Text(verbatim: "Koncluí"))
             }
             .padding(.horizontal, 8)
             // Halfway between the window's buttons and "FLOW".
