@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koru · protótipo Canvas</title>
+<style>
+:root{--bg:#111316;--panel:#1A1C20;--line:#2C2F35;--ink:#ECEDEF;--muted:#9A9FA8;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.app{max-width:1120px;margin:0 auto;padding:28px 24px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.app h1{grid-column:1/-1;margin:0;font-size:26px;letter-spacing:-.02em}
+.app h1 span{color:var(--muted);font-weight:500;font-size:15px;margin-left:10px}
+.stage{position:relative;aspect-ratio:1;border-radius:24px;overflow:hidden;background:radial-gradient(70% 60% at 50% 55%,#16191D 0%,#111316 70%)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.side{display:flex;flex-direction:column;gap:14px}
+.grp{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}
+.grp h2{font-size:13px;margin:0 0 10px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.cb{appearance:none;border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 11px 6px 9px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.cb:hover{background:#24272C}
+.cb.on{background:var(--ink);color:#111316;border-color:var(--ink)}
+.cb i{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--c,#999)}
+.notch{position:relative;margin:4px auto 0;width:220px;height:40px;background:#000;border-radius:0 0 16px 16px}
+.notch canvas{position:absolute;left:8px;top:-4px;width:48px;height:48px}
+.notch .mini2{left:auto;right:8px}
+.sl{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-top:8px}
+.sl input{width:100%;accent-color:var(--ink)}
+.sub{flex-basis:100%}
+.sub h3{font-size:11px;margin:8px 0 6px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+/* deterministic capture modes */
+body.shot{background:#101115}
+body.shot .app{display:none}
+#shot{display:none}
+body.shot #shot{display:block}
+body.shot #shot.grid,body.shot #shot.film{display:grid}
+#shot canvas{display:block}
+.grid{display:grid;grid-template-columns:repeat(5,400px)}
+.grid figure{margin:0;width:400px;height:430px;background:#141518}
+.grid canvas{display:block;width:400px;height:400px}
+.film{display:grid}
+.film figure{margin:0;background:#101115}
+.film canvas{display:block}
+.film figcaption,.grid figcaption{height:30px;padding:8px 10px 0;font:10px/1 -apple-system,system-ui,sans-serif;color:#DCDCDC}
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>Koru <span>o motor do Mochi com a coruja da Koncluí</span></h1>
+  <div class="stage"><canvas id="mainc"></canvas></div>
+  <div class="side">
+    <div class="grp"><h2>Estados</h2><div class="btns" id="stateBtns"></div></div>
+    <div class="grp"><h2>Emotes</h2><div class="btns" id="emoteBtns"></div></div>
+    <div class="grp" id="featureGrp" hidden><h2>Recursos</h2><div class="btns" id="featureBtns"></div><div id="featureSliders"></div></div>
+    <div class="grp"><h2>No notch</h2><div class="notch"><canvas id="minic"></canvas><canvas id="minic2" class="mini2"></canvas></div></div>
+  </div>
+</main>
+<div id="shot"></div>
+
+<script src="koru/core.js"></script>
+<!-- Order matters where features share a slot: the first beak() that draws wins, so swallowing beats talking. -->
+<script src="koru/features/slap.js"></script>
+<script src="koru/features/gulp.js"></script>
+<script src="koru/features/voice.js"></script>
+<script src="koru/features/mood.js"></script>
+<script src="koru/features/dance.js"></script>
+<script src="koru/features/minis.js"></script>
+<script src="koru/features/outfits.js"></script>
+<script>
+(()=>{
+const {params,SHOT,GRID,FILM,Clock,reseed,clamp,STATES,EMOTES,Bot,each,actions}=Koru;
+const $=s=>document.querySelector(s);
+actions.greet=b=>b.greet();
+actions.finished=b=>b.setState('finished'); actions.dizzy=b=>b.setState('dizzy');   // ?film=finished|dizzy: the state's entrance (Swift's roll)
+
+/* ---------------- CAPTURE ---------------- */
+// ?shot=<state> renders one 1254 px frame; ?grid renders the ten target states in a 5 × 2 sheet (both at the targets' framing);
+// ?film=<action>&state=<state> renders a filmstrip of an action (Koru.actions) frame by frame, framed with room for hops and hats.
+// &frame=<k> overrides Koru's size in the canvas (1 = the targets'). At frame 1 a still taken mid-action (a squash, a hop,
+// a hat coming in) can touch the canvas edge; the films (.82) and the live page (.8) leave room for every motion.
+// Features read their own URL parameters in capture(bot,params).
+const SHOT_LOOK={idle:{x:1,y:-.2},working:{x:.7,y:0},thinking:{x:0,y:0},searching:{x:0,y:0},approval:{x:.75,y:-.05},question:{x:0,y:0},error:{x:.4,y:0},finished:{x:.55,y:0},sleeping:{x:0,y:0},dizzy:{x:.55,y:0}};
+const SHOT_T={searching:.82};
+function still(canvas,state,px){
+  const b=new Bot(canvas,{px,bg:true,frame:+(params.get('frame')||1)}); b.look={...(SHOT_LOOK[state]||{x:0,y:0})};
+  b.setState(state,true); if(params.has('hands')){ b.set('hands',+params.get('hands')); b.handOwner='shot'; b.waveUntil=1e9 }   // held mid-wave
+  if(params.has('update')) b.setUpdateHint(true);
+  each('capture',b,params);
+  const frames=Math.round(((SHOT_T[state]||0)+2.2)*60);
+  for(let i=0;i<frames;i++){ Clock.advance(1000/60); b.update() }
+  b.draw(); return b }
+// ?bench=<state>: per-frame cost of update + draw at the live size: the stage is at most 708 px wide, a 1416 device-px canvas on a 2x
+// screen, framed as live. It runs on the virtual clock (2.2 s in, as a still) so captures that wait (a slap, a gulp) are measured too.
+if(params.has('bench')){ const c=document.createElement('canvas'); document.body.appendChild(c);
+  const b=new Bot(c,{px:1416,frame:.8}); b.setState(params.get('bench')||'working',true); each('capture',b,params);
+  for(let i=0;i<132;i++){ Clock.advance(1000/60); b.update() } b.draw();
+  // Per-frame times; the minimum is the least disturbed by other load on the machine.
+  const ts=[]; for(let i=0;i<120;i++){ Clock.advance(1000/60); const t0=performance.now(); b.update(); b.draw(); c.getContext('2d').getImageData(0,0,1,1); ts.push(performance.now()-t0) }
+  ts.sort((p,q)=>p-q); const pre=document.createElement('pre'); pre.id='bench'; pre.textContent=`min ${ts[0].toFixed(2)} median ${ts[60].toFixed(2)} ms/frame`; document.body.appendChild(pre); return }
+// ?soak=<n>[&seed=<k>]: n random actions (states, emotes, clicks, actions) on the virtual clock, then 7 s of rest;
+// prints SETTLED, or STUCK with every value, lock, tween or timer that did not come back to rest.
+if(params.has('soak')){ if(params.has('seed')) reseed(+params.get('seed')); const b=new Bot(document.createElement('canvas'),{px:300}), n=+params.get('soak')||200;
+  const keys=Object.keys(STATES), ems=Object.keys(EMOTES), acts=Object.keys(actions), pick=a=>a[Math.floor(Koru.rand()*a.length)];
+  for(let i=0;i<n;i++){ const r=Koru.rand();
+    if(r<.3) b.setState(pick(keys)); else if(r<.55) b.emote(pick(ems)); else if(r<.7) b.click(); else actions[pick(acts)](b);
+    for(let j=1+Math.floor(Koru.rand()*20);j>0;j--){ Clock.advance(1000/60); b.update(); b.draw() } }
+  // 7 s of rest: the longest chain an action may still run is three slaps -> dizzy 3.3 s -> happy 1.8 s.
+  b.setState('idle'); for(let j=0;j<420;j++){ Clock.advance(1000/60); b.update(); b.draw() }
+  const bad=[]; if(b.tw.length) bad.push('tweens:'+b.tw.map(t=>t.p)); if(Object.keys(b.lock).length) bad.push('locks:'+Object.keys(b.lock));
+  if(Math.abs(b.s.hands)>.01||b.handOwner) bad.push('hands:'+b.s.hands.toFixed(2)+'/'+b.handOwner); if(b.eyeOv) bad.push('eyeOv:'+b.eyeOv); if(Object.keys(b.timers).length) bad.push('timers:'+Object.keys(b.timers));
+  each('soak',b,bad);
+  const pre=document.createElement('pre'); pre.id='soak'; pre.textContent=bad.length?'STUCK '+bad.join(' '):'SETTLED'; document.body.appendChild(pre); return }
+if(FILM){ document.body.classList.add('shot'); const host=$('#shot'); host.className='film';
+  const st=params.get('state')||'idle', step=+(params.get('step')||66), n=+(params.get('n')||30), px=+(params.get('px')||300);
+  host.style.gridTemplateColumns=`repeat(6,${px}px)`;
+  const big=document.createElement('canvas'), b=new Bot(big,{px:px*2,bg:true,frame:+(params.get('frame')||.82)}); b.look={...(SHOT_LOOK[st]||{x:0,y:0})}; if(params.has('lx')) b.look.x=+params.get('lx'); b.setState(st,true);
+  each('capture',b,params);
+  for(let i=0;i<150;i++){ Clock.advance(1000/60); b.update() }
+  actions[params.get('film')](b);
+  let t=0;
+  for(let i=0;i<n;i++){ const at=i*step; while(t<at){ Clock.advance(1000/60); t+=1000/60; b.update() } b.draw();
+    const f=document.createElement('figure'), c=document.createElement('canvas'), cap=document.createElement('figcaption');
+    c.width=c.height=px; c.style.width=c.style.height=px+'px'; c.getContext('2d').drawImage(big,0,0,px,px); cap.textContent=Math.round(at)+' ms'; f.append(c,cap); host.appendChild(f) }
+  document.title='ready'; return }
+if(SHOT||GRID){
+  document.body.classList.add('shot');
+  const host=$('#shot');
+  if(SHOT){ const px=+(params.get('px')||1254), c=document.createElement('canvas'); c.style.width=c.style.height=px+'px'; host.appendChild(c); still(c,SHOT,px) }
+  else { host.className='grid';
+    const order=[['01-idle','idle'],['02-working','working'],['03-thinking','thinking'],['04-searching','searching'],['05-approval','approval'],['06-question','question'],['07-error','error'],['08-finished','finished'],['09-sleeping','sleeping'],['10-dizzy','dizzy']];
+    for(const [lab,st] of order){ const f=document.createElement('figure'), c=document.createElement('canvas'), cap=document.createElement('figcaption');
+      cap.textContent=lab; f.append(c,cap); host.appendChild(f);
+      Clock.t=0; Clock.timers=[]; reseed(7); c.width=400; c.height=400;
+      // Render at full size, then scale down, as the target sheet was made.
+      const big=document.createElement('canvas'); still(big,st,1254);
+      const g=c.getContext('2d'); g.fillStyle='#111316'; g.fillRect(0,0,400,400); g.imageSmoothingQuality='high'; g.drawImage(big,0,0,400,400) } }
+  document.title='ready';
+  return;
+}
+
+/* ---------------- LIVE ---------------- */
+// Live, Koru takes 80 % of her usual size on the stage, so hats, hops and squashes stay inside it.
+const main=new Bot($('#mainc'),{px:Math.round($('#mainc').clientWidth)||560,frame:.8}), mini=new Bot($('#minic'),{mini:true,px:48}), mini2=new Bot($('#minic2'),{mini:true,px:48});
+mini2.setState('working');
+const stateBtns=$('#stateBtns'), emoteBtns=$('#emoteBtns');
+for(const k in STATES){ const b=document.createElement('button'); b.className='cb'+(k==='idle'?' on':''); b.dataset.state=k; b.style.setProperty('--c',STATES[k].col); b.innerHTML=`<i></i>${STATES[k].label}`;
+  b.onclick=()=>{ main.setState(k); mini.setState(k) }; stateBtns.appendChild(b) }
+for(const k in EMOTES){ if(!EMOTES[k].label)continue; const b=document.createElement('button'); b.className='cb'; b.style.setProperty('--c',EMOTES[k].c); b.innerHTML=`<i></i>${EMOTES[k].label}`;
+  b.onclick=()=>{ main.emote(k); mini.emote(k) }; emoteBtns.appendChild(b) }
+const greet=document.createElement('button'); greet.className='cb'; greet.innerHTML='<i style="--c:#3CCFD9"></i>Acenar'; greet.onclick=()=>main.greet(); emoteBtns.appendChild(greet);
+// Feature controls: buttons and toggles in "Recursos", sliders below them.
+// ui.group(title) starts a titled row; later buttons, toggles and sliders go into it.
+let row=null;
+const ui={
+  group(title){ $('#featureGrp').hidden=false; const g=document.createElement('div'); g.className='sub'; g.innerHTML=`<h3>${title}</h3><div class="btns"></div>`; $('#featureBtns').appendChild(g); row=g.lastChild; return g },
+  button(label,color,fn){ $('#featureGrp').hidden=false; const b=document.createElement('button'); b.className='cb'; b.style.setProperty('--c',color); b.innerHTML=`<i></i>${label}`; b.onclick=fn; (row||$('#featureBtns')).appendChild(b); return b },
+  toggle(label,color,fn){ const b=ui.button(label,color,()=>{ b.classList.toggle('on'); fn(b.classList.contains('on')) }); return b },
+  slider(label,min,max,step,value,fn){ $('#featureGrp').hidden=false; const l=document.createElement('label'); l.className='sl'; l.innerHTML=`<span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${value}">`;
+    const i=l.querySelector('input'); i.oninput=()=>fn(+i.value); (row?row.parentNode:$('#featureSliders')).appendChild(l); return i } };   // a slider sits in its feature's group
+ui.toggle('Atualização','#3B82F6',on=>{ for(const b of [main,mini]) b.setUpdateHint(on) });
+each('controls',ui,{main,mini,mini2});
+$('#mainc').addEventListener('click',()=>main.click());
+addEventListener('pointermove',e=>{ for(const [b,el] of [[main,$('#mainc')],[mini,$('#minic')],[mini2,$('#minic2')]]){ const r=el.getBoundingClientRect();
+  b.look.x=clamp((e.clientX-(r.left+r.width/2))/(innerWidth*.35),-1,1); b.look.y=clamp(-(e.clientY-(r.top+r.height/2))/(innerHeight*.35),-1,1) } });
+// One bot failing reports its first error and leaves the others running. Features change states too (three slaps: dizzy),
+// so the highlighted state follows Koru rather than the last click.
+let shown='idle';
+function frame(){ for(const b of [main,mini,mini2]){ try{ b.update(); b.draw() }catch(e){ if(!b.err){ b.err=e; reportError(e) } } }
+  if(main.state!==shown){ shown=main.state; for(const o of stateBtns.children) o.classList.toggle('on',o.dataset.state===shown) }
+  requestAnimationFrame(frame) }
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
