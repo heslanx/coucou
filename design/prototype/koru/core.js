@@ -236,7 +236,7 @@ const features=[], eyeShapes={}, particles={}, actions={};
 // A sleepy z (a feature may draw its own in its place).
 particles.z=(x,sz)=>{ const w=sz*.5; x.strokeStyle='rgb(206,236,246)'; x.shadowColor='rgba(120,215,240,.8)'; x.shadowBlur=sz*.6; x.lineWidth=sz*.28; x.lineCap=x.lineJoin='round';
   x.beginPath(); x.moveTo(-w,-w); x.lineTo(w,-w); x.lineTo(-w,w); x.lineTo(w,w); x.stroke() };
-const MODS=()=>({ox:0,oy:0,sx:1,sy:1,rot:0,headY:0,headTilt:0,es:1,eye:null,lookX:0,lookY:0,flap:0});   // flap: resting wings swing out (radians)
+const MODS=()=>({ox:0,oy:0,sx:1,sy:1,rot:0,headY:0,headTilt:0,es:1,eye:null,lookX:0,lookY:0,flap:0,tuftL:0,tuftR:0,flapL:0,flapR:0,lidL:0,lidR:0});   // flap: resting wings swing out (radians); per side (L: viewer-left) tuft* adds to ear, flap* to flap, lid* closes that eye at least that far
 function register(f){ features.push(f); for(const b of Bot.all) f.init&&f.init(b); for(const k in f.actions||{}) actions[k]=f.actions[k]; return f }
 const each=(name,...a)=>{ for(const f of features) if(f[name]) f[name](...a) };
 
@@ -395,11 +395,11 @@ class Bot{
     const wings=[], now=NOW(), wt=(now-this.waveStart)/1000, side=this.handSide, wingLine=d.wings=new Path2D();
     // BotEngine.swift:1235-1257: the wave eases in over 0.18 s from its start (and out over its last 0.15 s here)
     const wave=now>=this.waveStart&&now<this.waveUntil?Math.min(E.out(Math.min(1,wt/.18)),clamp((this.waveUntil-now)/150,0,1)):0;
-    for(const sd of[-1,1]){ const far=clamp(sd*yawN,0,1); let lift=sd===side?s.hands:0; if(sd===side&&wave) lift+=Math.sin(wt*13)*.17*wave*Math.min(1,s.hands); wings.push({sd,far,lift,base:sd===side?s.hands:0,cup:sd===side&&this.handPose==='cup',sway:sd!==side&&wave?Math.sin(6*wt)*.07*wave:0}) }   // the other wing sways (BotEngine.swift:1261-1263)
+    for(const sd of[-1,1]){ const far=clamp(sd*yawN,0,1); let lift=sd===side?s.hands:0; if(sd===side&&wave) lift+=Math.sin(wt*13)*.17*wave*Math.min(1,s.hands); wings.push({sd,far,lift,base:sd===side?s.hands:0,cup:sd===side&&this.handPose==='cup',sway:sd!==side&&wave?Math.sin(6*wt)*.07*wave:0,flap:sd<0?m.flapL:m.flapR}) }   // the other wing sways (BotEngine.swift:1261-1263)
     // The wing's transform in the body's space; shapes are drawn for the left side.
-    const wingM=({sd,far,lift,cup,sway},over)=>{ const D=180/Math.PI;
+    const wingM=({sd,far,lift,cup,sway,flap},over)=>{ const D=180/Math.PI;
       let M=new DOMMatrix().scale(-sd,1).translate(0,R*.15*far).translate(-R*1.42,0).scale(1-.25*far,1).translate(R*1.42,0);
-      if(m.flap||sway) M=M.translate(-R*1.05,-R*.05).rotate((m.flap+sway)*D).translate(R*1.05,R*.05);
+      if(m.flap||flap||sway) M=M.translate(-R*1.05,-R*.05).rotate((m.flap+flap+sway)*D).translate(R*1.05,R*.05);
       const L=Math.min(clamp(lift,0,1.3),1);
       if(cup) return M.translate(-R*1.1,-R*.05).translate(R*.07*L,-R*.47*L).rotate(-.2*L*D).scale(1,1+.12*L).translate(R*1.1,R*.05);   // up beside the head, its top flaring out
       // Raising: the wing swings up from its root and turns over (over: 1 before, -1 after); it never goes edge-on. Raised high
@@ -476,7 +476,7 @@ class Bot{
       face.addPath(toPath(ringPts(sd*ex+f,G.eyeY,G.ring,1-.16*far+.07*near,sd,.05,.15+.1*far),R));   // a light pull keeps the rings round under the beak
       face.addPath(outline(mirror(browSegs(-f*sd,far),-sd),R));          // left-side shapes, mirrored for sd = 1
       face.addPath(toPath([[f+sd*.002,-.247],[f+sd*.05,-.272],[f+sd*.035,-.205],[f,-.215]],R));   // closes the sliver under the V tip, between brow and rings
-      const tp=mirror(tuftPts(-f*sd*.15,s.ear+(sd<0?.55*badgeFold:0),far),-sd), tf=blob(tp,R); tufts.addPath(tf); face.addPath(tf);
+      const tp=mirror(tuftPts(-f*sd*.15,s.ear+(sd<0?m.tuftL+.55*badgeFold:m.tuftR),far),-sd), tf=blob(tp,R); tufts.addPath(tf); face.addPath(tf);
       tuftBoxes.push({tf,box:[Math.min(...tp.map(q=>q[0]))*R,Math.min(...tp.map(q=>q[1]))*R,Math.max(...tp.map(q=>q[0]))*R,Math.max(...tp.map(q=>q[1]))*R]}) }
     d.face=face; d.tufts=tufts;
     if(full) drop(x,tufts,'rgba(2,40,46,.35)',R*.05,0,R*.035);
@@ -505,7 +505,7 @@ class Bot{
         stamp(x,sheet('disc'+R,[-d0-2,-d0-2,d0+2,d0+2],g=>{ const p=new Path2D(); p.arc(0,0,d0,0,Math.PI*2); inner(g,p,'rgba(30,70,80,.16)',R*.035,0,R*.012,[-d0,-d0,d0,d0]) },R*.1)); x.restore() }
       const dc=new Path2D(), dl=dr+R*.005; dc.arc(0,0,dl,0,Math.PI*2); x.save(); x.clip(dc);   // a hair wider than the disc, so a lid covers its antialiased rim
       this.eye(shape,dr,e.sd,yawN,pitN,t,e.far);
-      const lid=1-s.open; if(lid>.01){ lidPath(x,dl,lid);   // the lid comes down with a rounded edge and a thin lash line
+      const lid=Math.max(1-s.open,e.sd<0?m.lidL:m.lidR); if(lid>.01){ lidPath(x,dl,lid);   // the lid comes down with a rounded edge and a thin lash line
         const lg=x.createLinearGradient(0,-dr,0,dr*(2*lid-1)); lg.addColorStop(0,'#3FAFBA'); lg.addColorStop(1,'#2E9DA9'); x.fillStyle=lg; x.fill();
         if(lid<.98){ x.strokeStyle='rgba(22,65,73,.55)'; x.lineWidth=R*.016; x.beginPath(); lidEdge(x,dr,lid); x.stroke() } }
       x.restore(); x.restore() }
