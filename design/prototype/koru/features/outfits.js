@@ -197,9 +197,8 @@ function bunnyEars(x,k){ part(x,k,'bunny',[-1.0,-1.95,1.0,-.3],x=>{ const eh=1.3
 /* ---------------- FACE ---------------- */
 // Lens frames centred on the eye discs (d.eyes), foreshortened with them as the head turns.
 function lenses(x,k,fn){ for(const e of k.eyes){ x.save(); x.translate(e.x,e.y); x.scale(e.kx,e.ky); fn(e.sd); x.restore() } }
-// Sunglasses: dark rounded lenses over the orange discs (their lower edge shows), joined by one solid arched bridge whose ends
-// widen into the lens tops, so no gap shows between them.
-// The lenses sit on the orange discs, tall enough to cover them.
+// Sunglasses: dark rounded lenses centred on the orange discs and tall enough to cover them, joined by one solid arched bridge
+// whose ends widen into the lens tops, so no gap shows between them.
 function sunglasses(x,k){ const w=.88, hh=.76, oy=-.02, [l,r]=k.eyes, y=l.y+oy-hh*.36, a=l.x+(w/2-.12)*l.kx, b=r.x-(w/2-.12)*r.kx, m=(l.x+r.x)/2;
   const bridge=new Path2D(); bridge.moveTo(a,y-.05); bridge.quadraticCurveTo(m,y-.1,b,y-.05); bridge.lineTo(b,y+.07); bridge.quadraticCurveTo(m,y-.03,a,y+.07); bridge.closePath();
   x.fillStyle=lin(x,0,y-.08,0,y+.02,0,'#3A404B',.5,'#181B21',1,'#0A0B0E'); x.fill(bridge);   // under the lenses: its ends meet their rims
