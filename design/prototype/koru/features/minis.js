@@ -4,7 +4,7 @@
 // 765-786 (the emote's eyes stay, wink excepted; the first behaviour 0.8-2.5 s later), the idle pulse of update() 1015-1018,
 // the wandering look of update() 937-946 (a new random look every 0.5-2 s, never the pointer),
 // and notch-buddy.html Bot bodyColor 609-616 (light = colour + 35 % white, dark = colour + 18 % black, edges shaded).
-// Koru keeps her eyes and beak; the body, belly, wings, facial disc and tufts take the agent colour (PillCatalog.swift). A neutral
+// Koru keeps her eyes and beak; the body, belly, wings, facial disc, tufts and eyelids take the agent colour (PillCatalog.swift). A neutral
 // colour (Claude's white) keeps Koru's teal, the official colour, as the Mac app does (KoruEngine.swift, Koru.tints).
 (()=>{
 const {register,E,NOW,rand,hexRgb,rgba,mix,EMOTES}=Koru;
@@ -39,12 +39,13 @@ function setPerm(b,e,first=800+rand()*1700){ b.perm=LOOP[e]?e:null; b.permEye=b.
 /* ---------------- AGENT COLOUR ---------------- */
 // bot.palette (core.js PALETTE) from the agent colour: the prototype's ramp under core's key light, from the lit dome
 // (+80 % white) to a shaded base that keeps its saturation (core's teal bounce lights would grey a plain darker shade),
-// a paler belly, wings in a deeper, more saturated shade, a facial disc and tufts lighter than the body (KoruShapes.swift agent()).
+// a paler belly, wings in a deeper, more saturated shade, a facial disc, tufts and eyelids lighter than the body (KoruShapes.swift agent()).
 // Not expressible, so left out: the soft (blurred) belly edge and the shade at the wing root; core keeps the state light.
 const palette=c=>({body:[mix(c,WHITE,.8),mix(c,WHITE,.6),mix(c,WHITE,.32),mix(c,WHITE,.08),mix(mix(c,deep(c,1),.3),BLACK,.16)].map(v=>rgba(v,1)),
   belly:[rgba(mix(c,WHITE,.3),1),rgba(mix(c,WHITE,.18),1),rgba(mix(c,WHITE,.12),.75)],
   wing:[rgba(mix(deep(c,.78),WHITE,.15),1),rgba(deep(c,.5),1)],
-  face:[mix(c,WHITE,.42),mix(c,WHITE,.5),mix(c,WHITE,.28)].map(v=>rgba(v,1)), glow:mix(c,WHITE,.55)});
+  face:[mix(c,WHITE,.42),mix(c,WHITE,.5),mix(c,WHITE,.28)].map(v=>rgba(v,1)), glow:mix(c,WHITE,.55),
+  lid:[mix(c,WHITE,.42),mix(c,WHITE,.28)].map(v=>rgba(v,1))});
 const tints=c=>{ const hi=Math.max(...c), lo=Math.min(...c); return hi>0&&(hi-lo)/hi>.25 };   // saturated enough to colour Koru
 function paint(b,hex){ const c=hex&&hexRgb(hex); b.palette=c&&tints(c)?palette(c):null }
 

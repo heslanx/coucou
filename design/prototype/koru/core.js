@@ -35,7 +35,8 @@ const K={eyeIn:hexRgb('#F8FAFA'),eyeEdge:hexRgb('#DAE2E4'),ink:'#164149'};   // 
 // The colours a feature may swap as a whole through bot.palette (mini Korus take their agent's colour this way):
 // body = the key-light gradient from the lit dome to the shaded base, belly = top to bottom, wing = upper edge to tip.
 const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['#3FAAB2','#268C98','rgba(38,140,152,.6)'],wing:['#124F5C','#09343E'],
-  face:['#40B2BF','#4EBBC3','#2E9FAB'],glow:[80,200,218]};   // face: the facial disc and tufts, top to bottom; glow: the light on the tufts
+  face:['#40B2BF','#4EBBC3','#2E9FAB'],glow:[80,200,218],lid:['#3FAFBA','#2E9DA9']};   // face: the facial disc and tufts, top to bottom;
+  // glow: the light on the tufts; lid: the eyelids, top to edge
 const G={rx:1.21,ryTop:1.04,ryBot:1.02,cy:.088,nTop:2.0,nBot:3.5,
   eyeSp:.518,eyeY:-.117,ring:.558,disc:.386,pupil:.152,face:.27};
 
@@ -155,9 +156,10 @@ function grainStamp(x,path,s,alpha,box){ const u0=Math.max(s.x0,Math.floor(box?b
     u1=Math.min(s.x0+s.c.width,Math.ceil(box?box[2]:1e9)), v1=Math.min(s.y0+s.c.height,Math.ceil(box?box[3]:1e9)); if(u1<=u0||v1<=v0) return;
   x.save(); x.clip(path); x.globalCompositeOperation='soft-light'; x.globalAlpha*=alpha; x.drawImage(s.c,u0-s.x0,v0-s.y0,u1-u0,v1-v0,u0,v0,u1-u0,v1-v0); x.restore() }
 // Eyelid (inside an eye disc of radius dr, 0..1 closed): its edge bows down in the middle like a real lid.
-function lidEdge(x,dr,lid){ const y=-dr+2*dr*lid, bow=dr*.28*Math.sin(Math.PI*lid); x.moveTo(-dr,y-bow*.6); x.quadraticCurveTo(0,y+bow,dr,y-bow*.6) }
-function lidPath(x,dr,lid){ x.beginPath(); x.moveTo(-dr,-dr); x.lineTo(dr,-dr); const y=-dr+2*dr*lid, bow=dr*.28*Math.sin(Math.PI*lid);
-  x.lineTo(dr,y-bow*.6); x.quadraticCurveTo(0,y+bow,-dr,y-bow*.6); x.closePath() }
+// lidCurve: the height of the edge's ends and of its control point; lidEdge strokes the edge, lidPath fills the lid down to it.
+function lidCurve(dr,lid){ const y=-dr+2*dr*lid, bow=dr*.28*Math.sin(Math.PI*lid); return [y-bow*.6,y+bow] }
+function lidEdge(x,dr,lid){ const [ye,yc]=lidCurve(dr,lid); x.moveTo(-dr,ye); x.quadraticCurveTo(0,yc,dr,ye) }
+function lidPath(x,dr,lid){ const [ye,yc]=lidCurve(dr,lid); x.beginPath(); x.moveTo(-dr,-dr); x.lineTo(dr,-dr); x.lineTo(dr,ye); x.quadraticCurveTo(0,yc,-dr,ye); x.closePath() }
 // Badge glyphs as paths, so they look the same on every platform and port to SwiftUI unchanged.
 function glyph(x,kind,R){ x.fillStyle=x.strokeStyle='#fff'; x.lineCap='round'; x.lineJoin='round';
   if(kind==='bang'){ x.lineWidth=R*.075; x.beginPath(); x.moveTo(0,-R*.115); x.lineTo(0,R*.02); x.stroke(); x.beginPath(); x.arc(0,R*.1,R*.042,0,Math.PI*2); x.fill() }
@@ -225,7 +227,7 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //            bot.squash(), bot.roll(ms,turns), bot.emit(type,n) (returns the new particles), bot.zz(n) (sleepy z beside the head),
 //            bot.sound(name) (a sound event)
 //   other    bot.look {x,y}, bot.mini, bot.state and bot.cfg (its STATES entry, read), bot.palette (PALETTE's shape: recolours body,
-//            belly, wings, facial disc and tufts), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
+//            belly, wings, facial disc, tufts and eyelids), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
 //            page options a capture() may set: bot.bg (dark backdrop), bot.mini
 // Also on Koru: G (geometry), K (eye and ink colours), STATES, EMOTES, Clock, params, NOW, rand, the easing and colour helpers;
 // drawing helpers drop/inner (soft shadow and inner light), grainOn (velvet grain), sheet/stamp (cache shading that depends only on
@@ -506,7 +508,7 @@ class Bot{
       const dc=new Path2D(), dl=dr+R*.005; dc.arc(0,0,dl,0,Math.PI*2); x.save(); x.clip(dc);   // a hair wider than the disc, so a lid covers its antialiased rim
       this.eye(shape,dr,e.sd,yawN,pitN,t,e.far);
       const lid=Math.max(1-s.open,e.sd<0?m.lidL:m.lidR); if(lid>.01){ lidPath(x,dl,lid);   // the lid comes down with a rounded edge and a thin lash line
-        const lg=x.createLinearGradient(0,-dr,0,dr*(2*lid-1)); lg.addColorStop(0,'#3FAFBA'); lg.addColorStop(1,'#2E9DA9'); x.fillStyle=lg; x.fill();
+        const lg=x.createLinearGradient(0,-dr,0,dr*(2*lid-1)); lg.addColorStop(0,P.lid[0]); lg.addColorStop(1,P.lid[1]); x.fillStyle=lg; x.fill();
         if(lid<.98){ x.strokeStyle='rgba(22,65,73,.55)'; x.lineWidth=R*.016; x.beginPath(); lidEdge(x,dr,lid); x.stroke() } }
       x.restore(); x.restore() }
     // beak: a matte teardrop lit from the right
