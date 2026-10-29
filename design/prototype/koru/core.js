@@ -31,7 +31,7 @@ const mix=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
 
 /* ---------------- KORU ---------------- */
 // Palette and geometry, in units of R (R = 0.3 × canvas width × the Bot's frame, as for Mochi), from the body centre.
-const K={eyeIn:hexRgb('#FEA638'),eyeEdge:hexRgb('#F6962C'),ink:'#164149'};
+const K={eyeIn:hexRgb('#F8FAFA'),eyeEdge:hexRgb('#DAE2E4'),ink:'#164149'};   // white eye discs (owner's choice), dark ink pupils
 // The colours a feature may swap as a whole through bot.palette (mini Korus take their agent's colour this way):
 // body = the key-light gradient from the lit dome to the shaded base, belly = top to bottom, wing = upper edge to tip.
 const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['#3FAAB2','#268C98','rgba(38,140,152,.6)'],wing:['#124F5C','#09343E']};
@@ -501,7 +501,7 @@ class Bot{
       const eg=x.createLinearGradient(0,-dr,0,dr); eg.addColorStop(0,rgba(K.eyeIn,1)); eg.addColorStop(1,rgba(K.eyeEdge,1));
       x.fillStyle=eg; x.fill(disc);
       if(full){ const d0=R*G.disc, k=dr/d0; x.save(); x.scale(k,k);   // shading drawn for the resting disc, scaled with it
-        stamp(x,sheet('disc'+R,[-d0-2,-d0-2,d0+2,d0+2],g=>{ const p=new Path2D(); p.arc(0,0,d0,0,Math.PI*2); inner(g,p,'rgba(170,80,10,.22)',R*.035,0,R*.012,[-d0,-d0,d0,d0]) },R*.1)); x.restore() }
+        stamp(x,sheet('disc'+R,[-d0-2,-d0-2,d0+2,d0+2],g=>{ const p=new Path2D(); p.arc(0,0,d0,0,Math.PI*2); inner(g,p,'rgba(30,70,80,.16)',R*.035,0,R*.012,[-d0,-d0,d0,d0]) },R*.1)); x.restore() }
       const dc=new Path2D(), dl=dr+R*.005; dc.arc(0,0,dl,0,Math.PI*2); x.save(); x.clip(dc);   // a hair wider than the disc, so a lid covers its antialiased rim
       this.eye(shape,dr,e.sd,yawN,pitN,t,e.far);
       const lid=1-s.open; if(lid>.01){ lidPath(x,dl,lid);   // the lid comes down with a rounded edge and a thin lash line
@@ -585,7 +585,7 @@ class Bot{
       case 'flat': { const w=R*.38,h=R*.11; rr(x,-w/2-sd*R*.07,-h/2+py*.2,w,h,h/2); x.fill(); break }
       case 'line': x.save(); x.rotate(-sd*.25); rr(x,-dr*.5,-R*.05,dr,R*.1,R*.05); x.fill(); x.restore(); break;
       case 'happy': happy();
-        x.strokeStyle='rgba(200,100,30,.9)'; x.lineWidth=R*.018; for(let i=0;i<3;i++){ const yy=dr*(.42+i*.12), xo=sd*dr*(.5+i*.05); x.beginPath(); x.moveTo(xo,yy); x.quadraticCurveTo(xo+sd*dr*.12,yy-dr*.02,xo+sd*dr*.2,yy-dr*.1); x.stroke() } break;
+        x.strokeStyle='rgba(232,112,104,.85)'; x.lineWidth=R*.018; for(let i=0;i<3;i++){ const yy=dr*(.42+i*.12), xo=sd*dr*(.5+i*.05); x.beginPath(); x.moveTo(xo,yy); x.quadraticCurveTo(xo+sd*dr*.12,yy-dr*.02,xo+sd*dr*.2,yy-dr*.1); x.stroke() } break;
       case 'closed': x.save(); x.lineWidth=R*.095; x.beginPath(); x.arc(0,-dr*.18,dr*.58,Math.PI*.2,Math.PI*.8); x.stroke(); x.restore(); break;
       case 'spiral': { x.lineWidth=R*.07; x.beginPath(); let qx=0,qy=0,aa=0; for(let a=0;a<=4*Math.PI;a+=.12){ const r=R*.03+a/(4*Math.PI)*R*.22; aa=a+t*6*sd; qx=Math.cos(aa)*r; qy=Math.sin(aa)*r; a?x.lineTo(qx,qy):x.moveTo(qx,qy) }
         x.lineTo(qx+Math.cos(aa+1.2)*R*.06,qy+Math.sin(aa+1.2)*R*.06); x.stroke(); break }
