@@ -4611,7 +4611,11 @@ struct OutfitPillView: View {
     }
 }
 
-private func drawOutfitIcon(context: GraphicsContext, size: CGSize, outfit: Outfit, seasonal: Outfit = .none) {
+@MainActor private func drawOutfitIcon(context: GraphicsContext, size: CGSize, outfit: Outfit, seasonal: Outfit = .none) {
+    if Koru.enabled && outfit != .none {   // Koru wearing it (KoruOutfits.swift)
+        Koru.drawOutfitIcon(context: context, size: size, outfit: outfit, seasonal: seasonal)
+        return
+    }
     let W = size.width, H = size.height
     let cx = W / 2, cy = H / 2
     let R: CGFloat = 6.5   // small scale for icon

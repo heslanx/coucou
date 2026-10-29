@@ -91,7 +91,8 @@ extension Koru {
 
     // MARK: - Body, wings, head
 
-    static func draw(_ context: GraphicsContext, size: CGSize, pose p: KoruPose) {
+    /// layers: draw hooks (KoruLayers.swift) run at their z-points; `.none` draws Koru alone.
+    static func draw(_ context: GraphicsContext, size: CGSize, pose p: KoruPose, layers L: KoruLayers = .none) {
         KoruSheets.beginFrame()
         let scale = max(1, context.environment.displayScale)
         let fr = KoruFrame(size: size, pose: p)
@@ -108,6 +109,15 @@ extension Koru {
         let f = sin(p.yaw) * S.face, fx = f * R
         let lit = 1 + 0.9 * max(0, tint - 0.3)
         let upright = (1 + cos(p.roll)) / 2
+        // The head transform from the body's space, and where the beak sits in it: the head turns rigidly, the body's
+        // squash undone around the turn, so a tilted head is never sheared.
+        let headT = CGAffineTransform(translationX: 0, y: p.hy * R - R * 0.15).scaledBy(x: 1 / sxE, y: 1 / syE)
+            .rotated(by: p.tilt).scaledBy(x: sxE, y: syE).translatedBy(x: 0, y: R * 0.15)
+        let body = S.scaled(S.body, R)
+        // What the hooks get, filled in as the frame is drawn.
+        var d = KoruGeometry(size: size, R: R, rx: rx, ryB: ryB, ryT: fr.ryT, cx: cx, cy: cy, sx: sxE, sy: syE, pose: p, col: col, tint: tint,
+                             yawN: yawN, pitN: pitN, f: f, fx: fx, scale: scale, head: headT, beakAt: CGPoint(x: fx * 1.08, y: R * 0.096), body: body)
+        func layer(_ hooks: [KoruLayers.Hook], _ ctx: GraphicsContext) { for hook in hooks { hook(ctx, d) } }
 
         // Floor glow: a saturated band where the body meets the floor, and a wider pool.
         for (k, sk, r0, a0) in [(1.0, 0.09, 1.15, 0.7), (1.02, 0.16, 1.4, 0.35)] as [(CGFloat, CGFloat, CGFloat, CGFloat)] {
@@ -118,6 +128,7 @@ extension Koru {
             c.fill(S.circle(0, 0, r), with: rad([(col.mix(.white, 0.1).color(S.clamp(a, 0, 1)), 0), (col.color(S.clamp(0.5 * a, 0, 1)), 0.4),
                                                  (col.color(0.12 * a), 0.75), (col.color(0), 1)], .zero, r))
         }
+        layer(L.floor, context)
 
         // Squash keeps the base on the floor; full size, the body sits on whole pixels so its shading lines up with its edge.
         let by = cy + ryB * (1 - syE)
@@ -125,7 +136,7 @@ extension Koru {
         if full { b.translateBy(x: (cx * scale).rounded() / scale, y: (by * scale).rounded() / scale) } else { b.translateBy(x: cx, y: by) }
         if p.rollSelf && p.roll != 0 { b.rotate(by: .radians(p.roll)) }
         b.scaleBy(x: sxE, y: syE)
-        let body = S.scaled(S.body, R)
+        d.bodyT = bodyTransform(cx: cx, by: by, pose: p, sx: sxE, sy: syE, scale: scale)
 
         // Sheet boxes (px at Rq): the body, its halo, and the canvas at frame 1, which limits the widest shading.
         func boxes(_ Rq: CGFloat) -> (BB: CGRect, SB: CGRect, HB: CGRect, C1: CGRect, body: CGPath) {
@@ -203,6 +214,7 @@ extension Koru {
             return M0.concatenating(A)
         }
         let wingPath = S.scaled(S.wing, R)
+        let traceWings = !L.wings.isEmpty
         // While it turns over, its two faces cross-fade; otherwise one is drawn.
         func drawWing(_ ctx: GraphicsContext, _ w: Wing, front: Bool) {
             let k = cos(.pi * S.smooth(S.clamp(w.lift / 0.45, 0, 1))), v = w.cup ? 0 : S.smooth(S.clamp((0.25 - k) / 0.5, 0, 1))
@@ -225,6 +237,7 @@ extension Koru {
                         }
                     }, R: R)
                 }
+                if traceWings { d.wings.addPath(wingPath, transform: T) }
                 c.concatenate(T)
                 c.fill(wingPath, with: lin([(P.wing[0], 0), (P.wing[1], 1)], CGPoint(x: -R * 1.3, y: -R * 0.1), CGPoint(x: -R * 1.0, y: R * 0.56)))
                 if full {
@@ -240,6 +253,7 @@ extension Koru {
                 }
             }
         }
+        layer(L.behind, b)
         // A wing goes behind the body as it folds back or rises.
         for w in wings where w.far > 0.35 || (w.lift > 0.02 && !w.cup) { drawWing(b, w, front: false) }
 
@@ -269,6 +283,7 @@ extension Koru {
         // Belly, fading into the body at the bottom.
         var belly = Path()
         belly.addEllipse(in: CGRect(x: fx * 0.75 - R * 0.532, y: R * 0.94 - R * 0.52, width: R * 1.064, height: R * 1.04))
+        d.belly = belly
         do {
             var c = b
             c.clip(to: body)
@@ -332,17 +347,26 @@ extension Koru {
                 }, R: R, color: col.mix(.white, 0.1).color(0.9 * (tint - 0.3) / 0.7 * upright))
             }
         }
+        layer(L.body, b)
         for w in wings {   // a cupped wing stays in front
             let a = (1 - S.smooth(S.clamp((w.far - 0.35) / 0.3, 0, 1))) * (w.cup || w.lift < 0.6 ? 1 : 0)
             if a > 0.01 { var c = b; c.opacity *= Double(a); drawWing(c, w, front: true) }
         }
+        layer(L.wings, b)
 
-        // Head: lower in busy states, tilts around the neck; the body's squash is undone around the turn, so a tilted
-        // head is never sheared.
+        // Head: lower in busy states, tilts around the neck.
         var h = b
-        h.concatenate(CGAffineTransform(translationX: 0, y: p.hy * R - R * 0.15).scaledBy(x: 1 / sxE, y: 1 / syE)
-            .rotated(by: p.tilt).scaledBy(x: sxE, y: syE).translatedBy(x: 0, y: R * 0.15))
+        h.concatenate(headT)
         let ex = S.eyeSp, ey = R * S.eyeY, shape = p.eye
+        // eyes: each orange disc in the head's space, squeezed for the head turn
+        struct Eye { let sd, far, x, y, r, kx, ky: CGFloat }
+        let eyes: [Eye] = [-1, 1].map { (sd: CGFloat) in
+            let far = max(0, sd * yawN), near = max(0, -sd * yawN)
+            return Eye(sd: sd, far: far, x: sd * ex * R + fx - R * 0.013 * abs(yawN), y: ey,
+                       r: R * S.disc * (shape == .wide ? 1.04 : 1) * p.es, kx: 1 + 0.057 * near - 0.085 * far, ky: 1 - far * 0.015)
+        }
+        d.eyes = eyes.map { KoruEyeDisc(sd: $0.sd, far: $0.far, x: $0.x, y: $0.y, r: $0.r, kx: $0.kx, ky: $0.ky) }
+        layer(L.headBack, h)
         var face = Path(), tufts = Path()
         let badgeFold = p.cfg.fold ? p.badgeS : 0
         for sd in [-1, 1] as [CGFloat] {
@@ -354,6 +378,7 @@ extension Koru {
             let tf = S.blob(S.pts(tp), R)
             tufts.addPath(tf); face.addPath(tf)
         }
+        d.face = face; d.tufts = tufts
         if full { drop(h, tufts, koruRGBA(2, 40, 46, 0.35), R * 0.05, 0, R * 0.035) }
         h.fill(face, with: lin([(KoruRGB(hex: "#40B2BF").color(), 0), (KoruRGB(hex: "#4EBBC3").color(), 0.35), (KoruRGB(hex: "#2E9FAB").color(), 1)],
                                CGPoint(x: 0, y: -R * 1.15), CGPoint(x: 0, y: ey + R * S.ring)))
@@ -379,13 +404,6 @@ extension Koru {
             inner(c, face, koruRGBA(175, 238, 246, 0.8), R * 0.03, 0, R * 0.022)
             inner(c, face, koruRGBA(4, 50, 58, 0.35), R * 0.04, 0, -R * 0.025)
         }
-        // eyes: each orange disc in the head's space, squeezed for the head turn
-        struct Eye { let sd, far, x, y, r, kx, ky: CGFloat }
-        let eyes: [Eye] = [-1, 1].map { (sd: CGFloat) in
-            let far = max(0, sd * yawN), near = max(0, -sd * yawN)
-            return Eye(sd: sd, far: far, x: sd * ex * R + fx - R * 0.013 * abs(yawN), y: ey,
-                       r: R * S.disc * (shape == .wide ? 1.04 : 1) * p.es, kx: 1 + 0.057 * near - 0.085 * far, ky: 1 - far * 0.015)
-        }
         if p.blush > 0.01 && shape != .happy {   // love and proud: a blush on each ring
             var c = h
             c.clip(to: face)
@@ -395,6 +413,7 @@ extension Koru {
                        with: rad([(koruRGBA(255, 84, 128, 0.6 * p.blush), 0), (koruRGBA(255, 84, 128, 0), 1)], CGPoint(x: bx, y: by), R * 0.16))
             }
         }
+        layer(L.face, h)
         for e in eyes {
             let dr = e.r
             var c = h
@@ -414,7 +433,7 @@ extension Koru {
             }
             let dl = dr + R * 0.005   // a hair wider than the disc, so a lid covers its antialiased rim
             c.clip(to: S.circle(0, 0, dl))
-            eye(c, shape: shape, dr: dr, sd: e.sd, yawN: yawN, pitN: pitN, far: e.far, R: R, pose: p)
+            eye(c, shape: shape, dr: dr, sd: e.sd, yawN: yawN, pitN: pitN, far: e.far, R: R, pose: p, hooks: L.eye)
             let lid = 1 - p.open
             if lid > 0.01 {   // the lid comes down with a rounded edge and a thin lash line
                 c.fill(S.lidPath(dl, lid), with: lin([(KoruRGB(hex: "#3FAFBA").color(), 0), (KoruRGB(hex: "#2E9DA9").color(), 1)],
@@ -422,10 +441,28 @@ extension Koru {
                 if lid < 0.98 { c.stroke(S.lidEdge(dr, lid), with: .color(koruRGBA(22, 65, 73, 0.55)), lineWidth: R * 0.016) }
             }
         }
-        // Beak: a matte teardrop lit from the right.
+        // Beak: a matte teardrop lit from the right, unless a hook draws its own.
         var k = h
-        k.translateBy(x: fx * 1.08, y: R * 0.096)
+        k.translateBy(x: d.beakAt.x, y: d.beakAt.y)
         let br = R * 0.125, tip = R * 0.18, beak = S.beak(br, tip)
+        d.br = br; d.tip = tip; d.beak = beak
+        var custom = false
+        for hook in L.beak where hook(k, d) { custom = true; break }
+        if !custom { beakFinish(k, beak, br: br, tip: tip, R: R, Rpx: Rpx, full: full) }
+        layer(L.headFront, h)
+        layer(L.headTop, h)
+    }
+
+    /// Body space → canvas space, as draw() sets up the body's context (by: the base kept on the floor through the squash).
+    private static func bodyTransform(cx: CGFloat, by: CGFloat, pose p: KoruPose, sx: CGFloat, sy: CGFloat, scale: CGFloat) -> CGAffineTransform {
+        let t = !p.mini ? CGPoint(x: (cx * scale).rounded() / scale, y: (by * scale).rounded() / scale) : CGPoint(x: cx, y: by)
+        var M = CGAffineTransform(scaleX: sx, y: sy)
+        if p.rollSelf && p.roll != 0 { M = M.concatenating(CGAffineTransform(rotationAngle: p.roll)) }
+        return M.concatenating(CGAffineTransform(translationX: t.x, y: t.y))
+    }
+
+    /// Koru's closed beak, in its own space: contact shadow, fill, inner shade and sheen.
+    private static func beakFinish(_ k: GraphicsContext, _ beak: Path, br: CGFloat, tip: CGFloat, R: CGFloat, Rpx: CGFloat, full: Bool) {
         if full {
             KoruSheets.stamp(k, KoruSheets.get("beakShadow", R: Rpx) { Rq in
                 KoruSheets.render(box: beakBox(Rq), R: Rq) { g, _ in
@@ -453,13 +490,15 @@ extension Koru {
     /// Koru standing where a Mochi of half-height hh had his centre (drawings that place Mochi themselves, as the
     /// greeting): her size to his as in BotEngine's canvases. With a badge kind, her badge too.
     static func draw(_ context: GraphicsContext, centre: CGPoint, mochiHalfHeight hh: CGFloat, pose p: KoruPose,
-                     badge: KoruBadgeKind? = nil, badgeColors: (KoruRGB, KoruRGB) = (.white, .white)) {
+                     badge: KoruBadgeKind? = nil, badgeColors: (KoruRGB, KoruRGB) = (.white, .white), layers: KoruLayers = .none) {
         let R = frame * hh / 0.88, W = R / (0.3 * p.frame)
         guard W > 1 else { return }
         var c = context
         c.translateBy(x: centre.x - W / 2, y: centre.y - W / 2 - KoruShape.cy * R)
-        draw(c, size: CGSize(width: W, height: W), pose: p)
-        if badge != nil { drawFront(c, size: CGSize(width: W, height: W), pose: p, badge: badge, badgeColors: badgeColors, particles: []) }
+        draw(c, size: CGSize(width: W, height: W), pose: p, layers: layers)
+        if badge != nil || !layers.front.isEmpty {
+            drawFront(c, size: CGSize(width: W, height: W), pose: p, badge: badge, badgeColors: badgeColors, particles: [], layers: layers)
+        }
     }
 
     /// The beak's sheet box (core.js beakFinish KB), with room for an open beak.
@@ -472,18 +511,17 @@ extension Koru {
 
     /// Inside one orange eye disc (radius dr), centred on 0,0 and clipped to it.
     private static func eye(_ c: GraphicsContext, shape: EyeShape, dr: CGFloat, sd: CGFloat, yawN: CGFloat, pitN: CGFloat,
-                            far: CGFloat, R: CGFloat, pose p: KoruPose) {
+                            far: CGFloat, R: CGFloat, pose p: KoruPose, hooks: [KoruLayers.EyeHook] = []) {
         let ink = KoruRGB(hex: "#164149").color(), cfg = p.cfg, t = p.t
         let pr = R * S.pupil, reach = dr - pr - R * 0.02
         var px = yawN * reach * (cfg.scan ? 1.15 : 0.8) * (1 - 0.08 * far)
         let py = -pitN * reach * 0.85 - far * R * 0.02 - R * 0.014
         if cfg.converge { px += -sd * reach * 0.35 }
-        func pupil(_ r: CGFloat) {
-            var q = c
-            q.translateBy(x: px, y: py); q.scaleBy(x: 1 - far * 0.07, y: 1)
-            q.fill(S.circle(0, 0, r), with: .color(ink))
-            q.fill(S.circle(r * 0.57, -r * 0.39, r * 0.24), with: .color(koruRGBA(252, 243, 237, 1)))
+        if !hooks.isEmpty {
+            let info = KoruEyeInfo(shape: shape, dr: dr, sd: sd, far: far, px: px, py: py, pr: pr, R: R, t: t, yawN: yawN, pitN: pitN, pose: p)
+            for hook in hooks where hook(c, info) { return }
         }
+        func pupil(_ r: CGFloat) { Koru.pupil(c, at: CGPoint(x: px, y: py), r: r, far: far) }
         func happy() { c.fill(S.crescent(dr * 0.3, dr * 0.7, .pi * 1.1, .pi * 1.9, dr * 0.3), with: .color(ink)) }
         let round = StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round)
         func style(_ w: CGFloat) -> StrokeStyle { var s = round; s.lineWidth = w; return s }
@@ -536,10 +574,23 @@ extension Koru {
         }
     }
 
+    /// Koru's pupil (ink with its catch light) of radius r at the pupil's place, for an eye hook drawing its own shape.
+    static func pupil(_ c: GraphicsContext, _ info: KoruEyeInfo, r: CGFloat) {
+        pupil(c, at: CGPoint(x: info.px, y: info.py), r: r, far: info.far)
+    }
+
+    private static func pupil(_ c: GraphicsContext, at q0: CGPoint, r: CGFloat, far: CGFloat) {
+        var q = c
+        q.translateBy(x: q0.x, y: q0.y); q.scaleBy(x: 1 - far * 0.07, y: 1)
+        q.fill(S.circle(0, 0, r), with: .color(KoruRGB(hex: "#164149").color()))
+        q.fill(S.circle(r * 0.57, -r * 0.39, r * 0.24), with: .color(koruRGBA(252, 243, 237, 1)))
+    }
+
     // MARK: - Badge, aura, particles
 
+    /// layers: their `front` hooks run last, in canvas space.
     static func drawFront(_ context: GraphicsContext, size: CGSize, pose p: KoruPose, badge: KoruBadgeKind?, badgeColors: (KoruRGB, KoruRGB),
-                          particles: [Particle]) {
+                          particles: [Particle], layers L: KoruLayers = .none) {
         let fr = KoruFrame(size: size, pose: p)
         let R = fr.R, rx = fr.rx, cx = fr.cx, cy = fr.cy, sxE = fr.sx, syE = fr.sy, t = p.t
         guard R > 0.5 else { return }
@@ -666,6 +717,17 @@ extension Koru {
                 x.addFilter(.shadow(color: koruRGBA(120, 215, 240, 0.8), radius: sz * 0.6 * shadowK))
                 x.stroke(z, with: .color(koruRGBA(206, 236, 246, 1)), style: StrokeStyle(lineWidth: sz * 0.28, lineCap: .round, lineJoin: .round))
             }
+        }
+        if !L.front.isEmpty {
+            let d = KoruGeometry(size: size, R: R, rx: rx, ryB: fr.ryB, ryT: fr.ryT, cx: cx, cy: cy, sx: sxE, sy: syE, pose: p, col: p.col, tint: p.tint,
+                                 yawN: S.clamp(p.yaw / 0.62, -1, 1), pitN: S.clamp(p.pitch / 0.5, -1, 1), f: sin(p.yaw) * S.face,
+                                 fx: sin(p.yaw) * S.face * R, scale: max(1, context.environment.displayScale),
+                                 head: CGAffineTransform(translationX: 0, y: p.hy * R - R * 0.15).scaledBy(x: 1 / sxE, y: 1 / syE)
+                                    .rotated(by: p.tilt).scaledBy(x: sxE, y: syE).translatedBy(x: 0, y: R * 0.15),
+                                 beakAt: CGPoint(x: sin(p.yaw) * S.face * R * 1.08, y: R * 0.096), body: S.scaled(S.body, R))
+            var dd = d
+            dd.bodyT = bodyTransform(cx: cx, by: cy + fr.ryB * (1 - syE), pose: p, sx: sxE, sy: syE, scale: d.scale)
+            for hook in L.front { hook(context, dd) }
         }
     }
 

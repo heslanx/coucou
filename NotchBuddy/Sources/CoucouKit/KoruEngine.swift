@@ -91,7 +91,7 @@ extension BotEngine {
     }
 
     func koruDraw(context: GraphicsContext, size: CGSize) {
-        Koru.draw(context, size: size, pose: koruPose(size: size))
+        Koru.draw(context, size: size, pose: koruPose(size: size), layers: koruLayers())
     }
 
     /// Badge, aura, sweat and heat (MochiMood.swift, placed for Koru's body) and particles, outside the body's turn.
@@ -105,7 +105,7 @@ extension BotEngine {
         }
         if morph >= 0.25 { kind = nil }
         drawMoodExtras(context: context, R: fr.R, rx: fr.rx, ry: fr.ryB, cx: fr.cx, cy: fr.cy)
-        Koru.drawFront(context, size: size, pose: p, badge: kind, badgeColors: colors, particles: particles)
+        Koru.drawFront(context, size: size, pose: p, badge: kind, badgeColors: colors, particles: particles, layers: koruLayers())
     }
 
     func koruBodyCenter(size: CGSize) -> CGPoint {
