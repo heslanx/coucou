@@ -38,21 +38,22 @@ const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['
 const G={rx:1.21,ryTop:1.04,ryBot:1.02,cy:.088,nTop:2.0,nBot:3.5,
   eyeSp:.518,eyeY:-.117,ring:.558,disc:.386,pupil:.152,face:.27};
 
-// hy, ear, tilt, tint and go are targets, eased every frame (a tween on one of them wins while it runs).
+// hy, ear, tilt, tint and go are targets, eased every frame (a tween on one of them wins while it runs). sound: what
+// BotEngine.swift's state table plays when the state starts (emotes carry theirs too).
 const STATES={
   idle:{label:'Parada',col:'#1EAAC8',tint:.2,eye:'pill',badge:null,go:.6},
-  working:{label:'Trabalhando',col:'#1796E5',hy:.054,sq:.955,dy:.03,tint:.85,eye:'pill',badge:['dots',['#3D8CFF','#2F6CF5']],bo:[-.083,-.11],fold:1,look:[.05,-1.6],converge:1,pupil:1.12,go:1},
-  thinking:{label:'Pensando',col:'#8C50FF',hy:.022,sq:.932,dy:.03,tint:.85,eye:'pill',badge:['dots',['#9A4DFF','#7C3AED']],bo:[.125,.058],bsc:.9,brot:-.09,dot:'#F0D8FF',fold:1,look:[1.25,.95],go:1},
-  searching:{label:'Procurando',col:'#4A80F2',hy:0,sq:.967,dy:.03,tint:.85,eye:'pill',badge:['dots',['#4F5BFF','#3A3DF0']],bo:[-.05,.058],scan:1,go:1},
-  approval:{label:'Aprovação',col:'#FFAA1E',hy:.076,sq:.935,dy:.03,tint:.95,eye:'wide',badge:['bang',['#FFC23A','#F07F00']],bo:[0,.11],fold:1,look:[.75,-.05],bounce:1,go:.75},
-  question:{label:'Pergunta',col:'#28C8FF',hy:-.04,dy:.03,tint:.9,eye:'pill',badge:['q',['#22D0FF','#0A9CF0']],bo:[-.05,-.015],tilt:.26,look:[1.1,.85],go:.5},
-  error:{label:'Erro',col:'#FF3C46',hy:.05,dy:.03,tint:.95,eye:'flat',badge:['dot',['#FF5A5A','#E8303C']],bo:[-.058,-.067],ear:1.4,go:.5},
-  finished:{label:'Terminou',col:'#2EE6C0',hy:.06,dy:.03,tint:.85,eye:'happy',badge:['ring',['#22F79E','#18D888']],bo:[.17,-.04],aura:'spark',go:.5},
-  sleeping:{label:'Dormindo',col:'#1EAAC8',hy:.06,dy:.03,tint:.1,eye:'closed',badge:null,breathe:1,zz:1,ear:.45,go:.32},
-  dizzy:{label:'Tonta',col:'#FF5AAA',hy:.01,dy:.03,tint:.95,eye:'spiral',badge:null,aura:'wobble',tilt:.17,go:1},
-  ratelimit:{label:'Limite',col:'#FB923C',tint:.85,eye:'tired',badge:['dot',['#FFA552','#F07C1E']],sweat:1,go:.9}
+  working:{label:'Trabalhando',col:'#1796E5',hy:.054,sq:.955,dy:.03,tint:.85,eye:'pill',badge:['dots',['#3D8CFF','#2F6CF5']],bo:[-.083,-.11],fold:1,look:[.05,-1.6],converge:1,pupil:1.12,go:1,sound:'work'},
+  thinking:{label:'Pensando',col:'#8C50FF',hy:.022,sq:.932,dy:.03,tint:.85,eye:'pill',badge:['dots',['#9A4DFF','#7C3AED']],bo:[.125,.058],bsc:.9,brot:-.09,dot:'#F0D8FF',fold:1,look:[1.25,.95],go:1,sound:'think'},
+  searching:{label:'Procurando',col:'#4A80F2',hy:0,sq:.967,dy:.03,tint:.85,eye:'pill',badge:['dots',['#4F5BFF','#3A3DF0']],bo:[-.05,.058],scan:1,go:1,sound:'search'},
+  approval:{label:'Aprovação',col:'#FFAA1E',hy:.076,sq:.935,dy:.03,tint:.95,eye:'wide',badge:['bang',['#FFC23A','#F07F00']],bo:[0,.11],fold:1,look:[.75,-.05],bounce:1,go:.75,sound:'approval'},
+  question:{label:'Pergunta',col:'#28C8FF',hy:-.04,dy:.03,tint:.9,eye:'pill',badge:['q',['#22D0FF','#0A9CF0']],bo:[-.05,-.015],tilt:.26,look:[1.1,.85],go:.5,sound:'question'},
+  error:{label:'Erro',col:'#FF3C46',hy:.05,dy:.03,tint:.95,eye:'flat',badge:['dot',['#FF5A5A','#E8303C']],bo:[-.058,-.067],ear:1.4,go:.5,sound:'error'},
+  finished:{label:'Terminou',col:'#2EE6C0',hy:.06,dy:.03,tint:.85,eye:'happy',badge:['ring',['#22F79E','#18D888']],bo:[.17,-.04],aura:'spark',go:.5,sound:'finish'},
+  sleeping:{label:'Dormindo',col:'#1EAAC8',hy:.06,dy:.03,tint:.1,eye:'closed',badge:null,breathe:1,zz:1,ear:.45,go:.32,sound:'sleep'},
+  dizzy:{label:'Tonta',col:'#FF5AAA',hy:.01,dy:.03,tint:.95,eye:'spiral',badge:null,aura:'wobble',tilt:.17,go:1,sound:'dizzy'},
+  ratelimit:{label:'Limite',col:'#FB923C',tint:.85,eye:'tired',badge:['dot',['#FFA552','#F07C1E']],sweat:1,go:.9,sound:'rate'}
 };
-const EMOTES={love:{label:'Amor',eye:'heart',c:'#FF4D6D'},surprised:{label:'Surpresa',eye:'dot',c:'#FFFFFF'},proud:{label:'Orgulho',eye:'star',c:'#F7B32B'},wink:{label:'Piscadinha',eye:'wink',c:'#A78BFA'},yawn:{label:'Bocejo',eye:'tired',c:'#94A3B8'},happy:{eye:'happy'},annoyed:{eye:'line',ms:800}};
+const EMOTES={love:{label:'Amor',eye:'heart',c:'#FF4D6D',sound:'love'},surprised:{label:'Surpresa',eye:'dot',c:'#FFFFFF'},proud:{label:'Orgulho',eye:'star',c:'#F7B32B',sound:'proud'},wink:{label:'Piscadinha',eye:'wink',c:'#A78BFA',sound:'wink'},yawn:{label:'Bocejo',eye:'tired',c:'#94A3B8',sound:'yawn'},happy:{eye:'happy'},annoyed:{eye:'line',ms:800,sound:'annoyed'}};
 
 function rr(x,X,Y,W,H,R){R=Math.max(0,Math.min(R,W/2,H/2));x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath()}
 function heart(x,s){x.beginPath();x.moveTo(0,s*.38);x.bezierCurveTo(-s*1.05,-s*.15,-s*.5,-s*.95,0,-s*.38);x.bezierCurveTo(s*.5,-s*.95,s*1.05,-s*.15,0,s*.38);x.closePath()}
@@ -210,7 +211,7 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //   layers:{floor,behind,body,wings,headBack,face,headFront,headTop,front}(bot,d)   draw hooks, see draw(); wings runs after
 //                                 the wings are drawn, in the body's space, with d.wings their outline (to recolour them)
 //   beak(bot,d)                   return true when it drew the beak itself; the first one that does wins (script order)
-//   onState(bot,prev,next)  onClick(bot) (return true when handled)
+//   onState(bot,prev,next)  onClick(bot) (return true when handled)  onSound(bot,name) (a sound event)
 //   capture(bot,params)           captures set the feature up from the URL (?shot, ?film and ?grid on a virtual clock; ?bench live)
 //   controls(ui,bots)             live page controls
 //   soak(bot,bad)                 after ?soak's random actions and rest: push a string to bad for anything still not at rest
@@ -220,7 +221,8 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //   eyes     bot.override(eye,ms), bot.clearOverride(), bot.eyeOv (read: the eye shown over the state's), bot.blink(), bot.blinkIn(ms)
 //   wing     bot.raise(owner,ms,pose) ('wave' or 'cup'), bot.lower(owner,ms) (only the owner that raised it lowers it), bot.handSide (read)
 //   actions  bot.setState(name), bot.emote(name,ms), bot.greet(), bot.interruptGreet() (a greeting in progress lets go), bot.click(),
-//            bot.squash(), bot.roll(ms,turns), bot.emit(type,n) (returns the new particles), bot.zz(n) (sleepy z beside the head)
+//            bot.squash(), bot.roll(ms,turns), bot.emit(type,n) (returns the new particles), bot.zz(n) (sleepy z beside the head),
+//            bot.sound(name) (a sound event)
 //   other    bot.look {x,y}, bot.mini, bot.state and bot.cfg (its STATES entry, read), bot.palette (PALETTE's shape: recolours body,
 //            belly and wings), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
 //            page options a capture() may set: bot.bg (dark backdrop), bot.mini
@@ -265,6 +267,7 @@ class Bot{
     else if(n==='question'){ this.blink() }
     else if(n==='ratelimit'){ this.emit('sweat',1) }
     else if(prev!=='idle'||n!=='idle') this.blink();
+    if(c.sound) this.sound(c.sound);
     each('onState',this,prev,n);
   }
   setBadge(b){ const key=b?b[0]+b[1].join():'none'; if(key===this._bk)return; this._bk=key; const tok=++this._bt;
@@ -277,6 +280,8 @@ class Bot{
   clearOverride(){ this.cancel('yawn'); this.eyeOv=null }
   blink(){ if(this.lock.open)return; this.anim('open',[[.06,70,E.inOut],[1,130,E.out]]) }   // BotEngine.swift:374-380
   blinkIn(ms){ this.nextBlink=NOW()+ms }
+  // A sound event (a file name of Koncluí's set); the sounds feature plays it, captures stay silent.
+  sound(name){ each('onSound',this,name) }
   // BotEngine.swift doRoll() 526-533: Koru turns over whole (turns, eased in and out) and squashes on landing.
   roll(ms,turns){ this.set('roll',this.s.roll%1); this.anim('roll',[[this.s.roll+turns,ms,E.inOut]],()=>{ this.set('roll',0); this.squash() }) }   // a roll during a roll goes on forward
   squash(){ this.physVy+=.6; this.anim('sy',[[.78,70,E.out],[1.1,130,E.out],[1,170,E.inOut]]); this.anim('sx',[[1.16,70,E.out],[.95,130,E.out],[1,170,E.inOut]]) }   // BotEngine.swift:382-394
@@ -290,7 +295,7 @@ class Bot{
   lower(owner,ms=200){ if(this.handOwner!==owner) return false; this.handOwner=null; this.anim('hands',[[0,ms,E.inOut]]); return true }
   // The greeting of BotEngine.swift greet() 567-623: happy eyes for 2 s and a hop; at 0.25 s the near wing rises with a small
   // squash, waves from 0.45 to 1.55 s while the head sways (1001-1005), blinks at 0.55 and 1.5 s, and folds at 1.55 s.
-  greet(){ const tok=++this.greetTok, now=NOW(), at=(ms,fn)=>this.after('greet'+ms,ms,()=>{ if(tok===this.greetTok) fn() });
+  greet(){ const tok=++this.greetTok, now=NOW(), at=(ms,fn)=>this.after('greet'+ms,ms,()=>{ if(tok===this.greetTok) fn() }); this.sound('greet');
     if(now>=this.waveStart&&now<this.waveUntil) this.waveUntil=now+1550;   // already waving: the wave goes on, longer
     else { this.waveStart=now+450; this.waveUntil=now+1550 } this.physVx+=.2;
     this.override('happy',2050); this.anim('oy',[[-.06,220,E.out],[0,220,E.back]]);
@@ -302,7 +307,7 @@ class Bot{
   // An update waiting: a blue arrow badge while idle or asleep (BotEngine.swift setUpdateHint()).
   setUpdateHint(on){ if(on===!!this.updateHint) return; this.updateHint=on; this.setBadge(this.badgeFor(this.state)); if(on) this.blink() }
   badgeFor(n){ return this.updateHint&&(n==='idle'||n==='sleeping')?['arrow',['#5B9BFF','#3B82F6']]:STATES[n].badge }
-  emote(n,d){ const em=EMOTES[n]; if(!em)return; d=d??em.ms??1800; const hold=k=>Math.max(0,d-k); this.override(em.eye,d);
+  emote(n,d){ const em=EMOTES[n]; if(!em)return; d=d??em.ms??1800; const hold=k=>Math.max(0,d-k); this.override(em.eye,d); if(em.sound) this.sound(em.sound);
     if(n==='love'){ this.anim('blush',[[1,300,E.out],[1,hold(600),E.lin],[0,300,E.inOut]]); this.emit('heart',4); this.anim('oy',[[-.1,160,E.out],[0,300,E.back]]) }
     if(n==='surprised'){ this.anim('oy',[[-.3,140,E.out],[0,380,E.back]]); this.anim('es',[[1.25,120,E.out],[1,500,E.inOut]]); this.anim('ear',[[-.35,120,E.out],[0,500,E.inOut]]) }
     if(n==='proud'){ this.squash(); this.emit('star',5); this.anim('tilt',[[-.14,220,E.out],[-.14,hold(500),E.lin],[0,280,E.inOut]]); this.anim('blush',[[.7,250,E.out],[.7,hold(500),E.lin],[0,300,E.inOut]]) }   // BotEngine.swift:813-826
