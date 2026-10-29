@@ -1,0 +1,147 @@
+{
+ "annoyed": {
+  "ms": 50,
+  "peak": -Infinity,
+  "lr_equal": true
+ },
+ "approval": {
+  "ms": 250,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "approve": {
+  "ms": 140,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "attach": {
+  "ms": 150,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "blip": {
+  "ms": 50,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "close": {
+  "ms": 50,
+  "peak": -Infinity,
+  "lr_equal": true
+ },
+ "dizzy": {
+  "ms": 380,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "error": {
+  "ms": 220,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "finish": {
+  "ms": 300,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "greet": {
+  "ms": 300,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "greeting": {
+  "ms": 2260,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "gulp": {
+  "ms": 200,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "hover": {
+  "ms": 50,
+  "peak": -Infinity,
+  "lr_equal": true
+ },
+ "love": {
+  "ms": 380,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "open": {
+  "ms": 50,
+  "peak": -Infinity,
+  "lr_equal": true
+ },
+ "peek": {
+  "ms": 200,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "pop": {
+  "ms": 90,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "proud": {
+  "ms": 400,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "question": {
+  "ms": 280,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "rate": {
+  "ms": 230,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "search": {
+  "ms": 130,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "send": {
+  "ms": 180,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "slap": {
+  "ms": 120,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "sleep": {
+  "ms": 50,
+  "peak": -Infinity,
+  "lr_equal": true
+ },
+ "think": {
+  "ms": 110,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "tick": {
+  "ms": 50,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "wink": {
+  "ms": 70,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "work": {
+  "ms": 80,
+  "peak": -4.0,
+  "lr_equal": true
+ },
+ "yawn": {
+  "ms": 50,
+  "peak": -Infinity,
+  "lr_equal": true
+ }
+}

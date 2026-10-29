@@ -1,0 +1,88 @@
+<!doctype html><meta charset="utf-8"><title>k7 sounds probe</title><body><pre id="out">PENDING</pre>
+<script>
+// Headless probe of the prototype's features/sounds.js (?proto=<file url of design/prototype/>; add &shot=idle for a capture):
+// stubs installed before the prototype loads: Audio records every player and call, matchMedia is switchable.
+const PROTO=new URLSearchParams(location.search).get('proto')||'file:///Users/erickheslan/Developments/study/coucou/design/prototype/';
+const LOG=[]; const RM={matches:false,ls:[]};
+window.matchMedia=()=>({get matches(){ return RM.matches }, addEventListener:(t,f)=>RM.ls.push(f)});
+class FakeAudio{ constructor(src){ this.src=src; this.paused=true; this.currentTime=0; this.loop=false; this.volume=1; this.preload=''; FakeAudio.all.push(this) }
+  get file(){ return this.src.split('/').pop() }
+  play(){ this.paused=false; LOG.push({op:'play',file:this.file,loop:this.loop,vol:this.volume,t0:this.currentTime}); return Promise.resolve() }
+  pause(){ if(!this.paused) LOG.push({op:'pause',file:this.file}); this.paused=true } }
+FakeAudio.all=[]; window.Audio=FakeAudio;
+const WA={decoded:[],sources:[],contexts:0};
+const param=()=>({value:1,setValueAtTime(){},setTargetAtTime(v){ this.value=v }});
+class FakeOffline{ constructor(){} decodeAudioData(buf){ WA.decoded.push(buf.byteLength); return Promise.resolve({duration:4.0533,length:194560,sampleRate:48000,tag:WA.decoded.length}) } }
+class FakeCtx{ constructor(){ WA.contexts++; this.state='running'; this.currentTime=0; this.destination={} }
+  resume(){ return Promise.resolve() } createGain(){ const g={gain:param(),connect(){}}; (WA.gains=WA.gains||[]).push(g); return g }
+  createBufferSource(){ const s={buffer:null,loop:false,loopStart:0,loopEnd:0,stopped:false,connect(){},start(at,off){ s.offset=off; WA.sources.push(s) },stop(){ s.stopped=true }}; return s } }
+const NOWA=new URLSearchParams(location.search).has('nowa');   // &nowa: no Web Audio, the <audio loop> fallback
+window.AudioContext=NOWA?undefined:FakeCtx; window.OfflineAudioContext=NOWA?undefined:FakeOffline; window.webkitAudioContext=undefined;
+</script>
+<script>document.write(`<script src="${PROTO}koru/core.js"><\/script>`)</script>
+<script>const reg=Koru.register; Koru.register=f=>{ if(f.name==='sounds') window.SND=f; return reg(f) };</script>
+<script>document.write(`<script src="${PROTO}koru/features/sounds.js"><\/script>`)</script>
+<script>
+function run(){ const {STATES,EMOTES,Bot,Clock}=Koru, res=[], ok=(name,cond,info)=>res.push((cond?'PASS ':'FAIL ')+name+(info?'  '+info:''));
+const last=()=>LOG[LOG.length-1], plays=()=>LOG.filter(e=>e.op==='play');
+const NAMEOF={}; const playing=()=>WA.sources.filter(x=>!x.stopped).map(x=>NAMEOF[x.buffer.tag]).concat(FakeAudio.all.filter(a=>a.loop&&!a.paused).map(a=>a.file));
+const out=document.getElementById('out');
+try{
+if(Clock.virtual){   // ?shot=...: a capture
+  const b=new Bot(document.createElement('canvas'),{px:100}); for(const k in STATES) b.setState(k); b.greet(); for(const k in EMOTES) b.emote(k);
+  SND.update(b);
+  ok('capture: no player created',FakeAudio.all.length===0,FakeAudio.all.length+' players'); ok('capture: nothing played',LOG.length===0,JSON.stringify(LOG));
+} else {
+  // Preload: every sound and loop has its players at init, preload=auto, volume 0.12.
+  const files=new Set(FakeAudio.all.map(a=>a.file));
+  ok('preload: 29 sounds x2 players + 4 loop fallbacks',FakeAudio.all.length===62&&files.size===33,FakeAudio.all.length+' players, '+files.size+' files');
+  ok('preload: preload=auto on all, loop only on the -loop files',FakeAudio.all.every(a=>a.preload==='auto'&&a.loop===a.file.endsWith('-loop.m4a')));
+  ok(NOWA?'no Web Audio: nothing decoded':'preload: 4 loops decoded at start (loops.js), no live AudioContext yet',NOWA?WA.decoded.length===0:WA.decoded.length===4&&WA.contexts===0,WA.decoded.length+' decoded, '+WA.contexts+' contexts');
+  Object.keys(window.KoruLoops||{}).forEach((n,i)=>NAMEOF[i+1]=n+'.m4a');   // decode order = loops.js key order
+  // Controls.
+  const ctl={}; const el=()=>{ const s=new Set(); return {classList:{add:c=>s.add(c),toggle:(c,f)=>{ (f===undefined?!s.has(c):f)?s.add(c):s.delete(c) },contains:c=>s.has(c)}} };
+  const ui={group(){}, button(l,c,fn){ const e=el(); ctl[l]={e,fn}; return e }, toggle(l,c,fn){ const e=ui.button(l,c,()=>{ e.classList.toggle('on'); fn(e.classList.contains('on')) }); return e },
+    slider(l,a,b2,s,v,fn){ ctl[l]={v,fn}; return {} }};
+  SND.controls(ui,{});
+  const click=l=>ctl[l].fn();
+  ok('controls: Som, Som ambiente, Volume, 29 buttons, 4 loop buttons',['Som','Som ambiente','Volume'].every(k=>ctl[k])&&['sleep-loop','think-loop','work-loop','search-loop'].every(k=>ctl[k])&&Object.keys(ctl).length===3+29+4,Object.keys(ctl).length+' controls');
+  ok('defaults: volume 0.12, Som on, Som ambiente off',ctl.Volume.v===.12&&ctl.Som.e.classList.contains('on')&&!ctl['Som ambiente'].e.classList.contains('on'));
+  // One-shots: the file of every event of the bot.
+  const b=new Bot(document.createElement('canvas'),{px:100});
+  for(const k in STATES){ if(k===b.state) continue; const n=LOG.length; b.setState(k); const p=LOG.slice(n).filter(e=>e.op==='play');
+    const want=STATES[k].sound; ok(`state ${k} -> ${want?want+'.m4a':'(none)'}`,want?p.length===1&&p[0].file===want+'.m4a'&&p[0].vol===.12&&p[0].t0===0:p.length===0,JSON.stringify(p.map(e=>e.file))) }
+  b.setState('idle');
+  for(const k in EMOTES){ const n=LOG.length; b.emote(k); const p=LOG.slice(n).filter(e=>e.op==='play'); const want=EMOTES[k].sound;
+    ok(`emote ${k} -> ${want?want+'.m4a':'(none)'}`,want?p.length===1&&p[0].file===want+'.m4a':p.length===0,JSON.stringify(p.map(e=>e.file))) }
+  { const n=LOG.length; b.greet(); const p=LOG.slice(n).filter(e=>e.op==='play'); ok('greet -> greet.m4a',p.length===1&&p[0].file==='greet.m4a',JSON.stringify(p.map(e=>e.file))) }
+  for(const ev of ['gulp','slap','blip','greeting','send','tick']){ const n=LOG.length; b.sound(ev); const p=LOG.slice(n).filter(e=>e.op==='play'); ok(`sound(${ev}) -> ${ev}.m4a`,p.length===1&&p[0].file===ev+'.m4a') }
+  { const m=new Bot(document.createElement('canvas'),{px:48,mini:true}); const n=LOG.length; m.setState('finished'); m.greet(); ok('mini: silent',LOG.length===n) }
+  // Ambient loops follow the state while the toggle is on.
+  b.setState('sleeping'); SND.update(b); ok('ambient off: no loop',playing().length===0,JSON.stringify(playing()));
+  click('Som ambiente'); SND.update(b); if(NOWA){ ok('ambient on, sleeping -> sleep-loop through <audio loop>',playing().join()==='sleep-loop.m4a'&&last().loop===true&&last().t0===0,JSON.stringify(playing()));
+    SND.update(b); SND.update(b); ok('loop not restarted every frame',plays().filter(e=>e.file==='sleep-loop.m4a').length===1) }
+  else { const s0=WA.sources[WA.sources.length-1]; ok('ambient on, sleeping -> sleep-loop, looping one 4 s period past the AAC priming',playing().join()==='sleep-loop.m4a'&&s0.loop&&Math.abs(s0.loopStart-2112/48000)<1e-9&&Math.abs(s0.loopEnd-s0.loopStart-4)<1e-9&&s0.offset===s0.loopStart,JSON.stringify(playing())+' '+s0.loopStart.toFixed(4)+'..'+s0.loopEnd.toFixed(4));
+    SND.update(b); SND.update(b); ok('loop not restarted every frame',WA.sources.length===1&&WA.contexts===1) }
+  const seq=[['working','work-loop.m4a'],['thinking','think-loop.m4a'],['searching','search-loop.m4a'],['idle',''],['approval',''],['sleeping','sleep-loop.m4a']];
+  for(const [st,want] of seq){ b.setState(st); SND.update(b); ok(`state ${st} -> loop ${want||'(none)'}`,playing().join()===want,JSON.stringify(playing())) }
+  click('think-loop'); SND.update(b); ok('audition think-loop overrides the state loop',playing().join()==='think-loop.m4a'&&ctl['think-loop'].e.classList.contains('on'));
+  click('work-loop'); SND.update(b); ok('audition switches to work-loop',playing().join()==='work-loop.m4a'&&!ctl['think-loop'].e.classList.contains('on'));
+  click('work-loop'); SND.update(b); ok('audition off -> back to the state loop',playing().join()==='sleep-loop.m4a');
+  ctl.Volume.fn(.05); { const v=NOWA?FakeAudio.all.find(a=>a.loop&&!a.paused).volume:WA.gains[0].gain.value; ok('volume slider reaches the running loop',v===.05,'volume '+v) } ctl.Volume.fn(.12);
+  click('Som ambiente'); SND.update(b); ok('ambient off -> loop stops',playing().length===0);
+  click('Som ambiente'); SND.update(b); ok('ambient on again -> loop restarts',playing().join()==='sleep-loop.m4a');
+  // Reduced motion, live: everything stops and nothing plays.
+  RM.matches=true; RM.ls.forEach(f=>f()); SND.update(b);
+  ok('reduced motion: loop stops',playing().length===0);
+  { const n=plays().length; b.setState('finished'); b.greet(); b.setState('working'); SND.update(b); ok('reduced motion: nothing plays',plays().length===n) }
+  RM.matches=false; SND.update(b); ok('reduced motion off: the state loop resumes',playing().join()==='work-loop.m4a');
+  click('Som'); SND.update(b); { const n=plays().length; b.setState('error'); ok('Som off: silent, loop stopped',plays().length===n&&playing().length===0) }
+}
+}catch(e){ res.push('FAIL exception '+e.stack) }
+out.textContent=(res.some(r=>r.startsWith('FAIL'))?'PROBE FAIL':'PROBE PASS')+' ('+res.length+' checks)\n'+res.join('\n');
+document.title='ready' }
+// Live, loops.js loads and its 4 loops decode asynchronously: start once they have (or after ~2 s, which then fails the preload check).
+const wait=(k=0)=>{ if(NOWA||WA.decoded.length>=4||k>100) setTimeout(run,50); else setTimeout(()=>wait(k+1),20) };
+Koru.Clock.virtual?run():wait();
+</script>
+</body>
