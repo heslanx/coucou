@@ -165,7 +165,9 @@ final class HubMochiTroupe: ObservableObject {
             let lift = actor.spec.roams ? abs(sin(actor.hop)) * w * 0.07 : 0
             // Its shadow on the floor (a scene, not a lone Mochi).
             if size.height > w * 1.05 || walkers.count > 1 {
-                let shadow = CGRect(x: cx - w * 0.26, y: size.height - w * 0.12, width: w * 0.52, height: w * 0.09)
+                let shadow = Koru.enabled
+                    ? KoruScenes.floorShadow(centreX: cx, canvasTop: size.height - w * 0.92, width: w)
+                    : CGRect(x: cx - w * 0.26, y: size.height - w * 0.12, width: w * 0.52, height: w * 0.09)
                 context.fill(Path(ellipseIn: shadow), with: .color(.black.opacity(0.28 - Double(lift / w))))
             }
             var c = context

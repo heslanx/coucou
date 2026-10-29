@@ -293,6 +293,12 @@ struct UploadCanvasView: View {
     // MARK: - Mochi (superellipse body + eyes + mouth)
 
     private func drawMochi(ctx: inout GraphicsContext, f: USFrame) {
+        if Koru.enabled {   // Koru stands here instead and swallows the file with her beak (KoruUploadScene below)
+            KoruUploadScene.draw(ctx, f: f) { c, hsc in
+                c.withCGContext { cg in drawDocCG(cg: cg, cx: 0, cy: 0, wsc: 1, hsc: Double(hsc), fileIcon: fileIcon) }
+            }
+            return
+        }
         let R  = f.d / 2 / 1.04
         let m  = f.morph
         let mc = max(0, min(m, 1.0))
@@ -413,6 +419,7 @@ struct UploadCanvasView: View {
     // MARK: - File / suction (drawFile port)
 
     private func drawFile(ctx: inout GraphicsContext, f: USFrame) {
+        if Koru.enabled && f.suck > 0 { return }   // in Koru's beak (KoruUploadScene)
         let cx = f.cursorX, cy = f.cursorY + 14
         if f.suck <= 0 {
             var fc = ctx; fc.opacity = 0.92
@@ -551,6 +558,50 @@ private func drawDocCG(cg: CGContext, cx: Double, cy: Double, wsc: Double, hsc: 
     cg.addRect(CGRect(x:x+w*0.18, y:y+h*0.58, width:w*0.64, height:h*0.16))
     cg.fillPath()
 }
+
+// MARK: - Koru upload scene
+
+/// Koru where the scene's Mochi was (Koncluí): at his size and place, squeezed, leaning and hopping with him, but never a
+/// box: her beak is the slot (KoruGulp.swift, the prototype's gulp.js suck). It opens as the file comes near, wide at the
+/// drop, the file goes into it and she chews; cup eyes while it is open, following the file down, happy ones after.
+/// Shrunk onto the progress bar she is drawn at full size and scaled, so her cached shading is drawn once.
+@MainActor
+enum KoruUploadScene {
+    static func draw(_ context: GraphicsContext, f: USFrame, doc: @escaping KoruGulp.DocDrawer) {
+        // Mochi's half-height at D_BOX: Koru's height from her tufts to her base matches his.
+        let hh = USC.D_BOX / 2 / 1.04 * 0.97
+        let R = Koru.frame * hh / 0.88, W = R / (0.3 * Koru.frame), base = KoruShape.ryBot * R
+        let k = f.d / USC.D_BOX
+        // Her canvas into the scene: at Mochi's centre, scaled with him, leaning round her base as he tilted.
+        let toScene = CGAffineTransform(translationX: f.x, y: f.y + f.hop).scaledBy(x: k, y: k)
+            .translatedBy(x: 0, y: base).rotated(by: f.tilt).translatedBy(x: 0, y: -base)
+            .translatedBy(x: -W / 2, y: -W / 2 - KoruShape.cy * R)
+
+        let cfg = KoruStates[.idle]
+        var p = KoruPose()
+        p.cfg = cfg; p.col = cfg.col; p.tint = cfg.tint; p.go = cfg.go
+        p.frame = Koru.frame
+        p.sx = f.sx; p.sy = f.sy
+        p.yaw = f.lookX * 0.62; p.pitch = -f.lookY * 0.5   // his lookY points down, her pitch up
+        p.eye = f.eye == .content ? .happy : f.eye == .cup ? .cup : .pill
+        p.now = CACurrentMediaTime(); p.t = CGFloat(f.t)
+
+        // The slot, and the small parting of each chew.
+        let chewing = f.t >= USC.T_CHEW1 && f.t < USC.T_CHEW_END
+        let o = KoruGulp.step(max(f.mouth, chewing ? KoruGulp.bite * KoruGulp.chewing(f.t - USC.T_CHEW1) : 0))
+        var L = KoruGulp.beakLayers(opening: o)
+        // Her cup eyes follow the file from the cursor down into her beak.
+        L = L + KoruGulp.cupLayers(down: usEInOut(f.suck))
+        if f.fileVisible {
+            L = L + KoruGulp.fileLayers(suck: f.suck, opening: o, from: CGPoint(x: f.cursorX, y: f.cursorY + 14), toScene: toScene, doc: doc)
+        }
+        var c = context
+        c.concatenate(toScene)
+        Koru.draw(c, size: CGSize(width: W, height: W), pose: p, layers: L)
+    }
+}
+
+// MARK: - End Koru upload scene
 
 // MARK: - Superellipse body path (port of reference bodyPath(m, R))
 

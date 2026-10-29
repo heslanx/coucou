@@ -456,6 +456,7 @@ final class BotEngine: ObservableObject {
     // MARK: - Mini periodic behavior loop
 
     func doMiniBehaviorLoop() {
+        if Koru.enabled && koruMiniBehavior() { return }   // her hop and hearts fit her canvas (KoruScenes.swift)
         switch permanentEmote {
 
         case .happy:

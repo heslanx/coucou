@@ -112,6 +112,6 @@ extension BotEngine {
     /// The hooks BotEngine's Koru draws with (KoruEngine.koruDraw and koruDrawExtras), in script order: outfits first,
     /// as outfits.js loads before the other features. Other features add theirs here with `+`.
     func koruLayers() -> KoruLayers {
-        koruOutfitLayers()
+        koruOutfitLayers() + koruGulpLayers() + koruMoodLayers()
     }
 }

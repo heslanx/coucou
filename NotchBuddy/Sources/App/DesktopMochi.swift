@@ -534,7 +534,8 @@ final class DesktopMochiController {
         let s     = DesktopMochiController.panelSize
 
         // Toggle click-through
-        let overBody   = DesktopMochiLogic.isOverBody(localPoint: local, panelSize: s)
+        let overBody   = Koru.enabled ? KoruScenes.isOverBody(localPoint: local, panelSize: s)
+                                      : DesktopMochiLogic.isOverBody(localPoint: local, panelSize: s)
         let needsMouse = overBody || isDragging
         if p.ignoresMouseEvents == needsMouse {
             p.ignoresMouseEvents = !needsMouse

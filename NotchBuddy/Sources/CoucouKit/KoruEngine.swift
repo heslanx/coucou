@@ -77,7 +77,7 @@ extension BotEngine {
             p.palette = koru.palette
         }
         p.mini = isMini
-        var shape = eyeOverride ?? cfg.eye
+        var shape = eyeOverride ?? koruGulpEye ?? cfg.eye   // a gulp's cup or happy eyes (KoruGulp.swift), under an emote's
         if isDancing && dancingLevel > 0.15 && !isMini && (state == .idle || state == .finished) { shape = .happy }
         p.eye = shape
         p.cfg = KoruStates[state]
@@ -94,17 +94,15 @@ extension BotEngine {
         Koru.draw(context, size: size, pose: koruPose(size: size), layers: koruLayers())
     }
 
-    /// Badge, aura, sweat and heat (MochiMood.swift, placed for Koru's body) and particles, outside the body's turn.
+    /// Badge, aura and particles, outside the body's turn (the mood's sweat and heat are KoruMood.swift's hooks).
     func koruDrawExtras(context: GraphicsContext, size: CGSize) {
         let p = koruPose(size: size)
-        let fr = KoruFrame(size: size, pose: p)
         var kind: KoruBadgeKind? = nil
         var colors = (KoruRGB.white, KoruRGB.white)
         if let b = badge {
             (kind, colors) = koruBadge(b)
         }
         if morph >= 0.25 { kind = nil }
-        drawMoodExtras(context: context, R: fr.R, rx: fr.rx, ry: fr.ryB, cx: fr.cx, cy: fr.cy)
         Koru.drawFront(context, size: size, pose: p, badge: kind, badgeColors: colors, particles: particles, layers: koruLayers())
     }
 
