@@ -285,13 +285,12 @@ function scarf(x,k,d){ const m=k.f*.75, ph=Math.asin(Math.max(-1,Math.min(1,m/SW
     if(!k.simple){ x.lineCap='round'; for(let i=0;i<9;i++){ const u=-.36+bx+i*.042; line(x,[[u,yb-.02],[u+(i-4)*.012+sw*.3,yb+.13+.02*Math.sin(i*2.2)]],.036,i%2?'#F4EFEA':'#C92525') } } }) }   // splayed yarn
 
 // Pumpkin: the body takes the pumpkin colours of drawBody(pumpkinColors:) and five ribs, lobes peek out from behind it;
-// the facial disc and belly stay teal. Warm rims stand in for Koru's cyan ones and a warm glow lifts the lower sides, so the
-// sides stay lit.
+// the belly turns a lighter pumpkin and the wings a deeper one; the facial disc stays teal. Warm rims stand in for Koru's cyan
+// ones and a warm glow lifts the lower sides, so the sides stay lit.
 function pumpkinLobes(x,k){ x.translate(k.h,0); part(x,k,'pumpkinLobes',[-1.4,-1.25,1.4,1.25],x=>{
   for(const [u,v,rx,ry] of [[0,-.01,.42,1.03],[-.48,-.06,.42,1.07],[.48,-.06,.42,1.07],[-.92,-.04,.36,.86],[.92,-.04,.36,.86]]){ const l=ell(u,v,rx,ry);
     x.fillStyle=lin(x,0,-1,0,1,0,'#F7A04A',1,'#CF4E14'); x.fill(l); clay(x,l,[u-rx,v-ry,u+rx,v+ry],k,.2,.35) } }) }
 function pumpkinBody(x,k,d){ const body=bodyR(d), Y=G.ryTop+.05, BB=[-G.rx,-G.ryTop,G.rx,G.ryBot], R=k.R; x.clip(body);
-  const out=new Path2D(); out.rect(-2,-2,4,4); out.addPath(d.belly,new DOMMatrix().scale(1/R)); x.clip(out,'evenodd');   // the belly stays teal
   x.globalCompositeOperation='color'; x.fillStyle=lin(x,.85,-.9,-.95,.9,0,'#FFA94D',1,'#E8590C'); x.fillRect(-1.3,-Y,2.6,Y+G.ryBot+.05);
   x.globalCompositeOperation='soft-light'; x.fillStyle='rgba(255,150,60,.5)'; x.fillRect(-1.3,-Y,2.6,Y+G.ryBot+.05); x.globalCompositeOperation='source-over';
   if(k.full) part(x,k,'pumpkinBody',[-G.rx-.02,-G.ryTop-.02,G.rx+.02,G.ryBot+.02],x=>{ inner(x,body,'rgba(255,214,160,.8)',R*.06,0,R*.035,BB);
@@ -301,6 +300,10 @@ function pumpkinBody(x,k,d){ const body=bodyR(d), Y=G.ryTop+.05, BB=[-G.rx,-G.ry
   if(k.simple) return; x.lineCap='round';
   for(const lon of [-1.15,-.55,0,.55,1.15]){ const z=Math.cos(lon), pts=[]; for(let i=0;i<=30;i++){ const y=-.98+1.96*i/30; pts.push([Math.sin(lon)*bodyW(y)+k.f*.5*z,y]) }
     line(x,pts,.2,`rgba(150,50,0,${.16*z})`); line(x,pts,.1,`rgba(120,35,0,${.22*z})`); line(x,pts,.04,`rgba(80,20,0,${.45*z})`) } }
+// The wings, recoloured as the body is (shading kept), a deeper orange.
+function pumpkinWings(x,k,d){ const w=new Path2D(); w.addPath(d.wings,new DOMMatrix().scale(1/k.R)); x.clip(w);
+  x.globalCompositeOperation='color'; x.fillStyle=lin(x,0,-1,0,1,0,'#F08A2E',1,'#B8460C'); x.fillRect(-2,-2,4,4);
+  x.globalCompositeOperation='soft-light'; x.fillStyle='rgba(255,140,50,.55)'; x.fillRect(-2,-2,4,4) }
 function pumpkinStem(x,k){ x.translate(k.h,0); part(x,k,'pumpkinStem',[-.35,-1.75,1.0,-.8],x=>{ const t=[.02,-1.04];
   // a thick stalk bending to the right with a cut end, a curly tendril and a three-lobed leaf
   const stem=new Path2D(); stem.moveTo(t[0]-.14,t[1]+.05); stem.bezierCurveTo(t[0]-.14,t[1]-.18,t[0]-.11,t[1]-.42,t[0]+.04,t[1]-.47); stem.quadraticCurveTo(t[0]+.17,t[1]-.5,t[0]+.23,t[1]-.42);
@@ -318,26 +321,28 @@ function pumpkinStem(x,k){ x.translate(k.h,0); part(x,k,'pumpkinStem',[-.35,-1.7
   x.lineCap='round'; x.lineWidth=.02; x.strokeStyle='rgba(30,60,0,.4)'; x.beginPath(); x.moveTo(-.02,-.01); x.quadraticCurveTo(-.18,-.08,-.32,-.03); x.stroke(); x.restore() }) }
 
 /* ---------------- FEATURE ---------------- */
-// Where each outfit draws: behind (behind the body), body, headBack (behind the facial disc and tufts), headFront.
+// Where each outfit draws: behind (behind the body), body (on it, under the near wings), wings (over them), headBack (behind
+// the facial disc and tufts), headFront.
 const DRAW={partyHat:{kind:'hat',headBack:partyHat},beanie:{kind:'hat',headBack:beanie},crown:{kind:'hat',headBack:crown},
   sunglasses:{kind:'glasses',headFront:sunglasses},roundGlasses:{kind:'glasses',headFront:roundGlasses},bow:{kind:'bow',headFront:bow},
-  scarf:{kind:'scarf',headBack:scarf},witchHat:{kind:'hat',headBack:witchHat},pumpkin:{kind:'fade',behind:pumpkinLobes,body:pumpkinBody,headBack:pumpkinStem},
+  scarf:{kind:'scarf',body:scarf},witchHat:{kind:'hat',headBack:witchHat},pumpkin:{kind:'fade',behind:pumpkinLobes,body:pumpkinBody,wings:pumpkinWings,headBack:pumpkinStem},
   santaHat:{kind:'hat',headBack:santaHat},bunnyEars:{kind:'hat',behind:bunnyEars}};
 // Below full opacity an accessory is drawn as one group (Swift's drawLayer), so its parts never show through each other;
-// each bot keeps its own group canvas at its own size. The body layer (the pumpkin tint) blends with the body under it,
+// each bot keeps its own group canvas at its own size. The pumpkin's body and wings layers (its tint) blend with what is under them,
 // so it fades in place.
 const groups=new WeakMap();
 const layer=name=>(b,d)=>{ const o=DRAW[b.outfit], fn=o&&o[name], p=b.s.outfitP, a=p<.001?0:o&&o.kind==='hat'?1:Math.min(1,p*2.5); if(!fn||a<.005) return;
-  const grp=a<1&&name!=='body'; let x=d.x, g=groups.get(b);
+  const grp=a<1&&!(o.kind==='fade'&&(name==='body'||name==='wings')); let x=d.x, g=groups.get(b);
   if(grp){ if(!g) groups.set(b,g=document.createElement('canvas')); if(g.width!==d.W||g.height!==d.H){ g.width=d.W; g.height=d.H }
     x=g.getContext('2d'); x.save(); x.setTransform(1,0,0,1,0,0); x.clearRect(0,0,d.W,d.H); x.setTransform(d.x.getTransform()) }
-  if(name==='behind'&&o.kind==='hat'){ const H=d.head; x.transform(H.a,H.b,H.c,H.d,H.e,H.f) }   // the bunny ears move with the head; pumpkin lobes with the body
+  // The bunny ears (behind the body) and the scarf (on the body, under the near wings) move with the head; pumpkin lobes with the body.
+  if(name==='behind'&&o.kind==='hat'||name==='body'&&o.kind==='scarf'){ const H=d.head; x.transform(H.a,H.b,H.c,H.d,H.e,H.f) }
   fn(x,stage(b,d,o.kind,x,grp?1:a),d);
   if(grp){ x.restore(); d.x.save(); d.x.setTransform(1,0,0,1,0,0); d.x.globalAlpha=a; d.x.drawImage(g,0,0); d.x.restore() } };
 
 register({name:'outfits',
   init(b){ b.outfit=b.outfitTarget='none'; b.set('outfitP',0) },
-  layers:{behind:layer('behind'),body:layer('body'),headBack:layer('headBack'),headFront:layer('headFront')},
+  layers:{behind:layer('behind'),body:layer('body'),wings:layer('wings'),headBack:layer('headBack'),headFront:layer('headFront')},
   // ?outfit=<rawValue|auto> wears it from the start; ?film=wear&wear=<id> animates to it (from ?outfit when given);
   // without &wear= it picks one at random, none included (as ?soak does).
   capture(b,p){ if(p.has('outfit')) wear(b,pick(p.get('outfit')),false) },

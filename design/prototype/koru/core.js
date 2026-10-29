@@ -207,7 +207,8 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //   update(bot,dt,t)              every update, after tweens and smoothing; every update runs before the first modify
 //   modify(bot,m,t)               every update; adds to the modifiers m (MODS below), read by draw(); m.eye: the first to set it wins
 //   blink(bot)                    a blink is due (live, awake): blink or not, and return the ms to the next one; null leaves it to core
-//   layers:{floor,behind,body,headBack,face,headFront,headTop,front}(bot,d)   draw hooks, see draw()
+//   layers:{floor,behind,body,wings,headBack,face,headFront,headTop,front}(bot,d)   draw hooks, see draw(); wings runs after
+//                                 the wings are drawn, in the body's space, with d.wings their outline (to recolour them)
 //   beak(bot,d)                   return true when it drew the beak itself; the first one that does wins (script order)
 //   onState(bot,prev,next)  onClick(bot) (return true when handled)
 //   capture(bot,params)           captures set the feature up from the URL (?shot, ?film and ?grid on a virtual clock; ?bench live)
@@ -385,7 +386,7 @@ class Bot{
         const fade=g.createLinearGradient(0,R*.3,0,-R*.15); fade.addColorStop(0,'rgba(0,0,0,0)'); fade.addColorStop(1,'#000'); g.fillStyle=fade; g.fillRect(HB[0],HB[1],HB[2]-HB[0],R*.3-HB[1]) }),rgba(col,Math.min(1,1.15*(tint-.3))*upright));
       stamp(x,sheet('halo'+R,HB,g=>{ drop(g,body,'rgba(40,170,200,.12)',R*.08,0,R*.05); drop(g,body,'rgba(30,150,180,.14)',R*.2,0,R*.11) })) }
     // wings: the far one (the side the head turns to) folds back behind the body; the near one rises and waves
-    const wings=[], now=NOW(), wt=(now-this.waveStart)/1000, side=this.handSide;
+    const wings=[], now=NOW(), wt=(now-this.waveStart)/1000, side=this.handSide, wingLine=d.wings=new Path2D();
     // BotEngine.swift:1235-1257: the wave eases in over 0.18 s from its start (and out over its last 0.15 s here)
     const wave=now>=this.waveStart&&now<this.waveUntil?Math.min(E.out(Math.min(1,wt/.18)),clamp((this.waveUntil-now)/150,0,1)):0;
     for(const sd of[-1,1]){ const far=clamp(sd*yawN,0,1); let lift=sd===side?s.hands:0; if(sd===side&&wave) lift+=Math.sin(wt*13)*.17*wave*Math.min(1,s.hands); wings.push({sd,far,lift,base:sd===side?s.hands:0,cup:sd===side&&this.handPose==='cup',sway:sd!==side&&wave?Math.sin(6*wt)*.07*wave:0}) }   // the other wing sways (BotEngine.swift:1261-1263)
@@ -407,13 +408,13 @@ class Bot{
       if(over<0&&!w.cup){ const M0=wingM({...w,lift:w.base},over), c=at(M0,-1.2,.23), e=at(M0,-1.11,.55), sh={x:e.x,y:2*c.y-e.y};   // sh: the flipped wing's base
         const turn=dir(at(M,-1.1,-.05),at(M,-1.1,.55))-dir(sh,at(M0,-1.1,.55));
         M=new DOMMatrix().translate(sh.x,sh.y).rotate(turn*180/Math.PI).translate(-sh.x,-sh.y).translate(c.x,c.y).scale(1,-1).translate(-c.x,-c.y).multiply(M0) }
-      x.transform(M.a,M.b,M.c,M.d,M.e,M.f) };
+      x.transform(M.a,M.b,M.c,M.d,M.e,M.f); return M };
     // While it turns over, its two faces cross-fade; otherwise one is drawn.
     const drawWing=(w,front)=>{ const wing=wingPath(R), k=Math.cos(Math.PI*smooth(clamp(w.lift/.45,0,1))), v=w.cup?0:smooth(clamp((.25-k)/.5,0,1));
       for(const over of [1,-1]){ const a=over>0?1-v:v; if(a<.01) continue; x.save(); x.globalAlpha*=a;
         const mx=-w.sd*over, my=over, WB=[-R*1.45,-R*.16,-R*.94,R*.6];   // mx, my: how the wing's x and y map to the screen's (light from the top right)
         if(full&&front){ x.save(); x.clip(body); wingT(w,over); stamp(x,sheet('wingShadow'+R+mx+my,[WB[0]-R*.3,WB[1]-R*.3,WB[2]+R*.3,WB[3]+R*.3],g=>drop(g,wing,'rgba(1,22,27,.45)',R*.12,R*.02*mx,R*.035*my))); x.restore() }
-        wingT(w,over);
+        wingLine.addPath(wing,wingT(w,over));
         const wg=x.createLinearGradient(-R*1.3,-R*.1,-R*1.0,R*.56); wg.addColorStop(0,P.wing[0]); wg.addColorStop(1,P.wing[1]);
         x.fillStyle=wg; x.fill(wing);
         if(full) stamp(x,sheet('wing'+R+mx+my,[WB[0]-2,WB[1]-2,WB[2]+2,WB[3]+2],g=>{ inner(g,wing,'rgba(80,200,220,.6)',R*.025,R*.008*mx,R*.018*my,WB); inner(g,wing,'rgba(0,20,25,.35)',R*.06,-R*.03*mx,0,WB) },R*.2));
@@ -455,6 +456,7 @@ class Bot{
       if(tint>.3) stampTint(x,sheet('state2'+R,SB,g=>{ inner(g,body,'#fff',R*.05,0,-R*.03,BB); lower(g) },R*.25,C1),rgba(mix(col,[255,255,255],.1),.9*(tint-.3)/.7*upright)) }
     this.layer('body',d);
     for(const w of wings){ const a=(1-smooth(clamp((w.far-.35)/.3,0,1)))*(w.cup||w.lift<.6?1:0); if(a>.01){ x.save(); x.globalAlpha=a; drawWing(w,true); x.restore() } }   // a cupped wing stays in front
+    this.layer('wings',d);
 
     // head: lower in busy states, tilts around the neck, the body stays on the floor
     x.save(); x.transform(head.a,head.b,head.c,head.d,head.e,head.f);
