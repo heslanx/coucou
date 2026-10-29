@@ -14,7 +14,7 @@ enum KoncluiFeatures {
     /// swiftc tests read it with no bundle.
     static let shippedOff: Set<String> = [
         "integration_crypto", "integration_calcom", "integration_stripe", "integration_github",
-        "integration_vercel", "integration_n8n", "integration_resend",
+        "integration_vercel", "integration_n8n", "integration_resend", "integration_notion", "integration_portfolio",
     ]
 
     /// Features that cannot be turned off: the app needs them (the main workspace pill is VS Code until the user

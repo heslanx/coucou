@@ -1601,13 +1601,11 @@ struct ModelPickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Provider chips — wrap; hide local providers when not connected and not already active
+            // Provider chips — wrap
+            // Koncluí: only the providers this Mac can use now (a key saved, a local server set, a subscription
+            // signed in, as ChatAccess detects them) and the one already active
             let visibleProviders = ChatProvider.allCases.filter { p in
-                if p == .ollama   { return !AppState.shared.ollamaServerURL.isEmpty   || state.chatProvider == .ollama }
-                if p == .lmstudio { return !AppState.shared.lmstudioServerURL.isEmpty || state.chatProvider == .lmstudio }
-                // Koncluí: Claude Code, Codex and the Koncluí Proxy appear when this Mac is signed in to them
-                if p.isSubscription { return access.status(p).isReady || state.chatProvider == p }
-                return true
+                access.status(p).isReady || state.chatProvider == p
             }
             ChipFlowLayout(spacing: 6) {
                 ForEach(visibleProviders, id: \.self) { provider in

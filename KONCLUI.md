@@ -137,7 +137,8 @@ the feature is deleted for good (below). No network: nothing is fetched, nothing
   have no resource bundle for it, a compiled-in table cannot be missing or malformed at run time, and the swiftc test
   reads it with no bundle. `KoncluiFeatures.isOn(_:)`, `set(_:_:)`, `reset(_:)`, `resetAll()`.
 - **Ships off**: `integration_crypto`, `integration_calcom`, `integration_stripe`, `integration_github`,
-  `integration_vercel`, `integration_n8n`, `integration_resend`. Everything else ships on.
+  `integration_vercel`, `integration_n8n`, `integration_resend`, `integration_notion`, `integration_portfolio`.
+  Everything else ships on.
 - **Always on**: `integration_claude` (the main workspace pill until the user picks another). `KoncluiFeatures.required`.
 - **Ids**: a pill is its PillCatalog id (`agent_orca` included); a page is `page_<HubPage case>` (`page_notes`,
   `page_voice`…); a Settings block is `block_iphone`, `block_recap` (Weekly recap), `block_vitals` (Koru and your

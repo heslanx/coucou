@@ -20655,85 +20655,85 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe وGitHub وVercel وn8n وNotion وغيرها."
+            "value" : "واتساب وسبوتيفاي والبريد والخدمات الأخرى التي تربطها."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion আর বাকিগুলো।"
+            "value" : "WhatsApp, Spotify, Mail এবং আপনি যে অন্যান্য পরিষেবা যুক্ত করবেন।"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion und weitere."
+            "value" : "WhatsApp, Spotify, Mail und die anderen Dienste, die du verbindest."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion and the rest."
+            "value" : "WhatsApp, Spotify, Mail and the other services you connect."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion y los demás."
+            "value" : "WhatsApp, Spotify, Mail y los demás servicios que conectes."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion et les autres."
+            "value" : "WhatsApp, Spotify, Mail et les autres services que vous connectez."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion और बाकी।"
+            "value" : "WhatsApp, Spotify, Mail और वे दूसरी सेवाएँ जिन्हें आप जोड़ते हैं।"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion, dan lainnya."
+            "value" : "WhatsApp, Spotify, Mail, dan layanan lain yang kamu hubungkan."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion e os outros."
+            "value" : "WhatsApp, Spotify, Mail e os outros serviços que você conectar."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion и другие."
+            "value" : "WhatsApp, Spotify, Почта и другие сервисы, которые вы подключите."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion และบริการอื่น ๆ"
+            "value" : "WhatsApp, Spotify, Mail และบริการอื่น ๆ ที่คุณเชื่อมต่อ"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe, GitHub, Vercel, n8n, Notion ve diğerleri."
+            "value" : "WhatsApp, Spotify, Mail ve bağladığın diğer servisler."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe、GitHub、Vercel、n8n、Notion 等。"
+            "value" : "WhatsApp、Spotify、邮件，以及你连接的其他服务。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stripe、GitHub、Vercel、n8n、Notion 等服務。"
+            "value" : "WhatsApp、Spotify、郵件，以及你連接的其他服務。"
           }
         }
       }

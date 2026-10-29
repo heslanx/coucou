@@ -15,7 +15,7 @@ enum KoncluiFeaturesTests {
 
     static let hiddenByDefault = [
         "integration_crypto", "integration_calcom", "integration_stripe", "integration_github",
-        "integration_vercel", "integration_n8n", "integration_resend",
+        "integration_vercel", "integration_n8n", "integration_resend", "integration_notion", "integration_portfolio",
     ]
 
     static func ids(_ pills: [PillDefinition]) -> [String] { pills.map(\.id) }
@@ -38,8 +38,8 @@ enum KoncluiFeaturesTests {
         print("Default flags — what PillCatalog.available offers")
         let shipped = ids(PillCatalog.available)
         print("  available: \(shipped.joined(separator: " "))")
-        check("the seven hidden pills are not offered", hiddenByDefault.allSatisfy { !shipped.contains($0) })
-        check("shippedOff is exactly those seven", KoncluiFeatures.shippedOff == Set(hiddenByDefault))
+        check("the hidden pills are not offered", hiddenByDefault.allSatisfy { !shipped.contains($0) })
+        check("shippedOff is exactly the hidden ones", KoncluiFeatures.shippedOff == Set(hiddenByDefault))
         let others = PillCatalog.all.map(\.id).filter { !hiddenByDefault.contains($0) }
         check("every other pill is offered, in catalog order", shipped == others)
         check("Orca is offered", shipped.contains("agent_orca"))
@@ -75,7 +75,7 @@ enum KoncluiFeaturesTests {
         check("a value that is not a Bool is ignored", !KoncluiFeatures.isOn("integration_vercel"))
         check("an unknown feature is on", KoncluiFeatures.isOn("something_nobody_declared"))
         KoncluiFeatures.resetAll()
-        check("resetAll: back to the seven hidden", hiddenByDefault.allSatisfy { !KoncluiFeatures.isOn($0) })
+        check("resetAll: back to the hidden ones", hiddenByDefault.allSatisfy { !KoncluiFeatures.isOn($0) })
         check("resetAll leaves no override", defaults.dictionaryRepresentation().keys.allSatisfy { !$0.hasPrefix("konclui.feature.") })
 
         print("Required — the main workspace pill")
