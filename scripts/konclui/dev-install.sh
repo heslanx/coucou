@@ -30,7 +30,11 @@ fi
 echo "Building (Debug)..."
 cd "${REPO_ROOT}/NotchBuddy"
 xcodegen >/dev/null
-xcodebuild -scheme NotchBuddy -configuration Debug -derivedDataPath "${DERIVED}" -quiet build
+# Signed with this Mac's "Apple Development" certificate when there is one, so macOS keeps the Keychain and
+# privacy permissions across builds; ad hoc otherwise (scripts/konclui/signing.sh).
+SIGN_ARGS=()
+while IFS= read -r setting; do [ -n "$setting" ] && SIGN_ARGS+=("$setting"); done < <("${REPO_ROOT}/scripts/konclui/signing.sh")
+xcodebuild -scheme NotchBuddy -configuration Debug -derivedDataPath "${DERIVED}" -quiet ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} build
 
 echo "Quitting Koncluí..."
 osascript -e "tell application id \"${BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true
