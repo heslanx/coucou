@@ -436,7 +436,7 @@ extension Koru {
             eye(c, shape: shape, dr: dr, sd: e.sd, yawN: yawN, pitN: pitN, far: e.far, R: R, pose: p, hooks: L.eye)
             let lid = 1 - p.open
             if lid > 0.01 {   // the lid comes down with a rounded edge and a thin lash line
-                c.fill(S.lidPath(dl, lid), with: lin([(KoruRGB(hex: "#3FAFBA").color(), 0), (KoruRGB(hex: "#2E9DA9").color(), 1)],
+                c.fill(S.lidPath(dl, lid), with: lin([(P.lid[0], 0), (P.lid[1], 1)],
                                                      CGPoint(x: 0, y: -dr), CGPoint(x: 0, y: dr * (2 * lid - 1))))
                 if lid < 0.98 { c.stroke(S.lidEdge(dr, lid), with: .color(koruRGBA(22, 65, 73, 0.55)), lineWidth: R * 0.016) }
             }
