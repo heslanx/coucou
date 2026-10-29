@@ -34,7 +34,8 @@ const mix=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
 const K={eyeIn:hexRgb('#F8FAFA'),eyeEdge:hexRgb('#DAE2E4'),ink:'#164149'};   // white eye discs (owner's choice), dark ink pupils
 // The colours a feature may swap as a whole through bot.palette (mini Korus take their agent's colour this way):
 // body = the key-light gradient from the lit dome to the shaded base, belly = top to bottom, wing = upper edge to tip.
-const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['#3FAAB2','#268C98','rgba(38,140,152,.6)'],wing:['#124F5C','#09343E']};
+const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['#3FAAB2','#268C98','rgba(38,140,152,.6)'],wing:['#124F5C','#09343E'],
+  face:['#40B2BF','#4EBBC3','#2E9FAB'],glow:[80,200,218]};   // face: the facial disc and tufts, top to bottom; glow: the light on the tufts
 const G={rx:1.21,ryTop:1.04,ryBot:1.02,cy:.088,nTop:2.0,nBot:3.5,
   eyeSp:.518,eyeY:-.117,ring:.558,disc:.386,pupil:.152,face:.27};
 
@@ -224,7 +225,7 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //            bot.squash(), bot.roll(ms,turns), bot.emit(type,n) (returns the new particles), bot.zz(n) (sleepy z beside the head),
 //            bot.sound(name) (a sound event)
 //   other    bot.look {x,y}, bot.mini, bot.state and bot.cfg (its STATES entry, read), bot.palette (PALETTE's shape: recolours body,
-//            belly and wings), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
+//            belly, wings, facial disc and tufts), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
 //            page options a capture() may set: bot.bg (dark backdrop), bot.mini
 // Also on Koru: G (geometry), K (eye and ink colours), STATES, EMOTES, Clock, params, NOW, rand, the easing and colour helpers;
 // drawing helpers drop/inner (soft shadow and inner light), grainOn (velvet grain), sheet/stamp (cache shading that depends only on
@@ -479,14 +480,14 @@ class Bot{
       tuftBoxes.push({tf,box:[Math.min(...tp.map(q=>q[0]))*R,Math.min(...tp.map(q=>q[1]))*R,Math.max(...tp.map(q=>q[0]))*R,Math.max(...tp.map(q=>q[1]))*R]}) }
     d.face=face; d.tufts=tufts;
     if(full) drop(x,tufts,'rgba(2,40,46,.35)',R*.05,0,R*.035);
-    const dg=x.createLinearGradient(0,-R*1.15,0,ey+R*G.ring); dg.addColorStop(0,'#40B2BF'); dg.addColorStop(.35,'#4EBBC3'); dg.addColorStop(1,'#2E9FAB');
+    const dg=x.createLinearGradient(0,-R*1.15,0,ey+R*G.ring); dg.addColorStop(0,P.face[0]); dg.addColorStop(.35,P.face[1]); dg.addColorStop(1,P.face[2]);
     x.fillStyle=dg; x.fill(face);
     if(full){ x.save(); x.clip(face);                                  // light from the right, a soft clay tuft
       const lr=x.createLinearGradient(-R*1.2,0,R*1.2,0); lr.addColorStop(0,'rgba(255,255,255,0)'); lr.addColorStop(1,'rgba(200,245,250,.1)'); x.fillStyle=lr; x.fillRect(-R*1.5,-R*1.5,R*3,R*2.5);
       x.restore();
       x.save(); x.clip(tufts);
-      for(const sd of[-1,1]){ const tx=-sd*1.08*R+fx*.15, tg=x.createRadialGradient(tx,-R*1.1,0,tx,-R*1.1,R*.32); tg.addColorStop(0,'rgba(80,200,218,.4)'); tg.addColorStop(1,'rgba(80,200,218,0)'); x.fillStyle=tg; x.fillRect(tx-R*.4,-R*1.45,R*.8,R*.7);
-        const lx=-sd*1.12*R+fx*.15, lg=x.createRadialGradient(lx,-R*.72,0,lx,-R*.72,R*.22); lg.addColorStop(0,'rgba(80,200,218,.3)'); lg.addColorStop(1,'rgba(80,200,218,0)'); x.fillStyle=lg; x.fillRect(lx-R*.3,-R*1.0,R*.6,R*.6) }
+      for(const sd of[-1,1]){ const tx=-sd*1.08*R+fx*.15, tg=x.createRadialGradient(tx,-R*1.1,0,tx,-R*1.1,R*.32); tg.addColorStop(0,rgba(P.glow,.4)); tg.addColorStop(1,rgba(P.glow,0)); x.fillStyle=tg; x.fillRect(tx-R*.4,-R*1.45,R*.8,R*.7);
+        const lx=-sd*1.12*R+fx*.15, lg=x.createRadialGradient(lx,-R*.72,0,lx,-R*.72,R*.22); lg.addColorStop(0,rgba(P.glow,.3)); lg.addColorStop(1,rgba(P.glow,0)); x.fillStyle=lg; x.fillRect(lx-R*.3,-R*1.0,R*.6,R*.6) }
       const ts=grainSheet('tufts'+R,[-R*1.45,-R*1.4,R*1.45,-R*.35],-R*1.2,-R*.5,R*.65,R*.92); for(const {tf,box} of tuftBoxes) grainStamp(x,tf,ts,.45,box);
       inner(x,face,'rgba(175,238,246,.8)',R*.03,0,R*.022,FB); inner(x,face,'rgba(4,50,58,.35)',R*.04,0,-R*.025,FB); x.restore() }
     if(s.blush>.01&&shape!=='happy'){ x.save(); x.clip(face);         // love and proud: a blush on each ring (happy eyes carry their own lines)
