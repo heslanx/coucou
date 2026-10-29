@@ -418,7 +418,7 @@ extension Koru {
             let dr = e.r
             var c = h
             c.translateBy(x: e.x, y: e.y); c.scaleBy(x: e.kx, y: e.ky)
-            c.fill(S.circle(0, 0, dr), with: lin([(KoruRGB(hex: "#FEA638").color(), 0), (KoruRGB(hex: "#F6962C").color(), 1)], CGPoint(x: 0, y: -dr), CGPoint(x: 0, y: dr)))
+            c.fill(S.circle(0, 0, dr), with: lin([(KoruRGB(hex: "#F8FAFA").color(), 0), (KoruRGB(hex: "#DAE2E4").color(), 1)], CGPoint(x: 0, y: -dr), CGPoint(x: 0, y: dr)))   // white eye discs (owner's choice)
             if full {   // shading drawn for the resting disc, scaled with it
                 let d0 = R * S.disc
                 var s = c
@@ -427,7 +427,7 @@ extension Koru {
                     let d = Rq * S.disc, box = CGRect(x: -d, y: -d, width: 2 * d, height: 2 * d)
                     return KoruSheets.render(box: box.insetBy(dx: -2, dy: -2), pad: Rq * 0.1, R: Rq) { g, room in
                         KoruSheets.inner(g, room: room, CGPath(ellipseIn: box, transform: nil),
-                                         CGColor(srgbRed: 170 / 255, green: 80 / 255, blue: 10 / 255, alpha: 0.22), Rq * 0.035, 0, Rq * 0.012, box: box)
+                                         CGColor(srgbRed: 30 / 255, green: 70 / 255, blue: 80 / 255, alpha: 0.16), Rq * 0.035, 0, Rq * 0.012, box: box)
                     }
                 }, R: R)
             }
@@ -543,7 +543,7 @@ extension Koru {
                 var l = Path()
                 l.move(to: CGPoint(x: xo, y: yy))
                 l.addQuadCurve(to: CGPoint(x: xo + sd * dr * 0.2, y: yy - dr * 0.1), control: CGPoint(x: xo + sd * dr * 0.12, y: yy - dr * 0.02))
-                c.stroke(l, with: .color(koruRGBA(200, 100, 30, 0.9)), style: style(R * 0.018))
+                c.stroke(l, with: .color(koruRGBA(232, 112, 104, 0.85)), style: style(R * 0.018))
             }
         case .closed:
             var a = Path()
