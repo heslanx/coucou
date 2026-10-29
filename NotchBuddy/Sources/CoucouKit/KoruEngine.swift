@@ -72,7 +72,9 @@ extension BotEngine {
         p.blush = max(blush, moodHot * 0.85)
         p.es = es; p.badgeS = badgeS; p.auraA = koru.auraA; p.aura = koru.aura
         p.col = koru.col
-        if let bc = bodyColor {
+        // Koru's teal is her own colour: a neutral body colour (Mochi's white #F5F6F8, greys) leaves her as she is,
+        // a real colour (an agent's, an integration's, the update blue) still tints her.
+        if let bc = bodyColor, Koru.tints(KoruRGB(bc)) {
             if koru.paletteHex != bc { koru.paletteHex = bc; koru.palette = .agent(KoruRGB(bc)) }
             p.palette = koru.palette
         }
@@ -142,5 +144,13 @@ extension BotEngine {
         case .dot(let c): return "dot\(c.components ?? [])"
         case .arrow(let c): return "arrow\(c.components ?? [])"
         }
+    }
+}
+
+extension Koru {
+    /// Whether a body colour recolours Koru: only a saturated one does (HSV saturation above 0.25), so white and greys keep her teal.
+    static func tints(_ c: KoruRGB) -> Bool {
+        let hi = max(c.r, c.g, c.b), lo = min(c.r, c.g, c.b)
+        return hi > 0 && (hi - lo) / hi > 0.25
     }
 }
