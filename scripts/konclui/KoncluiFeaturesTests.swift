@@ -113,16 +113,17 @@ enum KoncluiFeaturesTests {
         check("an app in /Applications", KoncluiRecognition.detect(.cursor, mac(["/Applications/Cursor.app"])))
         check("an app in ~/Applications", KoncluiRecognition.detect(.orca, mac(["~/Applications/Orca.app"])))
         check("the Claude desktop app", KoncluiRecognition.detect(.claudeDesktop, mac(["/Applications/Claude.app"])))
-        check("a config folder", KoncluiRecognition.detect(.codex, mac(["~/.codex"])))
-        check("Orca's folder", KoncluiRecognition.detect(.orca, mac(["~/.orca"])))
+        check("a leftover config folder is not the tool", !KoncluiRecognition.detect(.codex, mac(["~/.codex"])))
+        check("Orca's folder alone is not Orca", !KoncluiRecognition.detect(.orca, mac(["~/.orca"])))
         check("~/.gemini alone is neither Gemini CLI nor Antigravity",
               KoncluiRecognition.detectedTools(mac(["~/.gemini", "~/.gemini/config/hooks.json"])).isEmpty)
-        check("~/.gemini/settings.json is Gemini CLI",
-              KoncluiRecognition.detectedTools(mac(["~/.gemini/settings.json"])) == [.gemini])
+        check("Gemini CLI's leftover settings are not Gemini CLI",
+              KoncluiRecognition.detectedTools(mac(["~/.gemini/settings.json", "~/.gemini/oauth_creds.json",
+                                                    "~/.gemini/antigravity", "~/.copilot", "~/.hermes"])).isEmpty)
         check("a CLI that is somewhere unusual is not found", !KoncluiRecognition.detect(.amp, mac(["/somewhere/else/amp"])))
         check("a CLI is not another tool", KoncluiRecognition.detectedTools(mac(["~/.local/bin/hermes"])) == [.hermes])
         check("several at once",
-              KoncluiRecognition.detectedTools(mac(["~/.claude", "/Applications/Orca.app", "/usr/local/bin/amp"])) == [.claudeCode, .orca, .amp])
+              KoncluiRecognition.detectedTools(mac(["~/.local/bin/claude", "/Applications/Orca.app", "/usr/local/bin/amp"])) == [.claudeCode, .orca, .amp])
 
         print("Pills and integrations — recognized")
         func rec(_ id: String, _ s: KoncluiRecognition.Signals) -> Bool { KoncluiRecognition.pillRecognized(id, s) }

@@ -184,7 +184,7 @@ block or row and keeps it (`konclui.added`, entries `<screen>:<id>`). The rules 
 
 | Screen | Listed when |
 |---|---|
-| Active pills | the pill is on (main or active), or its tool is on this Mac (CLI on `$PATH` or in the usual install folders, app in `/Applications` or `~/Applications`, config folder), or its service has a key in the Keychain, or its chat provider has a key or a connected server, or Spotify is installed. Apple Music, Mail and Crypto carry no signal (built in, or keyless): only when on |
+| Active pills | the pill is on (main or active), or its tool is on this Mac (CLI on `$PATH` or in the usual install folders, app in `/Applications` or `~/Applications`; a config folder alone does not count, it outlives an uninstall), or its service has a key in the Keychain, or its chat provider has a key or a connected server, or Spotify is installed. Apple Music, Mail and Crypto carry no signal (built in, or keyless): only when on |
 | Agents | its tool is on this Mac or its hooks, plugin or switch are already on. Claude and Codex plan gauges follow Claude Code or Codex. `KlaudeHooksSection` (K11) is always first |
 | Chat | `KoncluiChatSubscriptionsSection` (K10) is always first. Anthropic API and the key-based providers: a key is saved. Ollama and LM Studio: a server is connected, or `ChatAccess` says one answers |
 | Integrations | a token, key or URL is saved, or the pill is on (Crypto, Portfolio, WhatsApp, Notion…) |

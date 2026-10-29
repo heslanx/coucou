@@ -42,7 +42,8 @@ enum KoncluiTool: String, CaseIterable, Sendable {
         }
     }
 
-    /// Config files or folders the tool leaves in the home folder (paths relative to it).
+    /// Config files or folders the tool leaves in the home folder (paths relative to it). Not a sign the tool is
+    /// installed (see `detect`); kept to tell a leftover from a tool that was never there.
     var configPaths: [String] {
         switch self {
         case .claudeCode:  return [".claude"]
@@ -105,10 +106,10 @@ enum KoncluiRecognition {
         names.contains { name in ["/Applications", "\(p.home)/Applications"].contains { p.exists("\($0)/\(name)") } }
     }
 
-    /// Whether this Mac has the tool: its CLI, its app or its config.
+    /// Whether this Mac has the tool: its CLI or its app. A config folder alone does not count: it outlives an
+    /// uninstall (~/.gemini, ~/.copilot, ~/.hermes… stay behind), so it would list agents the Mac no longer has.
     static func detect(_ tool: KoncluiTool, _ p: KoncluiProbe) -> Bool {
         hasBinary(tool.binaries, p) || hasApp(tool.apps, p)
-            || tool.configPaths.contains { p.exists("\(p.home)/\($0)") }
     }
 
     static func detectedTools(_ p: KoncluiProbe) -> Set<KoncluiTool> {
