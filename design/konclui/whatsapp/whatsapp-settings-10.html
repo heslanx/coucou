@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koncluí · WhatsApp em Ajustes › Integrações · 10 versões</title>
+<style>
+/* Tokens taken from the shipping Settings window (sampled from the owner's screenshot) */
+:root{
+  --page:#08080A; --panel:#0E0F11; --card:#151618; --surf:#1C1C1E; --surf2:#252528; --field:#212020;
+  --hair:rgba(255,255,255,.08); --hair2:rgba(255,255,255,.15);
+  --tx:#F5F6F8; --tx2:#8E939C; --tx3:#6B7079;
+  --or:#ED974F; --orbg:#201C1B; --orhov:#2B2420;
+  --amber:#F5B83D; --red:#F4505E; --green:#22C55E; --wa:#25D366; --focus:#4C8FE0;
+}
+*{box-sizing:border-box}
+html{background:var(--page);scroll-behavior:smooth}
+body{margin:0;color:var(--tx);font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.page{max-width:1180px;margin:0 auto;padding:0 28px 90px}
+a{color:inherit}
+
+/* ---------- page chrome (not part of the app) ---------- */
+.intro{padding:46px 0 22px;max-width:860px}
+.intro h1{font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:0 0 10px;font-weight:700}
+.intro p{color:#B4B8C0;font-size:14px;line-height:1.55;margin:0 0 10px}
+.intro ul{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.intro li{color:#9DA2AB;font-size:12.5px;line-height:1.5;padding-left:16px;position:relative}
+.intro li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--or)}
+.intro li b{color:#D5D8DE;font-weight:600}
+.bar{position:sticky;top:0;z-index:60;background:rgba(8,8,10,.88);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--hair)}
+.bar-in{max-width:1180px;margin:0 auto;padding:8px 28px;display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;font-size:12px;color:#9DA2AB}
+.bar-in .simul{margin-left:auto}
+.bar-g{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bar-g>span{color:#80858E;margin-right:2px}
+.nav a{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:7px;background:#17181B;border:1px solid var(--hair);text-decoration:none;font-weight:600;font-size:11.5px;color:#C9CDD4}
+.nav a:hover{background:#202226}
+.chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.chip{appearance:none;border:1px solid var(--hair);background:#141416;color:#A4A9B2;border-radius:999px;padding:2px 8px;height:24px;font-size:11px;cursor:pointer;white-space:nowrap}
+.chip:hover{background:#1C1D20}
+.chip[aria-pressed=true]{background:#F5F6F8;color:#111;border-color:#F5F6F8;font-weight:600}
+.chips .sep{color:#6F747D;font-size:11px;margin:0 0 0 6px}
+.bar label.simul{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.ver{display:grid;grid-template-columns:320px 720px;gap:38px;justify-content:center;padding:46px 0 40px;border-top:1px solid var(--hair);scroll-margin-top:84px}
+.ver.solo{border-top:0}
+.vnotes{padding-top:2px}
+.vnum{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--or);color:#fff;font-weight:700;font-size:13px;margin-bottom:10px}
+.vnotes h2{font-size:19px;line-height:1.2;letter-spacing:-.01em;margin:0 0 6px;font-weight:650}
+.vnotes .idea{color:#C2C6CD;font-size:13px;line-height:1.5;margin:0 0 14px}
+.vnotes ul{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px}
+.vnotes li{font-size:12.5px;line-height:1.5;color:#AEB3BB;padding-left:20px;position:relative}
+.vnotes li::before{position:absolute;left:0;top:0;width:15px;text-align:center;font-weight:700}
+.vnotes li.pro::before{content:"+";color:var(--green)}
+.vnotes li.con::before{content:"\2212";color:var(--amber)}
+.vmeta{font-size:11.5px;line-height:1.5;color:#80858E;border-top:1px solid var(--hair);padding-top:10px;display:grid;gap:5px}
+.vmeta b{color:#A4A9B2;font-weight:600}
+.vstage{min-width:0}
+.vstage .chips{margin:0 0 9px}
+.cap{font-size:11px;color:#6F747D;margin:0 0 7px 2px;letter-spacing:.01em}
+
+/* ---------- the Settings card (what ships) ---------- */
+.card{width:720px;background:var(--card);border-radius:14px;border:1px solid rgba(255,255,255,.05);padding:20px;position:relative}
+.pfoot{margin-top:20px;padding-top:16px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:12px}
+.pfoot small{color:#5E636B;font-size:11px}
+.ghostbtn{opacity:.5}
+
+/* ---------- shared components ---------- */
+.dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.dot.g{background:var(--green)}.dot.a{background:var(--amber)}.dot.r{background:var(--red)}.dot.n{background:#6B7079}.dot.wa{background:var(--wa)}
+.ic{flex:none;display:inline-block;vertical-align:-2px}
+.wam{width:24px;height:24px;border-radius:7px;background:var(--wa);display:inline-grid;place-items:center;flex:none;color:#fff}
+.wam.l{width:36px;height:36px;border-radius:10px}
+.wam.xl{width:46px;height:46px;border-radius:13px}
+.title{font-size:14px;font-weight:600;letter-spacing:-.005em}
+.hint{font-size:11.5px;line-height:1.45;color:var(--tx2)}
+.grow{flex:1}
+.hdr{display:flex;align-items:center;gap:10px}
+.hdr .ht{flex:1;min-width:0}
+.hdr .hl{display:flex;align-items:center;gap:8px}
+.hdr .hs{font-size:12px;color:var(--tx2);margin-top:1px}
+.hdr .hrt{flex:none;display:flex;align-items:center;gap:8px}
+.tag{appearance:none;font-size:10.5px;font-weight:600;letter-spacing:.02em;color:var(--amber);border:1px solid rgba(245,184,61,.38);border-radius:999px;padding:1px 8px 1px 7px;background:rgba(245,184,61,.08);display:inline-flex;align-items:center;gap:4px;height:19px}
+button.tag{cursor:pointer}
+button.tag:hover{background:rgba(245,184,61,.15)}
+.lnk{appearance:none;background:none;border:0;padding:0;color:var(--or);cursor:pointer;font-size:inherit}
+.lnk:hover{text-decoration:underline}
+.btn{appearance:none;border:0;border-radius:6px;height:26px;padding:0 11px;font-size:12.5px;font-weight:500;background:var(--orbg);color:var(--or);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--orhov)}
+.btn.pri{background:var(--or);color:#fff;font-weight:600;height:28px;padding:0 14px}
+.btn.pri:hover{background:#F2A25E}
+.btn.sm{height:22px;font-size:11.5px;padding:0 8px}
+.btn.ghost{background:transparent;color:var(--tx2)}
+.btn.ghost:hover{background:rgba(255,255,255,.06);color:var(--tx)}
+.btn.block{width:100%;justify-content:center}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.pri[disabled]:hover{background:var(--or)}
+.field{appearance:none;background:var(--field);border:1px solid transparent;border-radius:6px;height:26px;padding:0 9px;color:var(--tx);font-size:13px;outline:none;min-width:0}
+.field::placeholder{color:#7C8089}
+.field:focus{border-color:#335F88;box-shadow:0 0 0 3px rgba(51,95,136,.55)}
+.surf .field,.grp .field,.panel .field{background:#2A2A2D}
+.note{font-size:11.5px;line-height:1.45;border-radius:8px;padding:8px 10px;display:flex;gap:8px;align-items:flex-start}
+.note .ic{margin-top:2px}
+.note.amber{color:#F2C15C;background:rgba(245,184,61,.09);border:1px solid rgba(245,184,61,.22)}
+.note.red{color:#FF8E98;background:rgba(244,80,94,.10);border:1px solid rgba(244,80,94,.28)}
+.note.gray{color:var(--tx2);background:rgba(255,255,255,.04);border:1px solid var(--hair)}
+.note.blue{color:#8DB8F0;background:rgba(76,143,224,.10);border:1px solid rgba(76,143,224,.28)}
+.note .nb{flex:1;min-width:0}
+.note .nb b{font-weight:600}
+.panel{background:var(--surf);border:1px solid var(--hair);border-radius:10px;padding:14px}
+.sec{font-size:11.5px;font-weight:600;color:#A4A9B2;letter-spacing:.01em;margin:0 0 8px}
+.mt6{margin-top:6px}.mt10{margin-top:10px}.mt14{margin-top:14px}.mt18{margin-top:18px}
+
+/* checkbox (what the app uses today) and switch */
+input.chk{appearance:none;-webkit-appearance:none;width:15px;height:15px;border-radius:4px;background:#2B2B2E;border:1px solid rgba(255,255,255,.24);margin:0;flex:none;display:inline-grid;place-content:center;cursor:pointer}
+input.chk:checked{background:var(--or);border-color:var(--or)}
+input.chk:checked::after{content:"";width:9px;height:9px;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><path d='M1.5 5.2l2.4 2.4 4.6-5' fill='none' stroke='white' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat}
+input.chk[disabled]{opacity:.5;cursor:not-allowed}
+input.sw{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:10px;background:#3A3A3E;position:relative;margin:0;flex:none;cursor:pointer;transition:background .15s}
+input.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.45);transition:transform .15s}
+input.sw:checked{background:var(--or)}
+input.sw:checked::after{transform:translateX(14px)}
+input.rad{appearance:none;-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#2B2B2E;border:1px solid rgba(255,255,255,.28);margin:0;flex:none;cursor:pointer;display:inline-grid;place-content:center}
+input.rad:checked{background:var(--or);border-color:var(--or)}
+input.rad:checked::after{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.opt{display:flex;gap:9px;align-items:flex-start;cursor:pointer;line-height:1.35}
+.opt input{margin-top:2px}
+.opt .ot{display:block}
+.opt small{display:block;color:var(--tx2);font-size:11.5px;line-height:1.4;margin-top:1px}
+.opts{display:grid;gap:9px}
+.paused .optarea{opacity:.42}
+.msw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);cursor:pointer}
+
+/* inset list (System Settings style) */
+.gt{font-size:12px;font-weight:600;color:#A4A9B2;margin:16px 4px 6px}
+.grp{background:var(--surf);border:1px solid var(--hair);border-radius:10px}
+.gr{display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 12px}
+.gr+.gr{border-top:1px solid var(--hair)}
+label.gr{cursor:pointer}
+.gr .gl{flex:1;min-width:0}
+.gr .gl b{font-weight:400;display:block}
+.gr .gl small{display:block;color:var(--tx2);font-size:11.5px;line-height:1.4;margin-top:1px}
+.gr .gv{color:var(--tx2);font-size:12px}
+
+/* disclosure */
+.disc .dh{appearance:none;background:none;border:0;padding:3px 0;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:500;color:inherit;text-align:left}
+.disc .dh .ic{color:var(--tx2);transition:transform .15s}
+.disc .dh[aria-expanded=true] .ic{transform:rotate(90deg)}
+.disc .cnt{color:var(--tx2);font-weight:400}
+.disc .db{padding:8px 0 4px 18px}
+
+/* ignored chats */
+.ig{display:grid;gap:2px}
+.igr{display:flex;align-items:center;gap:8px;min-height:26px;font-size:12.5px}
+.igadd{display:flex;gap:8px;margin-top:8px}
+.igadd .field{flex:1}
+.igempty{font-size:12px;color:var(--tx2)}
+.chipx{display:inline-flex;align-items:center;gap:4px;height:24px;border-radius:999px;background:#2A2A2D;padding:0 4px 0 10px;font-size:12px}
+.chipx button{appearance:none;border:0;background:rgba(255,255,255,.08);color:var(--tx2);width:16px;height:16px;border-radius:50%;display:grid;place-items:center;cursor:pointer;padding:0}
+.chipx button:hover{background:rgba(255,255,255,.16);color:var(--tx)}
+
+/* privacy list */
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.plist li{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.45;color:var(--tx2)}
+.plist .ic{margin-top:2px;color:#A4A9B2}
+.foot{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;line-height:1.45;color:var(--tx2)}
+.foot .ic{margin-top:2px}
+
+/* QR + setup panels */
+.qrbox{background:#fff;border-radius:10px;padding:4px;line-height:0;display:inline-block;flex:none}
+.qrp{display:flex;gap:16px;align-items:flex-start}
+.qrp .qri{flex:1;min-width:0}
+.path{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:12.5px;font-weight:500;margin:6px 0 8px}
+.path .ic{color:var(--tx3)}
+.path span{white-space:nowrap}
+.wait{display:flex;align-items:center;gap:8px;font-size:12px;color:#F2C15C;margin-top:10px}
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.16);border-top-color:var(--or);border-radius:50%;animation:spin .9s linear infinite;flex:none;display:inline-block}
+.spin.a{border-top-color:var(--amber)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.isteps{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:12.5px}
+.isteps li{display:flex;align-items:center;gap:9px;color:var(--tx3)}
+.isteps li.done{color:var(--tx2)}
+.isteps li.now{color:var(--tx)}
+.isteps .si{width:16px;height:16px;display:grid;place-items:center;flex:none}
+.isteps li.done .si{color:var(--green)}
+.isteps li.todo .si::after{content:"";width:8px;height:8px;border-radius:50%;border:1.5px solid #4A4E56}
+.err{font-size:12px;line-height:1.45;color:#FF8E98;display:flex;gap:7px;margin:0 0 10px}
+.err .ic{margin-top:2px}
+.cta{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.cta p{margin:0}
+.cta .why{font-size:11.5px;color:#F2C15C}
+
+/* ---------- V1 stepper ---------- */
+.stp{list-style:none;margin:16px 0 0;padding:0}
+.stp>li{position:relative;padding:0 0 16px 36px}
+.stp>li:last-child{padding-bottom:0}
+.stp>li::before{content:"";position:absolute;left:11px;top:28px;bottom:4px;width:1px;background:var(--hair2)}
+.stp>li:last-child::before{display:none}
+.stp .sn{position:absolute;left:0;top:0;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:#26262A;color:var(--tx2);border:1px solid var(--hair2)}
+.stp .active .sn{background:var(--or);border-color:var(--or);color:#fff}
+.stp .done .sn{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.45);color:var(--green)}
+.stp .sh{display:flex;align-items:baseline;gap:8px;min-height:23px;padding-top:2px}
+.stp .sh b{font-weight:600;font-size:13.5px}
+.stp .todo .sh b{font-weight:500;color:var(--tx2)}
+.stp .sh span{font-size:12px;color:var(--tx2)}
+.stp .sc{margin-top:8px}
+.srow{display:flex;align-items:center;gap:10px;background:var(--surf);border:1px solid var(--hair);border-radius:10px;padding:10px 12px}
+.srow .st{min-width:0}
+.srow .st b{font-weight:600;display:block}
+.srow .st small{display:block;color:var(--tx2);font-size:11.5px}
+.prob{display:flex;gap:10px;align-items:flex-start;background:rgba(244,80,94,.08);border:1px solid rgba(244,80,94,.3);border-radius:10px;padding:12px}
+.prob .pb{flex:1;min-width:0}
+.prob b{font-weight:600;display:block}
+.prob small{display:block;color:#C9A0A5;font-size:11.5px;line-height:1.45;margin-top:2px}
+.prob .acts{display:flex;gap:8px;margin-top:10px}
+.upd{display:flex;align-items:center;gap:10px;background:rgba(76,143,224,.10);border:1px solid rgba(76,143,224,.28);border-radius:10px;padding:9px 12px;font-size:12.5px}
+.upd .ic{color:#8DB8F0}
+
+/* ---------- V2 header card ---------- */
+.hcard{background:var(--surf);border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+.hcard .htop{padding:14px}
+.hcard .hero{padding:0 14px 14px}
+.hcard .hero .inner{background:rgba(255,255,255,.035);border:1px solid var(--hair);border-radius:9px;padding:12px}
+.hcard .wstrip{display:flex;gap:7px;align-items:center;padding:8px 14px;font-size:11.5px;color:#F2C15C;background:rgba(245,184,61,.07);border-top:1px solid rgba(245,184,61,.16)}
+.stat{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#C7CBD2;margin-top:2px}
+
+/* ---------- V3 row + sheet ---------- */
+.ghostrow{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.03);color:#5E636B;font-size:12.5px}
+.ghostrow i{width:8px;height:8px;border-radius:50%;background:#44484F}
+.irow{display:flex;align-items:center;gap:12px;background:var(--surf);border:1px solid var(--hair);border-radius:12px;padding:12px 14px;margin:8px 0}
+.irow .it{flex:1;min-width:0}
+.irow .is{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--tx2);margin-top:1px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);border-radius:14px;z-index:1}
+.sheet{position:relative;z-index:2;margin:20px auto 0;width:560px;background:#242427;border:1px solid var(--hair2);border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.65),0 0 0 .5px rgba(0,0,0,.8);display:flex;flex-direction:column}
+.sheet .sbody{padding:16px 20px 6px}
+.sheet .sfoot{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:12px 20px 16px}
+.sheet .sfoot .hint{margin-right:auto}
+.sheet h3{margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em}
+.sheet .shead{display:flex;gap:12px;align-items:center;padding:18px 20px 0}
+.facts{display:grid;gap:10px;margin:14px 0}
+.fact{display:flex;gap:11px;align-items:flex-start;font-size:12.5px;line-height:1.45;color:#C2C6CD}
+.fact .fi{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.07);display:grid;place-items:center;flex:none;color:#C2C6CD}
+.fact b{display:block;font-weight:600;color:var(--tx)}
+
+/* ---------- V4 two columns ---------- */
+.c4{display:grid;grid-template-columns:236px 1fr;gap:18px;margin-top:16px}
+.c4 .lp{background:var(--surf);border:1px solid var(--hair);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;align-self:start}
+.c4 .lp .qrbox{align-self:center}
+.c4 .lp hr,.hr{border:0;border-top:1px solid var(--hair);margin:2px 0;width:100%}
+.c4 .rp{min-width:0}
+.c4 .acc2{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.avatar{width:46px;height:46px;border-radius:50%;background:rgba(37,211,102,.16);color:var(--wa);display:grid;place-items:center}
+.c4notes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;padding-top:14px;border-top:1px solid var(--hair)}
+
+/* ---------- V5 accordion ---------- */
+.acc{background:var(--surf);border:1px solid var(--hair);border-radius:10px;margin-top:14px}
+.ai+.ai{border-top:1px solid var(--hair)}
+.ah{display:flex;align-items:center;gap:8px;padding:0 12px;min-height:42px}
+.ah .tg{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;height:42px;cursor:pointer;text-align:left;font-size:13px;font-weight:500}
+.ah .tg .ic{color:var(--tx2);transition:transform .15s}
+.ah .tg[aria-expanded=true] .ic{transform:rotate(90deg)}
+.ah .sum{display:flex;align-items:center;gap:7px;color:var(--tx2);font-size:12px;white-space:nowrap}
+.ab{padding:2px 14px 16px 34px}
+
+/* ---------- V6 checklist ---------- */
+.ckl{background:var(--surf);border:1px solid var(--hair);border-radius:10px;margin-top:14px}
+.ck{display:flex;gap:11px;padding:11px 12px;align-items:flex-start}
+.ck+.ck{border-top:1px solid var(--hair)}
+.ck .ci{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:1px}
+.ck .ci.done{background:rgba(34,197,94,.18);color:var(--green)}
+.ck .ci.bad{background:rgba(244,80,94,.18);color:var(--red)}
+.ck .ci.warn{background:rgba(245,184,61,.18);color:var(--amber)}
+.ck .ci.todo{border:1.5px solid #4A4E56}
+.ck .ci.now{border:0}
+.ck .cb{flex:1;min-width:0}
+.ck .cb b{font-weight:600;display:block}
+.ck .cb .cd{font-size:12px;color:var(--tx2);margin-top:1px}
+.ck .cx{margin-top:9px}
+.ck.dim b{font-weight:500;color:var(--tx2)}
+.cprog{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx2)}
+.cbar{width:90px;height:4px;border-radius:2px;background:#2B2B2E;overflow:hidden}
+.cbar i{display:block;height:100%;background:var(--green)}
+.strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;align-items:center}
+.hc{display:inline-flex;align-items:center;gap:6px;height:26px;border-radius:999px;padding:0 10px 0 7px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.25);font-size:12px;color:#BFE8CF}
+.hc.warn{background:rgba(76,143,224,.12);border-color:rgba(76,143,224,.35);color:#A9C8F2}
+.hc .ic{color:var(--green)}
+.hc.warn .ic{color:#8DB8F0}
+
+/* ---------- V7 notch preview ---------- */
+.desk{margin-top:14px;border-radius:12px;background:linear-gradient(180deg,#2A3050 0%,#171A2A 55%,#10121C 100%);overflow:hidden;padding-bottom:16px;border:1px solid var(--hair)}
+.menubar{height:22px;background:rgba(0,0,0,.28);display:flex;align-items:center;gap:14px;padding:0 12px;font-size:11px;color:rgba(255,255,255,.65)}
+.menubar b{color:#fff;font-weight:600}
+.menubar .r{margin-left:auto}
+.notch{width:460px;margin:-22px auto 0;background:#000;border-radius:0 0 24px 24px;padding:28px 18px 14px 18px;position:relative;min-height:128px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.notch .nl{display:flex;gap:14px}
+.mochi{width:70px;flex:none;padding-top:4px}
+.mochi i{display:block;width:54px;height:44px;border-radius:50% 50% 44% 44%;background:#6BCBD8;position:relative}
+.mochi i::before,.mochi i::after{content:"";position:absolute;top:14px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:inset -2px -2px 0 #24323A}
+.mochi i::before{left:11px}.mochi i::after{right:11px}
+.ncard{flex:1;min-width:0}
+.nh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-bottom:6px;color:#F5F6F8}
+.nh .ub{font-size:10px;font-weight:600;color:var(--wa);background:rgba(37,211,102,.14);border-radius:999px;padding:1px 6px}
+.nrow{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;font-size:11px;min-width:0}
+.nrow.u{background:rgba(37,211,102,.08)}
+.nrow.muted{opacity:.4}
+.nrow .av{width:16px;height:16px;border-radius:50%;background:rgba(37,211,102,.22);color:var(--wa);font-size:7px;font-weight:700;display:grid;place-items:center;flex:none}
+.nrow .nm{font-weight:600;color:#E8E9EC;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.nrow .tm{font-size:10px;color:#6B7079;flex:none}
+.nrow .pv{font-size:10px;color:#8E939C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.nrow .bd{font-size:9px;font-weight:700;color:#0B0C0E;background:var(--wa);border-radius:999px;padding:1px 5px;flex:none}
+.nrow .mt{font-size:9px;color:#8E939C;border:1px solid #3A3D44;border-radius:4px;padding:0 4px;flex:none}
+.nst{font-size:11px;color:#8E939C;padding:6px 6px 0}
+.nst.w{color:var(--amber)}
+.nst.e{color:#FF8E98}
+.nst .lk{display:inline-block;margin-top:6px;color:#8E939C;font-size:11px}
+.pvctl{display:flex;justify-content:center;gap:8px;align-items:center;margin-top:12px;font-size:11.5px;color:rgba(255,255,255,.6)}
+.effect{display:block;font-size:11.5px;color:var(--tx2);margin-top:1px}
+
+/* ---------- V8 single line + popover ---------- */
+.v8c{min-height:470px}
+.line{display:flex;align-items:center;gap:10px;background:var(--surf);border:1px solid var(--hair);border-radius:12px;padding:10px 12px;position:relative}
+.line .lst{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#C7CBD2;min-width:0;white-space:nowrap}
+.line .lst .sub{color:var(--tx2)}
+.pop{position:absolute;right:62px;top:calc(100% + 10px);width:372px;z-index:5;background:#262629;border:1px solid var(--hair2);border-radius:11px;box-shadow:0 18px 50px rgba(0,0,0,.6);padding:14px}
+.pop::before{content:"";position:absolute;top:-6px;right:34px;width:11px;height:11px;background:#262629;border-left:1px solid var(--hair2);border-top:1px solid var(--hair2);transform:rotate(45deg)}
+.pop .hr{margin:12px 0}
+.pop .gwl{display:flex;align-items:center;gap:8px;font-size:12px}
+.v8exp{background:var(--surf);border:1px solid var(--hair);border-radius:12px;padding:14px}
+.v8exp .line{background:none;border:0;padding:0}
+.v8exp .body{margin-top:14px;padding-top:14px;border-top:1px solid var(--hair)}
+
+/* ---------- V9 intent ---------- */
+.rc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.rcard{display:flex;flex-direction:column;gap:5px;background:var(--surf);border:1px solid var(--hair);border-radius:10px;padding:11px 12px 12px;cursor:pointer}
+.rcard .rt{display:flex;align-items:center;gap:8px}
+.rcard:hover{border-color:var(--hair2)}
+.rcard:has(input:checked){border-color:rgba(237,151,79,.75);background:rgba(237,151,79,.07)}
+.rcard b{font-weight:600;display:block}
+.rcard small{display:block;font-size:11.5px;color:var(--tx2);line-height:1.4;padding-left:24px}
+.connl{display:flex;align-items:center;gap:10px;background:var(--surf);border:1px solid var(--hair);border-radius:10px;padding:9px 12px;margin-top:14px;min-height:46px}
+.connl .t{flex:1;min-width:0;font-size:12.5px;display:flex;align-items:center;gap:8px}
+.connl .t small{color:var(--tx2);font-size:12px}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* ---------- V10 tabs ---------- */
+.tabs{display:flex;gap:2px;margin-top:14px;border-bottom:1px solid var(--hair)}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:8px 11px 9px;margin-bottom:-1px;font-size:12.5px;font-weight:500;color:var(--tx2);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.tab:hover{color:var(--tx)}
+.tab[aria-selected=true]{color:var(--tx);border-bottom-color:var(--or)}
+.tab .bg{font-size:10.5px;color:var(--tx2);background:rgba(255,255,255,.08);border-radius:999px;padding:0 6px}
+.tpanel{min-height:214px;padding-top:16px}
+
+@media (max-width:1180px){
+  .ver{grid-template-columns:720px;gap:18px}
+}
+@media (prefers-reduced-motion:reduce){
+  .spin{animation:none}
+  input.sw,input.sw::after,.disc .dh .ic,.ah .tg .ic{transition:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="bar" id="bar">
+  <div class="bar-in">
+    <div class="bar-g nav" id="nav"><span>Versões</span></div>
+    <label class="simul"><input type="checkbox" class="chk" id="slot"> Simular: sem espaço em Pílulas ativas</label>
+    <div class="bar-g" style="flex-basis:100%"><span>Estado em todas as versões:</span><div class="chips" id="gchips"></div></div>
+  </div>
+</div>
+<div class="page">
+  <header class="intro" id="intro">
+    <h1>WhatsApp em Ajustes › Integrações: 10 versões</h1>
+    <p>Dez formas de reorganizar o bloco do WhatsApp (experimental) sem mudar o que ele faz. Todas usam as opções, os estados e os textos reais do app: gateway GOWA, QR code, as três opções de uso diário, conversas ignoradas, privacidade e “seu próprio gateway”. Onde um texto foi reescrito, a versão diz qual.</p>
+    <p>Cada versão está em tamanho real (coluna de 720 px) e é navegável. A barra fixa troca o estado de todas ao mesmo tempo; os botões acima de cada versão trocam só a dela. O estado <b>Conectado</b> é o que se vê todo dia: compare esse primeiro.</p>
+    <ul>
+      <li><b>O que é novo em relação ao código de hoje:</b> “Instalar o WhatsApp” já liga a integração (hoje é preciso marcar antes “Mostrar minhas mensagens do WhatsApp”); “Tentar de novo” (chama o mesmo <code>settingsChanged()</code> do Avançado); aviso de atualização (hoje “Atualizar” é sempre oferecido, sem checar a versão); número formatado (hoje aparece só com os dígitos).</li>
+      <li><b>Salvar:</b> as opções do WhatsApp já se aplicam na hora, e o Avançado tem o próprio “Salvar WhatsApp”. O botão “Salvar integrações” da página (Notion, Portfolio…) aparece esmaecido no rodapé só para dar contexto; nenhuma versão depende dele.</li>
+      <li><b>Controles:</b> caixa de seleção (como hoje) ou interruptor (estilo Ajustes do Sistema) são intercambiáveis em qualquer versão. O laranja com texto branco repete o app atual (contraste de cerca de 2,2:1); vale revisar isso à parte.</li>
+      <li><b>Não desenhado:</b> o aviso “o macOS ainda não deixa ler o Foco” e o aviso de porta ocupada seguem como hoje, junto da opção a que se referem. O aviso de falta de espaço em Pílulas ativas pode ser simulado na barra.</li>
+    </ul>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+'use strict';
+/* ============ data ============ */
+const ACC = { num: '+55 11 91234-5678', ver: '9.7.0', newVer: '9.8.1' };
+const STATES = [
+  { id: 'fresh', label: 'Não configurado' },
+  { id: 'installing', label: 'Instalando' },
+  { id: 'qr', label: 'Aguardando QR' },
+  { id: 'connected', label: 'Conectado' },
+  { id: 'stopped', label: 'Gateway parado', short: 'Parado', grp: 1 },
+  { id: 'update', label: 'Atualização', grp: 1 },
+  { id: 'failed', label: 'Falha ao instalar', short: 'Falha ao instalar', grp: 1 },
+];
+const INSTALL_STEPS = [
+  'Procurando a versão mais recente do GOWA…',
+  'Baixando (15 MB)…',
+  'Verificando o download…',
+  'Instalando e iniciando…',
+];
+const OPTS = {
+  mute:  { label: 'Silenciar grupos (exceto quando me mencionam)' },
+  focus: { label: 'Ficar quieto durante um Foco' },
+  read:  { label: 'Marcar como lida ao abrir uma conversa', hint: 'Desligado: só é marcada como lida quando você responde.' },
+};
+const G = { state: 'connected', slot: false };
+
+/* ============ tiny helpers ============ */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const IC = {
+  check: '<path d="M3 8.5l3.2 3.2L13 4.5"/>',
+  x: '<path d="M4 4l8 8M12 4l-8 8"/>',
+  warn: '<path d="M8 2.2l6.2 11H1.8L8 2.2z"/><path d="M8 6.5v3.2M8 11.8v.1"/>',
+  info: '<circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.6M8 5v.1"/>',
+  chevr: '<path d="M6 3.5L10.5 8 6 12.5"/>',
+  chevd: '<path d="M3.5 6L8 10.5 12.5 6"/>',
+  lock: '<rect x="3.2" y="7" width="9.6" height="6.6" rx="1.6"/><path d="M5.2 7V5.2a2.8 2.8 0 015.6 0V7"/>',
+  mac: '<rect x="2" y="3" width="12" height="8" rx="1.4"/><path d="M1 13.2h14"/>',
+  phone: '<rect x="4.4" y="1.8" width="7.2" height="12.4" rx="1.8"/><path d="M7 12h2"/>',
+  moon: '<path d="M12.8 9.6A5.6 5.6 0 016.4 3.2a5.6 5.6 0 106.4 6.4z"/>',
+  down: '<circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v5M5.8 8.2L8 10.4l2.2-2.2"/>',
+  up: '<circle cx="8" cy="8" r="6.2"/><path d="M8 11.2v-5M5.8 7.8L8 5.6l2.2 2.2"/>',
+  refresh: '<path d="M13 8a5 5 0 11-1.6-3.7"/><path d="M13 2.5v3h-3"/>',
+  nomedia: '<rect x="2" y="3" width="12" height="10" rx="1.6"/><path d="M2 13L14 3"/>',
+  bubble: '<path d="M2.5 3.2h11v7.6H7.6L4.6 13.4v-2.6H2.5z"/>',
+  users: '<circle cx="6" cy="6" r="2.2"/><path d="M1.8 13c.3-2.4 2-3.6 4.2-3.6s3.9 1.2 4.2 3.6"/><circle cx="11.4" cy="6.6" r="1.7"/><path d="M11 9.6c2 0 3.2 1 3.4 3"/>',
+  eye: '<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>',
+  bell: '<path d="M4 11V7.2a4 4 0 018 0V11l1 1.4H3L4 11z"/><path d="M6.6 14h2.8"/>',
+};
+const ic = (n, s = 14) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+const dot = c => `<i class="dot ${c}" aria-hidden="true"></i>`;
+const wam = (cls = '') => `<span class="wam ${cls}" aria-hidden="true"><svg width="62%" height="62%" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.9a6.1 6.1 0 00-5.2 9.2L2 14l3-.8A6.1 6.1 0 108 1.9z"/></svg></span>`;
+const btn = (label, act, o = {}) => `<button type="button" class="btn ${o.cls || ''}" data-act="${act}" ${o.extra || ''}>${o.icon || ''}${label}</button>`;
+const spin = (cls = '') => `<span class="spin ${cls}" aria-hidden="true"></span>`;
+const pageFoot = () => `<div class="pfoot"><span class="btn pri ghostbtn" aria-hidden="true">Salvar integrações</span><small>botão da página (Notion, Portfolio…), fora do bloco do WhatsApp</small></div>`;
+
+/* deterministic placeholder QR (29 modules + quiet zone): drawn, no network */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let QRP = null;
+function qrPath() {
+  if (QRP) return QRP;
+  const N = 29, r = mulberry32(20260), g = Array.from({ length: N }, () => Array(N).fill(0));
+  const reserved = (x, y) => (x < 8 && y < 8) || (x >= N - 8 && y < 8) || (x < 8 && y >= N - 8) || x === 6 || y === 6 || (x >= N - 9 && x <= N - 5 && y >= N - 9 && y <= N - 5);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!reserved(x, y)) g[y][x] = r() < .5 ? 1 : 0;
+  const fin = (ox, oy) => { for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) { const e = x === 0 || y === 0 || x === 6 || y === 6, c = x >= 2 && x <= 4 && y >= 2 && y <= 4; g[oy + y][ox + x] = e || c ? 1 : 0; } };
+  fin(0, 0); fin(N - 7, 0); fin(0, N - 7);
+  for (let i = 8; i < N - 8; i++) { g[6][i] = i % 2 ? 0 : 1; g[i][6] = i % 2 ? 0 : 1; }
+  const c = N - 7;
+  for (let y = -2; y <= 2; y++) for (let x = -2; x <= 2; x++) g[c + y][c + x] = Math.max(Math.abs(x), Math.abs(y)) === 1 ? 0 : 1;
+  let d = '';
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (g[y][x]) d += `M${x} ${y}h1v1h-1z`;
+  return (QRP = d);
+}
+const qr = size => `<span class="qrbox" role="img" aria-label="QR code de exemplo (ilustração)"><svg width="${size}" height="${size}" viewBox="-2 -2 33 33" shape-rendering="crispEdges"><path d="${qrPath()}" fill="#111"/></svg></span>`;
+
+/* ============ per-version state ============ */
+const VS = {};
+function freshV() {
+  return { state: 'connected', enabled: true, opts: { mute: true, focus: true, read: true },
+    ignored: ['Promoções Loja X', '+55 21 97777-1234'], draft: '', inst: 1, ver: ACC.ver, ui: {}, timer: null };
+}
+const model = v => {
+  const s = v.state;
+  if (!v.enabled && s !== 'fresh') return { dot: 'n', label: 'Desativado: nada do WhatsApp aparece no notch', short: 'Desativado', kind: 'off' };
+  switch (s) {
+    case 'fresh': return { dot: 'n', label: 'Não configurado', short: 'Não configurado', kind: 'fresh' };
+    case 'installing': return { dot: 'a', label: 'Instalando o gateway…', short: 'Instalando…', kind: 'busy' };
+    case 'qr': return { dot: 'a', label: 'Aguardando o escaneamento do QR code', short: 'Aguardando o QR code', kind: 'qr' };
+    case 'connected': return { dot: 'g', label: 'Conectado como ' + ACC.num, short: 'Conectado', kind: 'ok' };
+    case 'update': return { dot: 'g', label: 'Conectado como ' + ACC.num, short: 'Conectado', kind: 'ok', upd: true };
+    case 'stopped': return { dot: 'r', label: 'O gateway não responde: ele está rodando?', short: 'Gateway parado', kind: 'bad' };
+    case 'failed': return { dot: 'r', label: 'Não foi possível instalar o gateway', short: 'Falha ao instalar', kind: 'bad' };
+  }
+};
+const isSetup = v => ['fresh', 'failed', 'installing', 'qr'].includes(v.state);
+const showMaster = v => ['connected', 'update', 'stopped'].includes(v.state);
+const wrapCls = v => (v.enabled ? '' : 'paused');
+
+/* ============ shared pieces ============ */
+const warnFull = () => `<div class="note amber">${ic('warn', 14)}<div class="nb">Integração não oficial: passa por um gateway que você executa neste Mac. Use só na sua própria conta. O WhatsApp pode restringir contas em caso de abuso.</div></div>`;
+const warnShort = () => `<div class="note amber">${ic('warn', 14)}<div class="nb"><b>Integração não oficial.</b> Use só a sua própria conta: o WhatsApp pode restringir contas em caso de abuso.</div></div>`;
+const expTag = (v, label = 'Experimental') => `<button type="button" class="tag" data-act="ui" data-k="warn" aria-expanded="${!!v.ui.warn}" title="Integração não oficial">${label} ${ic('info', 11)}</button>`;
+const warnInline = v => v.ui.warn ? `<div class="mt10">${warnFull()}</div>` : '';
+const slot = () => G.slot ? `<div class="note red mt10">${ic('warn', 14)}<div class="nb">Libere um espaço em Pílulas ativas para mostrar a do WhatsApp (no máximo 4).</div></div>` : '';
+const masterSw = (v, label) => `<label class="msw">${label ? `<span>${label}</span>` : ''}<input type="checkbox" class="sw" data-act="master" ${v.enabled ? 'checked' : ''} aria-label="Mostrar minhas mensagens do WhatsApp"></label>`;
+const hdr = (v, o = {}) => `<div class="hdr">${wam(o.big || '')}<div class="ht"><div class="hl"><span class="title">${o.title || 'WhatsApp'}</span>${o.tag || ''}</div>${o.sub ? `<div class="hs" role="status">${o.sub}</div>` : ''}</div>${o.right ? `<div class="hrt">${o.right}</div>` : ''}</div>`;
+const statusLine = (v, extra = '', short = false) => { const m = model(v); return `<span class="stat" role="status">${dot(m.dot)}<span>${short && m.kind !== 'ok' ? m.short : m.label}</span>${extra}</span>`; };
+const liveHint = () => 'Ao vivo: as novas mensagens chegam na hora.';
+
+const optChk = (v, k) => { const o = OPTS[k]; return `<label class="opt"><input type="checkbox" class="chk" data-act="opt" data-k="${k}" ${v.opts[k] ? 'checked' : ''}><span class="ot">${o.label}${o.hint ? `<small>${o.hint}</small>` : ''}</span></label>`; };
+const optsChk = v => `<div class="opts">${['mute', 'focus', 'read'].map(k => optChk(v, k)).join('')}</div>`;
+const optSw = (v, k, icon) => { const o = OPTS[k]; return `<label class="gr">${icon ? `<span style="color:var(--tx2)">${ic(icon, 16)}</span>` : ''}<span class="gl"><b>${o.label}</b>${o.hint ? `<small>${o.hint}</small>` : ''}</span><input type="checkbox" class="sw" data-act="opt" data-k="${k}" ${v.opts[k] ? 'checked' : ''}></label>`; };
+
+const disc = (v, key, label, bodyHtml, o = {}) => {
+  const open = !!v.ui[key];
+  return `<div class="disc"><button type="button" class="dh" data-act="ui" data-k="${key}" aria-expanded="${open}">${ic('chevr', 12)}<span>${label}</span>${o.count != null ? `<span class="cnt">${o.count}</span>` : ''}</button>${open ? `<div class="db">${bodyHtml}</div>` : ''}</div>`;
+};
+
+function ignoredList(v, chips) {
+  const items = v.ignored.map((n, i) => chips
+    ? `<span class="chipx">${esc(n)}<button type="button" data-act="idel" data-i="${i}" aria-label="Remover ${esc(n)}">${ic('x', 9)}</button></span>`
+    : `<div class="igr"><span>${esc(n)}</span><span class="grow"></span><button type="button" class="lnk" data-act="idel" data-i="${i}" aria-label="Remover ${esc(n)}">Remover</button></div>`);
+  const list = items.length ? (chips ? `<div class="chiprow">${items.join('')}</div>` : `<div class="ig">${items.join('')}</div>`) : `<div class="igempty">Nenhuma conversa ignorada.</div>`;
+  const add = `<div class="igadd"><input class="field" data-act="draft" placeholder="Número ou id da conversa a ignorar" aria-label="Número ou id da conversa a ignorar" value="${esc(v.draft)}"><button type="button" class="btn addbtn" data-act="iadd" ${v.draft.trim() ? '' : 'disabled'}>Adicionar</button></div>`;
+  return list + add;
+}
+const privList = () => `<ul class="plist"><li>${ic('mac')}<span>Só fala com o gateway neste Mac.</span></li><li>${ic('lock')}<span>As mensagens ficam na memória: nunca são registradas nem salvas, e são esquecidas quando o Koncluí fecha.</span></li><li>${ic('nomedia')}<span>Nenhuma foto ou mídia é baixada.</span></li></ul>`;
+const privReal = () => `<div class="foot">${ic('lock')}<span>O Koncluí só fala com o gateway neste Mac. As mensagens ficam na memória, nunca são registradas nem salvas e são esquecidas quando o Koncluí fecha. Nenhuma foto ou mídia é baixada.</span></div>`;
+const privOne = (v, key = 'priv') => `<div class="foot">${ic('lock')}<span>Só neste Mac · mensagens só na memória, nunca salvas · sem fotos ou mídia. <button type="button" class="lnk" data-act="ui" data-k="${key}">${v.ui[key] ? 'Ocultar' : 'Detalhes'}</button></span></div>${v.ui[key] ? `<p class="hint" style="margin:0 0 0 21px">O Koncluí só fala com o gateway neste Mac. As mensagens ficam na memória, nunca são registradas nem salvas e são esquecidas quando o Koncluí fecha. Nenhuma foto ou mídia é baixada.</p>` : ''}`;
+
+function advancedBody(v) {
+  const gw = v.ui.gw || 'gowa';
+  return `<div style="display:grid;gap:8px">
+    <div role="group" aria-label="Gateway" style="display:flex;gap:0;background:#2A2A2D;border-radius:7px;padding:2px;width:200px">
+      ${['gowa', 'openwa'].map(k => `<button type="button" class="btn sm ${gw === k ? '' : 'ghost'}" style="flex:1;justify-content:center;${gw === k ? 'background:#47474C;color:#fff' : ''}" data-act="gw" data-val="${k}" aria-pressed="${gw === k}">${k === 'gowa' ? 'GOWA' : 'OpenWA'}</button>`).join('')}
+    </div>
+    <input class="field" placeholder="${gw === 'gowa' ? 'http://127.0.0.1:3000' : 'http://127.0.0.1:2785'}" aria-label="Endereço do gateway">
+    <input class="field" type="password" placeholder="${gw === 'gowa' ? 'Auth básica  (usuário:senha, se houver)' : 'Chave de API  (owa_k1_…)'}" aria-label="Credencial do gateway">
+    <label class="opt"><input type="checkbox" class="chk" checked><span class="ot">Iniciar o GOWA automaticamente</span></label>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span>Porta do webhook do Koncluí</span><input class="field" style="width:84px" placeholder="47823" aria-label="Porta do webhook"></div>
+    <div style="display:flex;gap:8px;align-items:center"><button type="button" class="btn pri" data-act="noop">Salvar WhatsApp</button><button type="button" class="btn" data-act="noop">Testar a conexão</button></div>
+  </div>`;
+}
+
+/* setup content blocks, reused by many versions */
+function installCta(v, o = {}) {
+  const failed = v.state === 'failed';
+  const blocked = o.blocked;
+  return `<div class="cta">
+    ${failed ? `<p class="err" role="alert">${ic('warn', 14)}<span>O download não foi concluído. Verifique sua conexão e tente de novo.</span></p>` : ''}
+    ${o.short ? `<p class="hint">Baixa o GOWA (gateway de código aberto, cerca de 15 MB) do GitHub, verifica e inicia. Sem Terminal.</p>`
+      : `<p class="hint">O Koncluí baixa o GOWA, o gateway de código aberto, da página dele no GitHub (cerca de 15 MB, uma única vez), verifica e inicia. Depois, escaneie o QR code com o celular. Sem Terminal.</p>`}
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button type="button" class="btn pri ${o.block ? 'block' : ''}" data-act="${blocked ? 'blocked' : 'install'}" ${blocked ? 'aria-disabled="true" style="opacity:.5"' : ''}>${ic('down', 14)}${failed ? 'Tentar de novo' : 'Instalar o WhatsApp'}</button>
+      ${blocked ? `<span class="why" role="status">Aceite o aviso acima para instalar.</span>` : ''}
+    </div>
+  </div>`;
+}
+function installProgress(v, o = {}) {
+  const i = v.inst;
+  return `<ul class="isteps" role="status" aria-label="Progresso da instalação">${INSTALL_STEPS.map((t, k) => {
+    const c = k < i ? 'done' : k === i ? 'now' : 'todo';
+    return `<li class="${c}"><span class="si">${k < i ? ic('check', 14) : k === i ? spin() : ''}</span><span>${t}</span></li>`;
+  }).join('')}</ul>${o.noHint ? '' : `<p class="hint mt10" style="margin:10px 0 0">Passo ${Math.min(i + 1, 4)} de 4. A instalação continua mesmo se você sair desta página.</p>`}`;
+}
+function qrPanel(v, o = {}) {
+  const size = o.size || 168;
+  return `<div class="qrp" ${o.col ? 'style="flex-direction:column;align-items:center"' : ''}>${qr(size)}<div class="qri" ${o.col ? 'style="width:100%"' : ''}>
+    ${o.noTitle ? '' : `<div class="title" style="font-size:13px">Escaneie o QR code</div>`}
+    <div class="hint" style="margin-top:${o.noTitle ? 0 : 4}px">No celular, abra:</div>
+    <div class="path"><span>WhatsApp</span><span>${ic('chevr', 10)} Configurações</span><span>${ic('chevr', 10)} Dispositivos conectados</span><span>${ic('chevr', 10)} Conectar dispositivo</span></div>
+    <div class="hint">e escaneie este código. Ele se renova sozinho.</div>
+    ${o.noWait ? '' : `<div class="wait" role="status">${spin('a')}<span>Aguardando o escaneamento…</span></div>`}
+  </div></div>`;
+}
+function stoppedPanel(v, o = {}) {
+  return `<div class="prob" role="alert">${dot('r').replace('class="dot', 'style="margin-top:5px" class="dot')}<div class="pb"><b>O gateway não responde: ele está rodando?</b><small>Nenhuma mensagem nova chega ao notch enquanto ele estiver parado. O Koncluí tenta iniciá-lo sozinho (no máximo uma vez por minuto). Se continuar, confira o endereço em Avançado.</small>${o.noBtn ? '' : `<div class="acts">${btn('Tentar de novo', 'retry', { cls: 'pri', icon: ic('refresh', 13) })}</div>`}</div></div>`;
+}
+const updateLine = v => `<div class="upd" role="status">${ic('up', 15)}<span style="flex:1">Nova versão do gateway: <b>GOWA ${ACC.newVer}</b> <span style="color:var(--tx2)">(você usa ${v.ver})</span></span>${btn('Atualizar', 'update', { cls: 'pri', extra: 'style="height:24px"' })}</div>`;
+const gatewayLine = v => `<span class="hint">Gateway GOWA ${v.ver} instalado, iniciado pelo Koncluí</span>`;
+
+/* the setup body for the current setup state, in the version's own container */
+function setupBody(v, o = {}) {
+  switch (v.state) {
+    case 'fresh': case 'failed': return installCta(v, o);
+    case 'installing': return installProgress(v, o);
+    case 'qr': return qrPanel(v, o);
+    case 'stopped': return stoppedPanel(v, o);
+    case 'update': return updateLine(v);
+  }
+  return '';
+}
+
+/* ============ the 10 versions ============ */
+const R = {};      // render functions: version state -> HTML of the Settings card content
+const DEF = {};    // per-version UI defaults applied when the state changes
+
+/* ---- 1. Stepper that collapses into a status row ---- */
+DEF[1] = v => { v.ui.warn = v.state === 'fresh' || v.state === 'failed'; };
+R[1] = v => {
+  const s = v.state, m = model(v);
+  let h = hdr(v, { tag: expTag(v), right: s === 'stopped' ? masterSw(v) : '' });
+  h += warnInline(v) + slot();
+  if (isSetup(v)) {
+    const done1 = s === 'qr';
+    const step = (n, st, title, detail, content) => `<li class="${st}"><span class="sn">${st === 'done' ? ic('check', 13) : n}</span><div class="sh"><b>${title}</b>${detail ? `<span>${detail}</span>` : ''}</div>${content ? `<div class="sc">${content}</div>` : ''}</li>`;
+    h += `<ol class="stp">`
+      + step(1, done1 ? 'done' : 'active', 'Instalar o gateway', done1 ? `GOWA ${v.ver} instalado, iniciado pelo Koncluí` : '', done1 ? '' : `<div class="panel">${s === 'installing' ? installProgress(v) : installCta(v)}</div>`)
+      + step(2, s === 'qr' ? 'active' : 'todo', 'Vincular o celular', s === 'qr' ? '' : 'Depois da instalação', s === 'qr' ? `<div class="panel">${qrPanel(v)}</div>` : '')
+      + step(3, 'todo', 'Pronto', 'As mensagens passam a aparecer no notch.', '')
+      + `</ol>`;
+  } else {
+    const top = s === 'stopped' ? stoppedPanel(v)
+      : `<div class="srow">${dot(m.dot)}<div class="st"><b role="status">${m.label}</b><small>${v.enabled ? liveHint() : 'Ligue para voltar a mostrar mensagens no notch.'}</small></div><span class="grow"></span><span class="hint">GOWA ${v.ver}</span>${s === 'update' ? '' : btn('Atualizar', 'update', { cls: 'ghost sm' })}${masterSw(v)}</div>`;
+    h += `<div class="mt14">${top}</div>${s === 'update' ? `<div class="mt10">${updateLine(v)}</div>` : ''}`;
+    h += `<div class="optarea mt18"><div class="sec">Notificações</div>${optsChk(v)}<div class="mt14">${disc(v, 'ign', 'Conversas ignoradas', ignoredList(v), { count: v.ignored.length })}</div></div>`;
+    h += `<div class="mt14" style="padding-top:12px;border-top:1px solid var(--hair);display:grid;gap:8px">${privOne(v)}${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div>`;
+  }
+  return `<div class="${wrapCls(v)}">${h}</div>` + pageFoot();
+};
+
+/* ---- 2. Status header card + grouped inset lists ---- */
+DEF[2] = v => { };
+R[2] = v => {
+  const s = v.state, m = model(v);
+  const hero = s !== 'connected' ? `<div class="hero"><div class="inner">${setupBody(v, { short: true, noWait: true })}</div></div>` : '';
+  const extra = ['connected', 'update'].includes(s) ? `<span class="hint">· GOWA ${v.ver}</span>` : '';
+  let h = `<div class="hcard">
+    <div class="htop">${hdr(v, { big: 'l', title: '<span style="font-size:15px">WhatsApp</span>', tag: '<span class="tag">Experimental</span>', sub: statusLine(v, extra, true), right: showMaster(v) ? masterSw(v, 'Mostrar no notch') : '' })}</div>
+    ${hero}
+    <div class="wstrip">${ic('warn', 13)}<span>Integração não oficial: o WhatsApp pode restringir contas em caso de abuso. Use só a sua própria conta.</span></div>
+  </div>${slot()}`;
+  h += `<div class="${wrapCls(v)}"><div class="gt">Notificações</div><div class="grp optarea">${optSw(v, 'mute', 'users')}${optSw(v, 'focus', 'moon')}${optSw(v, 'read', 'eye')}</div>`;
+  h += `<div class="gt">Conversas ignoradas</div><div class="grp"><div class="gr" style="display:block;padding:10px 12px">${ignoredList(v)}</div></div></div>`;
+  if (['qr', 'connected', 'update', 'stopped'].includes(s)) {
+    h += `<div class="gt">Gateway</div><div class="grp"><div class="gr"><span class="gl"><b>GOWA ${v.ver}</b><small>Iniciado pelo Koncluí · ${s === 'stopped' ? 'não responde' : s === 'qr' ? 'aguardando o celular' : 'ao vivo'}</small></span>${s === 'update' ? '' : btn('Atualizar', 'update', { cls: 'sm' })}</div><div class="gr" style="display:block;padding:7px 12px">${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div></div>`;
+  } else {
+    h += `<div class="gt">Gateway</div><div class="grp"><div class="gr" style="display:block;padding:7px 12px">${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div></div>`;
+  }
+  h += `<div class="mt18" style="padding:0 4px">${privList()}</div>`;
+  return h + pageFoot();
+};
+
+/* ---- 3. Compact row + sheet ---- */
+DEF[3] = v => { v.ui.sheet = true; };
+function sheetOf(v) {
+  const s = v.state;
+  const head = (t, sub) => `<div class="shead">${wam('l')}<div style="flex:1"><h3>${t}</h3>${sub ? `<div class="hint" style="margin-top:1px">${sub}</div>` : ''}</div></div>`;
+  const foot = (hint, btns) => `<div class="sfoot">${hint ? `<span class="hint">${hint}</span>` : ''}${btns}</div>`;
+  const close = (label, pri) => btn(label, 'sheet', { cls: pri ? 'pri' : '' });
+  if (s === 'fresh' || s === 'failed') {
+    return head('Conectar o WhatsApp', 'Experimental · integração não oficial')
+      + `<div class="sbody">${s === 'failed' ? `<p class="err" role="alert" style="margin:14px 0 0">${ic('warn', 14)}<span>O download não foi concluído. Verifique sua conexão e tente de novo.</span></p>` : ''}
+      <div class="facts">
+        <div class="fact"><span class="fi">${ic('mac', 15)}</span><div><b>Roda neste Mac</b>O Koncluí baixa o GOWA, o gateway de código aberto (cerca de 15 MB, uma única vez), verifica e inicia. Sem Terminal.</div></div>
+        <div class="fact"><span class="fi">${ic('phone', 15)}</span><div><b>Vincule com o QR code</b>Depois da instalação, escaneie o código em WhatsApp › Configurações › Dispositivos conectados.</div></div>
+        <div class="fact"><span class="fi">${ic('lock', 15)}</span><div><b>Nada é salvo</b>As mensagens ficam só na memória e nenhuma foto ou mídia é baixada.</div></div>
+      </div>${warnShort()}</div>`
+      + foot('', close('Agora não') + btn(s === 'failed' ? 'Tentar de novo' : 'Instalar o WhatsApp', 'install', { cls: 'pri', icon: ic('down', 14) }));
+  }
+  if (s === 'installing') return head('Instalando o WhatsApp', 'Passo ' + (v.inst + 1) + ' de 4') + `<div class="sbody" style="padding-top:18px;padding-bottom:12px">${installProgress(v, { noHint: true })}</div>` + foot('A instalação continua se você fechar.', close('Fechar'));
+  if (s === 'qr') return head('Vincular o celular', 'GOWA ' + v.ver + ' instalado') + `<div class="sbody" style="padding-top:18px;padding-bottom:12px">${qrPanel(v, { size: 196, noTitle: true })}</div>` + foot('Esta tela fecha sozinha quando conectar.', close('Fechar'));
+  const m = model(v);
+  return head('WhatsApp', 'Experimental · integração não oficial')
+    + `<div class="sbody ${wrapCls(v)}">
+      <div class="srow" style="margin-top:4px">${dot(m.dot)}<div class="st"><b role="status">${s === 'stopped' ? 'O gateway não responde' : m.label}</b><small>${s === 'stopped' ? 'Nenhuma mensagem chega enquanto ele estiver parado.' : liveHint()}</small></div><span class="grow"></span>${s === 'stopped' ? btn('Tentar de novo', 'retry', { cls: 'pri sm' }) : masterSw(v)}</div>
+      ${s === 'update' ? `<div class="mt10">${updateLine(v)}</div>` : ''}
+      <div class="sec mt14 optarea" style="margin-bottom:8px">Notificações</div><div class="optarea">${optsChk(v)}</div>
+      <div class="mt14">${disc(v, 'ign', 'Conversas ignoradas', ignoredList(v), { count: v.ignored.length })}</div>
+      <div class="mt14" style="padding-top:12px;border-top:1px solid var(--hair);display:grid;gap:8px">${privOne(v)}${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div>
+    </div>`
+    + foot('Gateway GOWA ' + v.ver + ' · iniciado pelo Koncluí', close('Concluído', true));
+}
+R[3] = v => {
+  const s = v.state, m = model(v);
+  const rb = { fresh: ['Conectar…', 'pri'], failed: ['Tentar de novo…', 'pri'], installing: ['Ver progresso…', ''], qr: ['Escanear o QR code…', 'pri'], connected: ['Opções…', ''], update: ['Atualizar…', 'pri'], stopped: ['Resolver…', 'pri'] }[s];
+  const sub = m.kind === 'ok' ? `${dot(m.dot)}<span>${m.label}${m.upd ? ' · atualização disponível' : ''}</span>` : `${dot(m.dot)}<span>${m.label}</span>`;
+  return `<div class="ghostrow"><i></i>Portfolio</div>
+    <div class="irow">${wam('l')}<div class="it"><div class="title">WhatsApp (experimental)</div><div class="is" role="status">${sub}</div></div>${btn(rb[0], 'sheet', { cls: rb[1] })}</div>
+    ${slot()}
+    <div class="ghostrow"><i></i>Notion</div>
+    ${v.ui.sheet ? `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="WhatsApp">${sheetOf(v)}</div>` : ''}`;
+};
+
+/* ---- 4. Two columns: the device on the left, the behaviour on the right ---- */
+DEF[4] = v => { };
+R[4] = v => {
+  const s = v.state, m = model(v);
+  let left;
+  const lh = `<div class="hl" style="display:flex;align-items:center;gap:7px;font-weight:600" role="status">${dot(m.dot)}${m.short}</div>`;
+  if (s === 'fresh' || s === 'failed') left = `<div class="acc2">${wam('xl')}<div class="title" style="margin-top:4px">Conectar o WhatsApp</div></div>${installCta(v, { short: true, block: true })}`;
+  else if (s === 'installing') left = lh + installProgress(v, { noHint: true }) + `<p class="hint" style="margin:0">Passo ${v.inst + 1} de 4. A instalação continua se você sair.</p>`;
+  else if (s === 'qr') left = lh + `<div style="display:flex;justify-content:center">${qr(204)}</div><div class="hint">No celular: WhatsApp › Configurações › Dispositivos conectados › Conectar dispositivo, e escaneie este código. Ele se renova sozinho.</div><div class="wait" style="margin:0">${spin('a')}<span>Aguardando o escaneamento…</span></div>`;
+  else if (s === 'stopped') left = stoppedPanel(v).replace('class="prob"', 'class="prob" style="padding:0;border:0;background:none"');
+  else left = `<div class="acc2"><span class="avatar">${ic('phone', 22)}</span><b style="font-size:14px">${ACC.num}</b><span class="stat" role="status">${dot(v.enabled ? 'g' : 'n')}${v.enabled ? 'Conectado' : 'Desativado'}</span></div><hr class="hr">
+      <div class="hint">Gateway GOWA ${v.ver}, iniciado pelo Koncluí</div>
+      ${s === 'update' ? `<div class="upd" style="flex-direction:column;align-items:stretch;gap:8px"><span style="display:flex;gap:8px;align-items:center">${ic('up', 15)}<span>Nova versão: <b>GOWA ${ACC.newVer}</b></span></span>${btn('Atualizar', 'update', { cls: 'pri block' })}</div>` : btn('Atualizar', 'update', { cls: 'sm', extra: 'style="align-self:flex-start"' })}
+      <div class="hint">${liveHint()}</div>`;
+  const right = `<div class="rp ${wrapCls(v)}"><div style="display:flex;align-items:center;gap:10px"><div class="sec" style="margin:0;flex:1">Notificações</div>${showMaster(v) ? masterSw(v, 'Mostrar no notch') : ''}</div>
+    <div class="mt10 optarea">${optsChk(v)}</div>
+    <div class="sec mt18">Conversas ignoradas</div>${ignoredList(v)}
+    <div class="mt14">${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div></div>`;
+  return hdr(v, { tag: '<span class="tag">Experimental</span>' }) + slot()
+    + `<div class="c4"><div class="lp">${left}</div>${right}</div>`
+    + `<div class="c4notes">${warnShort()}${privReal()}</div>` + pageFoot();
+};
+
+/* ---- 5. Accordion with a summary on every group ---- */
+DEF[5] = v => { Object.assign(v.ui, { a_conn: v.state !== 'connected', a_not: false, a_ign: false, a_priv: false, a_adv: false }); };
+R[5] = v => {
+  const s = v.state, m = model(v);
+  const on = Object.values(v.opts).filter(Boolean).length;
+  const conn = isSetup(v) || s === 'stopped' || s === 'update'
+    ? `<div style="display:grid;gap:10px">${s === 'fresh' || s === 'failed' ? warnFull() : ''}${setupBody(v, { noWait: true })}</div>`
+    : `<div style="display:grid;gap:10px"><div class="hint">Gateway GOWA ${v.ver} instalado, iniciado pelo Koncluí. ${liveHint()}</div><div>${btn('Atualizar', 'update', { cls: 'sm' })}</div>${warnShort()}</div>`;
+  const connSum = `${dot(m.dot)}<span>${m.kind === 'ok' ? ACC.num : m.short}</span>${m.upd ? `<span class="tag" style="color:#8DB8F0;border-color:rgba(76,143,224,.4);background:rgba(76,143,224,.1)">Atualização</span>` : ''}`;
+  const items = [
+    { k: 'a_conn', t: 'Conexão', sum: connSum, body: conn },
+    { k: 'a_not', t: 'Notificações', sum: `${on} de 3 ativas`, body: `<div class="optarea">${optsChk(v)}</div>` },
+    { k: 'a_ign', t: 'Conversas ignoradas', sum: v.ignored.length ? String(v.ignored.length) : 'Nenhuma', body: ignoredList(v) },
+    { k: 'a_priv', t: 'Privacidade', sum: 'Só neste Mac', body: privList() },
+    { k: 'a_adv', t: 'Avançado: seu próprio gateway', sum: 'Padrão', body: advancedBody(v) },
+  ];
+  return hdr(v, { tag: '<span class="tag">Experimental</span>', right: showMaster(v) ? masterSw(v) : '' }) + slot()
+    + `<div class="acc ${wrapCls(v)}">${items.map(it => `<div class="ai"><div class="ah"><button type="button" class="tg" data-act="ui" data-k="${it.k}" aria-expanded="${!!v.ui[it.k]}">${ic('chevr', 12)}${it.t}</button><div class="sum">${it.sum}</div></div>${v.ui[it.k] ? `<div class="ab">${it.body}</div>` : ''}</div>`).join('')}</div>`
+    + pageFoot();
+};
+
+/* ---- 6. Health checklist ---- */
+DEF[6] = v => { v.ui.accepted = v.state !== 'fresh'; v.ui.det = false; v.ui.warn = false; };
+R[6] = v => {
+  const s = v.state, acc = !!v.ui.accepted, okFam = ['connected', 'update'].includes(s);
+  const ci = (k, inner) => `<span class="ci ${k}" aria-hidden="true">${inner || ''}</span>`;
+  const rows = [];
+  // 1. warning, as an explicit acknowledgement
+  rows.push(`<div class="ck">${ci(acc ? 'done' : 'warn', acc ? ic('check', 12) : ic('warn', 12))}<div class="cb"><b>Aviso sobre o uso</b>
+    <div class="cd">${acc ? 'Entendido: integração não oficial, só na minha própria conta. <button type="button" class="lnk" data-act="ui" data-k="warn">' + (v.ui.warn ? 'Ocultar' : 'Ver aviso') + '</button>' : 'Leia antes de instalar.'}</div>
+    ${(!acc || v.ui.warn) ? `<div class="cx">${warnFull()}${acc ? '' : `<label class="opt mt10"><input type="checkbox" class="chk" data-act="accept" ${acc ? 'checked' : ''}><span class="ot">Entendi: é uma integração não oficial e vou usar só a minha própria conta</span></label>`}</div>` : ''}</div></div>`);
+  // 2. gateway
+  const gw = (() => {
+    switch (s) {
+      case 'fresh': return `<div class="ck">${ci('todo')}<div class="cb"><b>Instalar o gateway</b><div class="cx">${installCta(v, { short: true, blocked: !acc })}</div></div></div>`;
+      case 'failed': return `<div class="ck">${ci('bad', ic('x', 12))}<div class="cb"><b>A instalação falhou</b><div class="cx">${installCta(v, { short: true })}</div></div></div>`;
+      case 'installing': return `<div class="ck">${ci('now', spin())}<div class="cb"><b>Instalando o gateway</b><div class="cx">${installProgress(v, { noHint: true })}</div></div></div>`;
+      case 'stopped': return `<div class="ck">${ci('bad', ic('x', 12))}<div class="cb"><b>O gateway não responde: ele está rodando?</b><div class="cd">Nenhuma mensagem nova chega enquanto ele estiver parado. O Koncluí tenta iniciá-lo sozinho (no máximo uma vez por minuto).</div><div class="cx">${btn('Tentar de novo', 'retry', { cls: 'pri', icon: ic('refresh', 13) })}</div></div></div>`;
+      case 'update': return `<div class="ck">${ci('warn', ic('up', 12))}<div class="cb"><b>Gateway GOWA ${v.ver}</b><div class="cd">Nova versão disponível: GOWA ${ACC.newVer}</div></div>${btn('Atualizar', 'update', { cls: 'pri sm' })}</div>`;
+      default: return `<div class="ck">${ci('done', ic('check', 12))}<div class="cb"><b>Gateway GOWA ${v.ver} em execução</b><div class="cd">Iniciado pelo Koncluí</div></div>${btn('Atualizar', 'update', { cls: 'ghost sm' })}</div>`;
+    }
+  })();
+  rows.push(gw);
+  // 3. phone
+  if (s === 'qr') rows.push(`<div class="ck">${ci('now', spin('a'))}<div class="cb"><b>Escanear o QR code</b><div class="cx">${qrPanel(v, { size: 150, noTitle: true, noWait: true })}</div></div></div>`);
+  else if (okFam) rows.push(`<div class="ck">${ci('done', ic('check', 12))}<div class="cb"><b>Celular vinculado</b><div class="cd">${ACC.num}</div></div></div>`);
+  else rows.push(`<div class="ck dim">${ci('todo')}<div class="cb"><b>Vincular o celular</b><div class="cd">${s === 'stopped' ? 'Volta sozinho quando o gateway responder.' : 'Depois da instalação.'}</div></div></div>`);
+  // 4. messages
+  if (okFam) rows.push(`<div class="ck">${ci('done', ic('check', 12))}<div class="cb"><b>Mensagens chegando</b><div class="cd">${liveHint()}</div></div></div>`);
+  else rows.push(`<div class="ck dim">${ci('todo')}<div class="cb"><b>Mensagens no notch</b><div class="cd">Depois de vincular o celular.</div></div></div>`);
+
+  const done = [acc, ['qr', 'connected', 'update'].includes(s), okFam, okFam].filter(Boolean).length;
+  const right = showMaster(v) ? masterSw(v) : `<div class="cprog"><span>${done} de 4</span><span class="cbar"><i style="width:${done * 25}%"></i></span></div>`;
+  let h = hdr(v, { tag: '<span class="tag">Experimental</span>', right }) + slot();
+  if (okFam && !v.ui.det) {
+    h += `<div class="strip" role="status"><span class="hc">${ic('check', 12)}Aviso entendido</span>
+      <span class="hc ${s === 'update' ? 'warn' : ''}">${ic(s === 'update' ? 'up' : 'check', 12)}Gateway ${v.ver}${s === 'update' ? ' → ' + ACC.newVer : ''}</span>
+      <span class="hc">${ic('check', 12)}${ACC.num}</span><span class="hc">${ic('check', 12)}Ao vivo</span>
+      ${s === 'update' ? btn('Atualizar', 'update', { cls: 'pri sm' }) : ''}<span class="grow"></span><button type="button" class="lnk" style="font-size:12px" data-act="ui" data-k="det">Detalhes</button></div>`;
+  } else {
+    h += `<div class="ckl">${rows.join('')}</div>`;
+    if (okFam) h += `<div style="margin-top:8px;text-align:right"><button type="button" class="lnk" style="font-size:12px" data-act="ui" data-k="det">Recolher detalhes</button></div>`;
+  }
+  if (['connected', 'update', 'stopped'].includes(s)) {
+    h += `<div class="optarea mt18"><div class="sec">Notificações</div>${optsChk(v)}<div class="mt14">${disc(v, 'ign', 'Conversas ignoradas', ignoredList(v), { count: v.ignored.length })}</div></div>`;
+    h += `<div class="mt14" style="padding-top:12px;border-top:1px solid var(--hair);display:grid;gap:8px">${privOne(v)}${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div>`;
+  }
+  return `<div class="${wrapCls(v)}">${h}</div>` + pageFoot();
+};
+
+/* ---- 7. Driven by a notch preview ---- */
+const CONVS = [
+  { n: 'Marina Costa', i: 'MC', t: '2m', p: 'Vamos jantar hoje?', u: 2, g: false },
+  { n: 'Time Design', i: 'TD', t: '5m', p: 'Carla: @você pode revisar o Figma?', u: 1, g: true, mention: true },
+  { n: 'Família', i: 'FA', t: '12m', p: 'Pai: Foto · Churrasco domingo', u: 3, g: true },
+];
+DEF[7] = v => { v.ui.warn = v.state === 'fresh' || v.state === 'failed'; v.ui.foco = false; };
+function notchPreview(v) {
+  const m = model(v);
+  let inner;
+  if (m.kind === 'ok') {
+    if (v.ui.foco && v.opts.focus) inner = `<div class="nst w">${ic('moon', 12)} Foco ligado: o notch fica quieto.</div>`;
+    else {
+      const rows = CONVS.map(c => {
+        const muted = v.opts.mute && c.g && !c.mention;
+        return `<div class="nrow ${muted ? 'muted' : c.u ? 'u' : ''}"><span class="av">${c.i}</span><span class="nm">${c.n}</span><span class="tm">${c.t}</span><span class="pv">${c.p}</span>${muted ? '<span class="mt">silenciado</span>' : `<span class="bd">${c.u}</span>`}</div>`;
+      });
+      const unread = CONVS.filter(c => !(v.opts.mute && c.g && !c.mention)).reduce((a, c) => a + c.u, 0);
+      inner = `<div class="nh">${dot('wa')}WhatsApp<span class="ub">${unread} não lidas</span></div>${rows.join('')}`;
+    }
+  } else {
+    const t = { off: ['', 'Desativado nos Ajustes'], fresh: ['', 'Desativado nos Ajustes'], busy: ['w', 'Conectando ao gateway…'], qr: ['w', 'Escaneie o QR code nos Ajustes'], bad: ['e', 'O gateway não responde: ele está rodando?'] }[m.kind];
+    inner = `<div class="nh">${dot('wa')}WhatsApp</div><div class="nst ${t[0]}">${t[1]}<br><span class="lk">Ajustes…</span></div>`;
+  }
+  const ctl = m.kind === 'ok' ? `<div class="pvctl"><span>Simular:</span><button type="button" class="chip" data-act="foco" aria-pressed="${!!v.ui.foco}">Foco ligado</button></div>` : '';
+  return `<div class="desk" aria-label="Pré-visualização do notch"><div class="menubar"><b>Koncluí</b><span class="r">qua 14:02</span></div>
+    <div class="notch"><div class="nl"><div class="mochi" aria-hidden="true"><i></i></div><div class="ncard" role="status">${inner}</div></div></div>${ctl}</div>`;
+}
+R[7] = v => {
+  const s = v.state;
+  const eff = {
+    mute: v.opts.mute ? 'Grupos como “Família” ficam em silêncio; “Time Design” aparece porque mencionou você.' : 'Todos os grupos aparecem, mencionando você ou não.',
+    focus: v.opts.focus ? 'Com um Foco ligado, o notch não mostra mensagens.' : 'O notch mostra mensagens mesmo durante um Foco.',
+    read: v.opts.read ? 'Abrir “Marina Costa” no notch já a marca como lida.' : 'Só é marcada como lida quando você responde. Nunca só por chegar.',
+  };
+  let h = hdr(v, { tag: expTag(v), right: showMaster(v) ? masterSw(v) : '' }) + warnInline(v) + slot() + notchPreview(v);
+  if (s === 'stopped' || s === 'update') h += `<div class="mt14">${setupBody(v, {})}</div>`;
+  else if (isSetup(v)) h += `<div class="panel mt14">${setupBody(v, { noWait: true })}</div>`;
+  if (['connected', 'update', 'stopped'].includes(s)) {
+    h += `<div class="optarea mt18"><div class="sec">Notificações</div><div class="opts">${['mute', 'focus', 'read'].map(k => `<label class="opt"><input type="checkbox" class="chk" data-act="opt" data-k="${k}" ${v.opts[k] ? 'checked' : ''}><span class="ot">${OPTS[k].label}<small class="effect">${eff[k]}</small></span></label>`).join('')}</div>
+      <div class="mt14">${disc(v, 'ign', 'Conversas ignoradas', ignoredList(v), { count: v.ignored.length })}</div></div>
+      <div class="mt14" style="padding-top:12px;border-top:1px solid var(--hair);display:grid;gap:8px">${privOne(v)}${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div>`;
+  } else {
+    h += `<div class="mt14" style="display:grid;gap:8px">${privOne(v)}${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div>`;
+  }
+  return `<div class="${wrapCls(v)}">${h}</div>` + pageFoot();
+};
+
+/* ---- 8. One line + "Opções" popover ---- */
+DEF[8] = v => { v.ui.pop = v.state === 'connected'; v.ui.warn = false; };
+R[8] = v => {
+  const s = v.state, m = model(v);
+  const ghosts = `<div class="mt14" style="display:grid;gap:8px"><div class="ghostrow"><i></i>Stripe</div><div class="ghostrow"><i></i>GitHub</div><div class="ghostrow"><i></i>Vercel</div></div>`;
+  if (isSetup(v)) {
+    return `<div class="v8exp"><div class="line">${wam()}<span class="title">WhatsApp</span>${expTag(v)}<span class="grow"></span><span class="lst" role="status">${dot(m.dot)}<span>${m.short}</span></span></div>${warnInline(v)}<div class="body">${setupBody(v, { short: true, size: 140 })}</div></div>${slot()}${ghosts}` + pageFoot();
+  }
+  const info = s === 'stopped' ? `${dot('r')}<span>Gateway parado</span>`
+    : `${dot(m.dot)}<span>${m.kind === 'off' ? m.short : s === 'update' ? 'Conectado' : 'Conectado como ' + ACC.num}</span>${m.kind === 'ok' && s !== 'update' ? '<span class="sub">· ao vivo</span>' : ''}`;
+  const act = s === 'stopped' ? btn('Tentar de novo', 'retry', { cls: 'pri sm' }) : s === 'update' ? btn('Atualizar', 'update', { cls: 'pri sm' }) : '';
+  const detail = s === 'stopped' ? `<div class="mt10">${stoppedPanel(v, { noBtn: true })}</div>`
+    : s === 'update' ? `<div class="note blue mt10">${ic('up', 14)}<div class="nb">Nova versão do gateway disponível: <b>GOWA ${ACC.newVer}</b> (você usa ${v.ver}).</div></div>` : '';
+  const pop = v.ui.pop ? `<div class="pop ${wrapCls(v)}" role="dialog" aria-label="Opções do WhatsApp">
+      <div class="sec">Notificações</div>${optsChk(v)}
+      <div class="hr"></div>${disc(v, 'ign', 'Conversas ignoradas', ignoredList(v), { count: v.ignored.length })}
+      <div class="hr"></div><div class="gwl"><span class="hint">Gateway GOWA ${v.ver}, iniciado pelo Koncluí</span><span class="grow"></span>${s === 'update' ? '' : btn('Atualizar', 'update', { cls: 'sm' })}</div>
+      <div class="mt10">${privOne(v)}</div><div class="mt6">${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div></div>` : '';
+  return `<div class="line">${wam()}<span class="title">WhatsApp</span>${expTag(v)}<span class="lst" role="status">${info}</span><span class="grow"></span>${act}
+    <button type="button" class="btn" data-act="ui" data-k="pop" aria-expanded="${!!v.ui.pop}" aria-haspopup="dialog">Opções ${ic('chevd', 11)}</button>${masterSw(v)}${pop}</div>${warnInline(v)}${detail}${slot()}${ghosts}` + pageFoot();
+};
+
+/* ---- 9. By intent: "what shows in the notch?" ---- */
+DEF[9] = v => { v.ui.about = v.state === 'fresh' || v.state === 'failed'; };
+R[9] = v => {
+  const s = v.state, m = model(v);
+  const val = !v.enabled ? 'off' : v.opts.mute ? 'direct' : 'all';
+  const action = { fresh: btn('Instalar o WhatsApp', 'install', { cls: 'pri', icon: ic('down', 14) }), failed: btn('Tentar de novo', 'install', { cls: 'pri' }), stopped: btn('Tentar de novo', 'retry', { cls: 'pri' }), update: btn('Atualizar para ' + ACC.newVer, 'update', { cls: 'pri' }), connected: `<span class="hint">GOWA ${v.ver}</span>${btn('Atualizar', 'update', { cls: 'ghost sm' })}` }[s] || '';
+  const lbl = s === 'fresh' ? 'Gateway não instalado' : m.kind === 'ok' || m.kind === 'off' ? (m.kind === 'ok' ? 'Conectado como ' + ACC.num : m.short) : m.label;
+  let h = hdr(v, { tag: '<span class="tag">Experimental</span>' }) + slot();
+  h += `<div class="connl">${dot(m.dot)}<div class="t" role="status"><span>${lbl}</span></div>${s === 'installing' ? `<span class="hint">Passo ${v.inst + 1} de 4</span>` : action}</div>`;
+  if (s === 'installing') h += `<div class="panel mt10">${installProgress(v, { noHint: true })}</div>`;
+  if (s === 'qr') h += `<div class="panel mt10">${qrPanel(v, { size: 150, noTitle: true, noWait: true })}</div>`;
+  if (s === 'failed') h += `<p class="err mt10" role="alert" style="margin-bottom:0">${ic('warn', 14)}<span>O download não foi concluído. Verifique sua conexão e tente de novo.</span></p>`;
+  if (s === 'stopped') h += `<p class="hint" style="margin:8px 2px 0">Nenhuma mensagem nova chega enquanto o gateway estiver parado. O Koncluí tenta iniciá-lo sozinho (no máximo uma vez por minuto).</p>`;
+  const card = (k, t, d) => `<label class="rcard"><span class="rt"><input type="radio" class="rad" name="intent-v9" data-act="intent" data-val="${k}" ${val === k ? 'checked' : ''}><b>${t}</b></span><small>${d}</small></label>`;
+  h += `<div class="sec mt18" id="q9" style="margin-bottom:0">O que aparece do WhatsApp no notch?</div>
+    <div class="rc" role="radiogroup" aria-labelledby="q9">
+      ${card('all', 'Todas as conversas', 'Conversas diretas e grupos aparecem no notch.')}
+      ${card('direct', 'Só conversas diretas e menções', 'Grupos ficam em silêncio, exceto quando mencionam você.')}
+      ${card('off', 'Nada (desligado)', 'Nada do WhatsApp aparece no notch e as mensagens na memória são esquecidas.')}
+    </div>`;
+  h += `<div class="optarea mt18"><div class="sec">Ajustes finos</div><div class="opts">${optChk(v, 'focus')}${optChk(v, 'read')}</div>
+    <div class="sec mt18">Conversas ignoradas</div>${ignoredList(v, true)}</div>`;
+  h += `<div class="mt18" style="padding-top:12px;border-top:1px solid var(--hair);display:grid;gap:8px">
+    ${disc(v, 'about', 'Sobre o WhatsApp no Koncluí: aviso e privacidade', `<div style="display:grid;gap:10px">${warnFull()}${privList()}</div>`)}
+    ${disc(v, 'adv', 'Avançado: seu próprio gateway', advancedBody(v))}</div>`;
+  return h + pageFoot();
+};
+
+/* ---- 10. Tabs inside the block ---- */
+DEF[10] = v => { v.ui.tab = v.state === 'connected' ? 'not' : 'con'; };
+R[10] = v => {
+  const s = v.state, m = model(v), tab = v.ui.tab || 'con';
+  const T = [
+    { k: 'con', t: 'Conexão', bg: dot(m.dot) },
+    { k: 'not', t: 'Notificações' },
+    { k: 'ign', t: 'Conversas ignoradas', bg: `<span class="bg">${v.ignored.length}</span>` },
+    { k: 'priv', t: 'Privacidade' },
+    { k: 'adv', t: 'Avançado' },
+  ];
+  let body = '';
+  if (tab === 'con') {
+    if (isSetup(v) || s === 'stopped') body = `<div style="display:grid;gap:12px">${s === 'fresh' || s === 'failed' ? warnShort() : ''}${setupBody(v, { short: true, noWait: true })}</div>`;
+    else body = `<div style="display:grid;gap:12px"><div class="srow"><div class="st"><b>Gateway GOWA ${v.ver}</b><small>Iniciado pelo Koncluí · ${liveHint()}</small></div><span class="grow"></span>${s === 'update' ? '' : btn('Atualizar', 'update', { cls: 'sm' })}</div>${s === 'update' ? updateLine(v) : ''}${warnShort()}</div>`;
+  } else if (tab === 'not') body = `<div class="optarea">${optsChk(v)}</div>`;
+  else if (tab === 'ign') body = ignoredList(v);
+  else if (tab === 'priv') body = privList();
+  else body = advancedBody(v);
+  return hdr(v, { tag: '<span class="tag">Experimental</span>', sub: statusLine(v, ['connected', 'update'].includes(s) ? `<span class="hint">· GOWA ${v.ver}</span>` : '', true), right: showMaster(v) ? masterSw(v) : '' }) + slot()
+    + `<div class="tabs" role="tablist">${T.map(t => `<button type="button" class="tab" role="tab" data-act="tab" data-val="${t.k}" aria-selected="${tab === t.k}">${t.t}${t.bg || ''}</button>`).join('')}</div>`
+    + `<div class="tpanel ${wrapCls(v)}" role="tabpanel">${body}</div>` + pageFoot();
+};
+
+/* ============ page: notes, chips, events ============ */
+const META = [
+  { id: 1, title: 'Assistente que vira uma linha de status',
+    idea: 'Instalar e vincular viram dois passos guiados. Conectado, o assistente some e sobra uma linha de status com as opções de uso diário.',
+    pros: ['Separa o que se faz uma vez (passos) do que se usa todo dia (opções), em vez de misturar os dois na mesma coluna.',
+      'Só o passo atual mostra conteúdo: o QR não ocupa espaço fora da hora, e o aviso aparece antes de instalar e depois vira a etiqueta “Experimental”, que abre o texto no lugar.'],
+    con: 'Quem já está conectado nunca vê o assistente; se algo quebrar, volta uma linha vermelha com “Tentar de novo”, não o passo a passo.',
+    meta: ['<b>Texto:</b> “Escaneie o QR code nos Ajustes” virou “Aguardando o escaneamento…” (já estamos nos Ajustes); privacidade resumida em uma linha, com o texto original em “Detalhes”.'], rec: true },
+  { id: 2, title: 'Cartão de status e grupos de ajustes',
+    idea: 'Um cartão no topo diz em que pé está a conexão e traz a ação do momento; abaixo, grupos de ajustes no estilo Ajustes do Sistema.',
+    pros: ['A mesma estrutura em todos os estados: nada muda de lugar, só o conteúdo do cartão.',
+      'Interruptores à direita com legenda curta leem mais rápido do que caixas de seleção com texto corrido.'],
+    con: 'Nos estados de configuração a página fica mais longa, porque as opções diárias continuam visíveis abaixo do cartão.',
+    meta: ['<b>Texto:</b> aviso reduzido a uma linha fixa no cartão; privacidade dividida em três linhas curtas (mesmo conteúdo).', '<b>Controle:</b> interruptor no lugar da caixa de seleção.'] },
+  { id: 3, title: 'Linha compacta que abre uma folha',
+    idea: 'Na página fica só uma linha com o status e um botão. Instalar, vincular e ajustar acontece numa folha (sheet), uma tarefa por vez.',
+    pros: ['A página de Integrações volta a ter uma linha por integração, como as outras.',
+      'A folha mostra um assunto de cada vez (conectar, escanear, ajustar) e o botão da linha já diz qual: “Conectar…”, “Escanear o QR code…”, “Opções…”.'],
+    con: 'Tudo fica a um clique: mudar uma opção diária exige abrir a folha, uma camada modal a mais para algo que se faz de vez em quando.',
+    meta: ['<b>Texto:</b> na folha de conexão, o texto do botão de instalar vira três fatos curtos (roda neste Mac, vincule com o QR, nada é salvo).', '<b>Prévia:</b> a folha começa aberta aqui; feche com “Concluído” para ver só a linha.'] },
+  { id: 4, title: 'Duas colunas: o aparelho e o comportamento',
+    idea: 'À esquerda, o aparelho (instalar, QR ou a conta conectada). À direita, o que chega ao notch.',
+    pros: ['QR e status ficam sempre no mesmo canto, e as opções diárias não se mexem quando o estado muda.',
+      'Aviso e privacidade viram duas notas lado a lado no rodapé, em vez de competirem no meio da coluna.'],
+    con: 'Pede a largura inteira: em janelas estreitas as colunas precisam empilhar, e conectado a coluna da esquerda fica com espaço sobrando.',
+    meta: ['<b>Texto:</b> aviso encurtado; privacidade e QR com o texto original.'] },
+  { id: 5, title: 'Seções recolhíveis com resumo',
+    idea: 'Cinco seções (Conexão, Notificações, Conversas ignoradas, Privacidade, Avançado), todas recolhidas com um resumo à direita. Só abre o que precisa de você.',
+    pros: ['Conectado, tudo cabe em cerca de 290 px e o resumo já responde “está tudo bem?” sem abrir nada.',
+      'Cada texto mora no seu assunto: o aviso em Conexão, a privacidade em Privacidade; nada compete.'],
+    con: 'Para ver o valor de cada opção é preciso abrir a seção (o resumo só diz quantas estão ligadas).',
+    meta: ['<b>Texto:</b> aviso curto em Conexão; privacidade em três linhas (mesmo conteúdo).'] },
+  { id: 6, title: 'Checklist de saúde',
+    idea: 'Quatro itens (aviso, gateway, celular, mensagens) que servem para configurar e para diagnosticar. Conectado, viram uma faixa de selos.',
+    pros: ['O mesmo desenho serve para instalar e para descobrir o que quebrou: o item que falhou fica vermelho e traz a ação.',
+      'O aviso vira um aceite explícito antes de instalar e deixa de competir com o resto da tela.'],
+    con: 'O aceite é um clique a mais (e uma marca nova a guardar). A faixa de selos é só informação: não substitui as opções.',
+    meta: ['<b>Novo:</b> aceite do aviso (hoje não existe) e o item “Mensagens chegando”, que usa o estado do webhook que o app já tem (“Ao vivo” ou “a cada 20 s”).'] },
+  { id: 7, title: 'Guiada pela pré-visualização do notch',
+    idea: 'Um notch de exemplo no topo mostra como as mensagens vão aparecer; as opções mudam a prévia na hora.',
+    pros: ['Cada opção é explicada pelo resultado: dá para ver o grupo “Família” ficar em silêncio ou o notch calar num Foco.',
+      'Fora do estado conectado, a prévia mostra o que o notch real mostra (“Escaneie o QR code…”), então ensina onde olhar.'],
+    con: 'Gasta cerca de 190 px de altura para mostrar um exemplo; as conversas são fictícias e o desenho precisa acompanhar o notch real.',
+    meta: ['<b>Texto:</b> cada opção ganhou uma linha dizendo o efeito; o texto da opção em si é o original.'] },
+  { id: 8, title: 'Uma linha só, com popover de opções',
+    idea: 'Conectado, o bloco é uma linha (status, número, Opções, interruptor). As opções diárias ficam num popover; a configuração inicial abre no lugar e recolhe ao conectar.',
+    pros: ['É o estado diário mais compacto: uma linha de cerca de 50 px.',
+      'Configurar e usar têm formatos diferentes (cartão que expande, linha que recolhe) e por isso não competem.'],
+    con: 'As opções ficam atrás de um botão e não dá para conferir tudo de relance; um popover com Avançado aberto fica apertado.',
+    meta: ['<b>Prévia:</b> o popover começa aberto no estado Conectado; feche em “Opções”.'] },
+  { id: 9, title: 'Por intenção: o que aparece no notch?',
+    idea: 'O interruptor mestre e o “silenciar grupos” viram uma pergunta com três respostas (tudo, só diretas e menções, nada). Sobram dois ajustes finos.',
+    pros: ['Menos combinações para entender: uma escolha em vez de duas caixas que se influenciam.',
+      'Conversas ignoradas viram etiquetas removíveis; aviso e privacidade ficam juntos em “Sobre o WhatsApp no Koncluí”.'],
+    con: 'Desligar e religar exige escolher de novo se os grupos entram (hoje o interruptor mestre guarda essa escolha).',
+    meta: ['<b>Texto:</b> as três respostas são novas; “Foco” e “marcar como lida” seguem com o texto original.'] },
+  { id: 10, title: 'Abas dentro do bloco',
+    idea: 'Cinco abas (Conexão, Notificações, Conversas ignoradas, Privacidade, Avançado) e o status sempre visível no cabeçalho.',
+    pros: ['Padrão familiar do macOS, e o status continua à vista em qualquer aba.',
+      'Altura estável: trocar de aba ou de estado não empurra o resto da página.'],
+    con: 'As opções diárias ficam numa aba (Notificações abre por padrão quando conectado) e o QR, se o usuário estiver em outra aba, só aparece depois de voltar a Conexão.',
+    meta: ['<b>Texto:</b> aviso curto na aba Conexão; privacidade em três linhas (mesmo conteúdo).'] },
+];
+META.forEach(m => { m.minH = null; });
+META[7].minH = v => (v.ui.pop && !isSetup(v)) ? 470 + (v.ui.ign ? 110 : 0) + (v.ui.adv ? 200 : 0) : 0;
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+function renderChips(id) {
+  const v = VS[id], box = $('#chips-' + id);
+  let h = '', sep = false;
+  STATES.forEach(s => {
+    if (s.grp && !sep) { h += '<span class="sep">Problema:</span>'; sep = true; }
+    h += `<button type="button" class="chip" data-st="${s.id}" aria-pressed="${v.state === s.id}" title="${s.label}">${s.short || s.label}</button>`;
+  });
+  box.innerHTML = h;
+}
+function render(id) {
+  const v = VS[id], el = document.getElementById('stage-' + id);
+  const ctl = () => $$('button,input,[tabindex]', el);
+  const act = document.activeElement;
+  let idx = -1, sel = null;
+  if (act && el.contains(act)) { idx = ctl().indexOf(act); if (act.type === 'text' && act.selectionStart != null) sel = [act.selectionStart, act.selectionEnd]; }
+  el.innerHTML = R[id](v);
+  const mh = META[id - 1].minH ? META[id - 1].minH(v) : 0;
+  el.style.minHeight = mh ? mh + 'px' : '';
+  if (idx >= 0) { const n = ctl()[idx]; if (n) { n.focus({ preventScroll: true }); if (sel && n.setSelectionRange) try { n.setSelectionRange(sel[0], sel[1]); } catch (e) { } } }
+  renderChips(id);
+}
+const renderAll = () => META.forEach(m => render(m.id));
+function stopTimer(v) { if (v.timer) { clearInterval(v.timer); v.timer = null; } }
+function setState(id, st) {
+  const v = VS[id]; stopTimer(v);
+  v.state = st; v.enabled = st !== 'fresh'; v.inst = 1; v.ver = ACC.ver;
+  DEF[id](v); render(id);
+}
+function startInstall(id) {
+  const v = VS[id], from = v.state;
+  stopTimer(v);
+  const target = (from === 'fresh' || from === 'failed') ? 'qr' : 'connected';
+  v.state = 'installing'; v.enabled = true; v.inst = 0;
+  render(id);
+  v.timer = setInterval(() => {
+    v.inst++;
+    if (v.inst > 3) { stopTimer(v); v.state = target; if (from === 'update') v.ver = ACC.newVer; DEF[id](v); }
+    render(id);
+  }, 1000);
+}
+function addIgnored(v) {
+  const raw = v.draft.trim(); if (!raw) return;
+  const digits = raw.replace(/\D/g, '');
+  v.ignored.push(!raw.includes('@') && digits.length >= 8 && /^[+\d\s()-]+$/.test(raw) ? '+' + digits : raw);
+  v.draft = '';
+}
+function act(id, a, t) {
+  const v = VS[id];
+  switch (a) {
+    case 'opt': v.opts[t.dataset.k] = t.checked; break;
+    case 'ui': v.ui[t.dataset.k] = !v.ui[t.dataset.k]; break;
+    case 'master': v.enabled = t.checked; break;
+    case 'install': case 'update': return startInstall(id);
+    case 'retry': stopTimer(v); v.state = 'connected'; DEF[id](v); break;
+    case 'idel': v.ignored.splice(+t.dataset.i, 1); break;
+    case 'iadd': addIgnored(v); break;
+    case 'sheet': v.ui.sheet = !v.ui.sheet; break;
+    case 'tab': v.ui.tab = t.dataset.val; break;
+    case 'accept': v.ui.accepted = t.checked; break;
+    case 'gw': v.ui.gw = t.dataset.val; break;
+    case 'foco': v.ui.foco = !v.ui.foco; break;
+    case 'blocked': render(id); { const n = $('#stage-' + id + ' [data-act=accept]'); if (n) n.focus(); } return;
+    case 'intent': { const k = t.dataset.val; v.enabled = k !== 'off'; if (k !== 'off') v.opts.mute = k === 'direct'; break; }
+    case 'noop': return;
+  }
+  render(id);
+}
+
+function build() {
+  const nav = $('#nav'), main = $('#main');
+  META.forEach(m => {
+    VS[m.id] = freshV();
+    nav.insertAdjacentHTML('beforeend', `<a href="#v${m.id}" title="${esc(m.title)}">${m.id}</a>`);
+    main.insertAdjacentHTML('beforeend', `<section class="ver" id="v${m.id}" data-v="${m.id}" aria-labelledby="h${m.id}">
+      <div class="vnotes"><span class="vnum">${m.id}</span>${m.rec ? ' <span class="tag" style="color:var(--green);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);vertical-align:3px">Recomendada</span>' : ''}
+        <h2 id="h${m.id}">${m.title}</h2><p class="idea">${m.idea}</p>
+        <ul>${m.pros.map(p => `<li class="pro">${p}</li>`).join('')}<li class="con">${m.con}</li></ul>
+        <div class="vmeta">${m.meta.map(x => `<div>${x}</div>`).join('')}</div></div>
+      <div class="vstage"><div class="chips" id="chips-${m.id}" role="group" aria-label="Estado da versão ${m.id}"></div>
+        <div class="cap">Ajustes › Integrações</div><div class="card" id="stage-${m.id}"></div></div></section>`);
+  });
+  // global chips
+  let h = '', sep = false;
+  STATES.forEach(s => { if (s.grp && !sep) { h += '<span class="sep">Problema:</span>'; sep = true; } h += `<button type="button" class="chip" data-gst="${s.id}" aria-pressed="${G.state === s.id}">${s.label}</button>`; });
+  $('#gchips').innerHTML = h;
+}
+function applyGlobal(st) {
+  G.state = st;
+  $$('#gchips .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.gst === st)));
+  META.forEach(m => setState(m.id, st));
+}
+
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-gst]'); if (g) return applyGlobal(g.dataset.gst);
+  const c = e.target.closest('.chip[data-st]'); if (c) { const sec = c.closest('[data-v]'); return setState(+sec.dataset.v, c.dataset.st); }
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  if (t.matches('input[type=checkbox],input[type=radio],input.field')) return;
+  const sec = t.closest('[data-v]'); if (!sec) return;
+  act(+sec.dataset.v, t.dataset.act, t);
+});
+document.addEventListener('change', e => {
+  const t = e.target.closest('[data-act]'); if (!t || !t.matches('input[type=checkbox],input[type=radio]')) return;
+  const sec = t.closest('[data-v]'); if (sec) act(+sec.dataset.v, t.dataset.act, t);
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.matches || !t.matches('input[data-act=draft]')) return;
+  const v = VS[+t.closest('[data-v]').dataset.v]; v.draft = t.value;
+  const b = t.parentElement.querySelector('.addbtn'); if (b) b.disabled = !t.value.trim();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.matches || !e.target.matches('input[data-act=draft]')) return;
+  const id = +e.target.closest('[data-v]').dataset.v; addIgnored(VS[id]); render(id);
+});
+$('#slot').addEventListener('change', e => { G.slot = e.target.checked; renderAll(); });
+
+build();
+(function init() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.has('s') && STATES.some(s => s.id === q.get('s'))) G.state = q.get('s');
+  if (q.get('slot') === '1') { G.slot = true; $('#slot').checked = true; }
+  META.forEach(m => { VS[m.id].state = G.state; VS[m.id].enabled = G.state !== 'fresh'; DEF[m.id](VS[m.id]); });
+  if (q.has('o')) { const o = q.get('o'); META.forEach(m => { if (o.includes('i')) VS[m.id].ui.ign = true; if (o.includes('a')) VS[m.id].ui.adv = true; if (o.includes('d')) VS[m.id].ui.det = true; }); }
+  if (q.has('v')) {
+    document.body.classList.add('solo');
+    $$('.ver').forEach(s => { if (s.dataset.v !== q.get('v')) s.remove(); else s.classList.add('solo'); });
+    $('#intro').remove();
+  }
+  $$('#gchips .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.gst === G.state)));
+  META.forEach(m => { if (document.getElementById('stage-' + m.id)) render(m.id); });
+})();
+</script>
+</body>
+</html>
