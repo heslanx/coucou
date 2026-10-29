@@ -439,6 +439,8 @@ private func drawMochi(_ ctx: CGContext, p: GreetPose) {
         }
     }
 
+    if Koru.enabled { return }   // Koru stands here instead: drawKoruGreeting()
+
     ctx.saveGState()
     ctx.translateBy(x: CGFloat(p.x), y: CGFloat(p.y))
     ctx.rotate(by: CGFloat(p.tilt))
@@ -585,7 +587,7 @@ private func drawHeader(_ ctx: CGContext, alpha: Double) {
 private let miniColors = ["#E86A6A","#3E86E0","#EFAE5A","#8C73F2"]
 
 private func drawMinis(_ ctx: CGContext, alpha: Double, compact: IslandRestingLayout) {
-    guard alpha > 0.01 else { return }
+    guard alpha > 0.01, !Koru.enabled else { return }   // Koru's minis: drawKoruGreeting()
     let cx = 320 - compact.width/2 + compact.miniGridCenterX
     let cy = compact.botCenterY
     let sp: CGFloat = 6 * compact.miniGridScale
@@ -629,6 +631,42 @@ private func drawGreeting(_ ctx: CGContext, size: CGSize, t: Double,
     drawMochi(ctx, p: p)
 }
 
+// MARK: - Koru
+
+/// Koru where the greeting's Mochi stood (KoruDrawing.swift): her near wing waves where his hand did, his dot, happy and
+/// content eyes are her round, happy and closed ones, his badge her working one; the four minis are mini Korus.
+@MainActor
+private func drawKoruGreeting(_ context: GraphicsContext, p: GreetPose, t: Double, compact: IslandRestingLayout) {
+    if p.minis > 0.01 {
+        let sp: CGFloat = 6 * compact.miniGridScale, scale = CGFloat(p.minis) * compact.miniGridScale
+        let c = CGPoint(x: 320 - compact.width / 2 + compact.miniGridCenterX, y: compact.botCenterY)
+        for (i, (dx, dy)) in [(-sp, -sp), (sp, -sp), (-sp, sp), (sp, sp)].enumerated() {
+            var m = KoruPose()
+            m.mini = true
+            m.palette = .agent(KoruRGB(hex: miniColors[i]))
+            Koru.draw(context, centre: CGPoint(x: c.x + dx, y: c.y + dy), mochiHalfHeight: 4 * scale, pose: m)
+        }
+    }
+    let hh = CGFloat(p.hb / 2)
+    guard hh > 0.4 else { return }
+    var k = KoruPose()
+    k.sx = CGFloat(p.sx); k.sy = CGFloat(p.sy); k.tilt = CGFloat(p.tilt)
+    k.eye = p.eye == .happy ? .happy : p.eye == .content ? .closed : .pill
+    k.open = p.eye == .dot ? CGFloat(p.open) : 1
+    k.yaw = CGFloat(p.lookX) * 0.62; k.pitch = -CGFloat(p.lookY) * 0.5   // his lookY points down, her pitch up
+    k.hands = CGFloat(p.handL); k.handSide = -1
+    if p.wave >= 0 {   // on the greeting's clock
+        k.now = t; k.waveStart = t - p.wave; k.waveUntil = k.waveStart + (GT.tuck0 - GT.pop1)
+    }
+    k.tint = 0.2 + CGFloat(p.tint)
+    k.t = CGFloat(t)
+    let working = KoruStates[.working]
+    k.cfg.bo = working.bo; k.cfg.fold = true
+    k.badgeS = CGFloat(p.badge)
+    Koru.draw(context, centre: CGPoint(x: p.x, y: p.y), mochiHalfHeight: hh, pose: k,
+              badge: .dots, badgeColors: (working.badge!.c0, working.badge!.c1))
+}
+
 // MARK: - SwiftUI View
 
 struct GreetingCanvasView: View {
@@ -643,11 +681,11 @@ struct GreetingCanvasView: View {
         TimelineView(.animation) { timeline in
             let t = timeline.date.timeIntervalSince(startDate)
             Canvas { context, size in
+                let compact = IslandRestingLayout(width: state.notchWidth + 160, height: state.notchHeight)
                 context.withCGContext { cgCtx in
-                    drawGreeting(cgCtx, size: size, t: t, tc: tc,
-                                 compact: IslandRestingLayout(width: state.notchWidth + 160,
-                                                              height: state.notchHeight))
+                    drawGreeting(cgCtx, size: size, t: t, tc: tc, compact: compact)
                 }
+                if Koru.enabled { drawKoruGreeting(context, p: pose(t, tc: tc, compact: compact), t: t, compact: compact) }
             }
             .onChange(of: !greetFired && t >= GT.end && tc >= GT.autoLeave) { _, trigger in
                 if trigger { fireGreetComplete() }

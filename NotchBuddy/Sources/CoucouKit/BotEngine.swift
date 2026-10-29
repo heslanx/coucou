@@ -221,6 +221,9 @@ final class BotEngine: ObservableObject {
     // Particle canvas overhang (extra canvas height at top for hearts to fly into)
     var particleOverhang: CGFloat = 0
 
+    /// Koru's own pose values (KoruEngine.swift).
+    var koru = KoruMotion()
+
     // Mouth spring (fraction of R: 0=closed, 0.20=hover, 0.42=open, 0.50=overopen)
     var slotH: CGFloat = 0           // current height (fraction of R)
     var slotHTarget: CGFloat = 0     // spring target
@@ -1025,6 +1028,9 @@ final class BotEngine: ObservableObject {
             doMiniBehaviorLoop()
         }
 
+        // Koru's look, tilt and squash for her state (KoruEngine.swift).
+        koruStep(dt: dt, now: now, t: t)
+
         // The Mac's mood (sweat, puffed up, tired) adjusts the targets above.
         updateMood(dt: dt, now: now, t: t)
 
@@ -1125,6 +1131,7 @@ final class BotEngine: ObservableObject {
     // MARK: - Draw
 
     func draw(context: GraphicsContext, size: CGSize) {
+        if Koru.enabled { koruDraw(context: context, size: size); return }
         let W = size.width
         let H = size.height
         let R = W * 0.3
@@ -1211,7 +1218,7 @@ final class BotEngine: ObservableObject {
     // MARK: - Draw hands behind body (called before draw() so hands appear under Mochi)
 
     func drawHandsBehind(context: GraphicsContext, size: CGSize) {
-        guard hands > 0.01, !isMini else { return }
+        guard hands > 0.01, !isMini, !Koru.enabled else { return }   // Koru's wings are part of her body
         let W = size.width, H = size.height
         let R = W * 0.3
         // Only draw hands when Mochi is large enough to be meaningful (not compact/peek)
@@ -1314,6 +1321,7 @@ final class BotEngine: ObservableObject {
     }
 
     func drawHandsAndExtras(context: GraphicsContext, size: CGSize) {
+        if Koru.enabled { koruDrawExtras(context: context, size: size); return }
         let W = size.width
         let H = size.height
         let R = W * 0.3
@@ -1364,6 +1372,7 @@ final class BotEngine: ObservableObject {
 
     /// World-space center of Mochi's body (used by BotCanvasView for rigid-roll transform)
     func bodyCenter(size: CGSize) -> CGPoint {
+        if Koru.enabled { return koruBodyCenter(size: size) }
         let W = size.width, R = W * 0.3
         let cx = W / 2 + ox * R
         let cy = size.height / 2 + particleOverhang / 2 + oy * R + R * 0.06
