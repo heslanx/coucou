@@ -11,6 +11,12 @@ Coucou is a native macOS app (`NotchBuddy/`); `windows/` is the Tauri version fo
 - `docs/*.html` — the GitHub Pages site (privacy, terms, support, legal notice).
 - `relay/` — the Coucou relay, a stateless Cloudflare Worker that forwards the iPhone Live Activity pushes (it holds the APNs key, which must never ship in an app). See `relay/README.md`.
 
+## Koncluí (this fork)
+This checkout is Koncluí, a fork of Coucou. Read these before changing it; they win over upstream habits where they differ:
+- `KONCLUI.md`: what the fork changes, the rebrand script, feature flags, the hooks in upstream files, the upstream workflow.
+- `docs/konclui/UX.md`: usability, microcopy, accessibility, the review gate and the UI polish pass, for every screen.
+- `docs/konclui/ENGINEERING.md`: code rules (clean code, architecture, pragmatism, simplification) and mergeability.
+
 ## Build
 ```
 cd NotchBuddy && xcodegen && xcodebuild -scheme NotchBuddy -configuration Debug build

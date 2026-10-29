@@ -305,6 +305,8 @@ CODE += [("tests/WakePhraseTests.swift", pat, rep) for pat, rep in (
 
 # Insertions: (file, anchor, block). The block goes right before the anchor, once.
 INSERTS = [
+    # The project guide points every developer and agent to the fork's own rules.
+    ("CLAUDE.md", "## Build\n", '## Koncluí (this fork)\nThis checkout is Koncluí, a fork of Coucou. Read these before changing it; they win over upstream habits where they differ:\n- `KONCLUI.md`: what the fork changes, the rebrand script, feature flags, the hooks in upstream files, the upstream workflow.\n- `docs/konclui/UX.md`: usability, microcopy, accessibility, the review gate and the UI polish pass, for every screen.\n- `docs/konclui/ENGINEERING.md`: code rules (clean code, architecture, pragmatism, simplification) and mergeability.\n\n'),
     ("tests/WakePhraseTests.swift", "        // MARK: split — should NOT match",
      """        // Koncluí: how the recognizer may write Koru
         checkMatch("ok Corú",                WakePhrase.split("ok Corú"),                cmd: "")

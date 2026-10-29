@@ -5,6 +5,11 @@ only for now. Coucou's code is under the MIT licence (`LICENSE`, kept as is); it
 icon, sounds and artwork are reserved by their author (`LICENSE-ASSETS.md`), so Koncluí replaces
 them: the name Koncluí, the character Koru, the icon and the sounds are Koncluí's own.
 
+## Rules for everyone working on Koncluí
+
+- [docs/konclui/UX.md](docs/konclui/UX.md): usability, microcopy, accessibility, the review gate and the UI polish pass.
+- [docs/konclui/ENGINEERING.md](docs/konclui/ENGINEERING.md): code rules and how to stay mergeable with upstream.
+
 ## What changes
 
 - The Mac app (target `NotchBuddy`, scheme `NotchBuddy`) builds as `Konclui.app`, bundle id
