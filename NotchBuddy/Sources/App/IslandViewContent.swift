@@ -1596,6 +1596,7 @@ struct ChipFlowLayout: Layout {
 
 struct ModelPickerView: View {
     @ObservedObject var state: AppState
+    @ObservedObject private var access = ChatAccess.shared
     @Binding var isPresented: Bool
 
     var body: some View {
@@ -1604,6 +1605,8 @@ struct ModelPickerView: View {
             let visibleProviders = ChatProvider.allCases.filter { p in
                 if p == .ollama   { return !AppState.shared.ollamaServerURL.isEmpty   || state.chatProvider == .ollama }
                 if p == .lmstudio { return !AppState.shared.lmstudioServerURL.isEmpty || state.chatProvider == .lmstudio }
+                // Koncluí: Claude Code, Codex and the Koncluí Proxy appear when this Mac is signed in to them
+                if p.isSubscription { return access.status(p).isReady || state.chatProvider == p }
                 return true
             }
             ChipFlowLayout(spacing: 6) {
@@ -1662,6 +1665,7 @@ struct ModelPickerView: View {
             }
             state.fetchModelsIfNeeded(for: provider)
         }
+        .task { await access.refreshIfStale() }
     }
 
     @ViewBuilder
@@ -1685,16 +1689,7 @@ struct ModelPickerView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(models, id: \.id) { model in
                         Button {
-                            switch state.chatProvider {
-                            case .anthropic: state.claudeModel = model.id
-                            case .google:    state.googleChatModel = model.id
-                            case .openai:    state.openAIChatModel = model.id
-                            case .ollama:    state.ollamaChatModel = model.id
-                            case .lmstudio:  state.lmstudioChatModel = model.id
-                            case .deepseek:  state.deepseekChatModel = model.id
-                            case .qwen:      state.qwenChatModel = model.id
-                            case .moonshot:  state.moonshotChatModel = model.id
-                            }
+                            state.setActiveChatModel(model.id, for: state.chatProvider)
                             isPresented = false
                             SoundEngine.shared.play("blip")
                         } label: {

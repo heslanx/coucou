@@ -10,8 +10,13 @@ enum HubPage: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    static let flowPages: [HubPage] = [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings]
-    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .voice, .shortcuts]
+    // Koncluí: a page whose feature flag is off is not listed (KoncluiFeatureRegistry.swift).
+    static var flowPages: [HubPage] {
+        [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings].filter { KoncluiFeatures.isOn($0.featureId) }
+    }
+    static var notchPages: [HubPage] {
+        [.general, .pills, .agents, .chat, .integrations, .voice, .shortcuts].filter { KoncluiFeatures.isOn($0.featureId) }
+    }
 
     /// The section of Settings this page shows, for the notch's pages.
     var settingsSection: String? {
@@ -125,7 +130,16 @@ extension HubPage {
 
 @MainActor
 final class HubRouter: ObservableObject {
-    @Published var page: HubPage = .dictation
+    @Published var page: HubPage = HubPage.resolved(.dictation) {
+        // Koncluí: any pick leaves the Features screen; a page whose flag is off falls back to the first one that is on.
+        didSet {
+            showFeatures = false
+            let shown = HubPage.resolved(page)
+            if shown != page { page = shown }
+        }
+    }
+    /// Koncluí: the hidden Features screen (KoncluiFeaturesPage) is shown instead of `page`.
+    @Published var showFeatures = false
 }
 
 /// Opens the Coucou Flow window: the history of the dictations, the Notetaker, the numbers, the
@@ -197,6 +211,9 @@ final class FlowHubController {
 struct FlowHubView: View {
     @ObservedObject var router: HubRouter
     @ObservedObject var windowState: HubWindowState
+    // Koncluí: the window draws again when a flag changes, and shows the Features screen once unlocked.
+    @ObservedObject private var features = KoncluiFeatureModel.shared
+    @AppStorage(KoncluiFeatures.unlockedKey) private var featuresUnlocked = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -219,10 +236,20 @@ struct FlowHubView: View {
         .preferredColorScheme(.dark)
         .tint(HubTheme.accent)
         .environment(\.hubVisible, windowState.visible)
-        .environment(\.hubPage, router.page)
+        .environment(\.hubPage, router.showFeatures ? .settings : router.page)
+        .onChange(of: featuresUnlocked) { _, unlocked in if !unlocked { router.showFeatures = false } }
     }
 
     @ViewBuilder private var page: some View {
+        // Koncluí: the hidden Features screen takes the page's place.
+        if router.showFeatures && featuresUnlocked {
+            KoncluiFeaturesPage()
+        } else {
+            hubPage
+        }
+    }
+
+    @ViewBuilder private var hubPage: some View {
         switch router.page {
         case .dictation:  HubHomePage(router: router)
         case .notes:      HubNotesPage()
@@ -250,6 +277,9 @@ struct FlowHubView: View {
 private struct HubSidebar: View {
     @ObservedObject var router: HubRouter
     @ObservedObject private var flow = FlowDictation.shared
+    // Koncluí: the sidebar lists only the pages that are on; ⌥-click the wordmark unlocks the Features screen.
+    @ObservedObject private var features = KoncluiFeatureModel.shared
+    @AppStorage(KoncluiFeatures.unlockedKey) private var featuresUnlocked = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -263,6 +293,13 @@ private struct HubSidebar: View {
                     .scaledToFit()
                     .frame(height: 16)
                     .accessibilityLabel(Text(verbatim: "Koncluí"))
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Koncluí: ⌥-click toggles the hidden Features screen.
+                        guard NSEvent.modifierFlags.contains(.option) else { return }
+                        featuresUnlocked.toggle()
+                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                    }
             }
             .padding(.horizontal, 8)
             // Halfway between the window's buttons and "FLOW".
@@ -273,12 +310,16 @@ private struct HubSidebar: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HubSidebarHeader(text: "Flow")
                     ForEach(HubPage.flowPages) { page in
-                        HubSidebarItem(page: page, selected: router.page == page) { router.page = page }
+                        HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
                     }
                     HubSidebarHeader(text: String(localized: "hub.section.notch"))
                         .padding(.top, 14)
                     ForEach(HubPage.notchPages) { page in
-                        HubSidebarItem(page: page, selected: router.page == page) { router.page = page }
+                        HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                    }
+                    if featuresUnlocked {
+                        KoncluiFeaturesSidebarItem(selected: router.showFeatures) { router.showFeatures = true }
+                            .padding(.top, 14)
                     }
                 }
             }

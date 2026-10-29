@@ -215,6 +215,7 @@ final class ClaudeService {
 
     func clearConversation() {
         conversationMessages = []
+        KoncluiChat.shared.clear()
     }
 
     /// Resolved once: NSFullUserName() is a system call, and the name cannot change under us
@@ -223,15 +224,16 @@ final class ClaudeService {
 
     /// Greets the user by their macOS first name when there is one worth using, and stays
     /// neutral otherwise — same wording as the Windows build.
-    private nonisolated static func makeSystemPrompt() -> String {
+    nonisolated static func makeSystemPrompt(webSearch: Bool = true) -> String {
         let opening = if let firstName = resolveUserFirstName() {
             "You are Koru, \(firstName)'s personal AI assistant embedded in the notch of their Mac."
         } else {
             "You are Koru, a personal AI assistant embedded in the notch of the user's Mac."
         }
+        let abilities = webSearch ? "You have web search access and can help with" : "You can help with"
         return """
         \(opening) \
-        You have web search access and can help with absolutely anything — research, coding, finding places, recommendations, tasks, questions. \
+        \(abilities) absolutely anything — research, coding, finding places, recommendations, tasks, questions. \
         Respond in the user's language. Be thorough and complete — use as much detail as the task requires. \
         Use light Markdown when it helps: short paragraphs, bullet lists, **bold**, `inline code` and fenced code blocks. Avoid tables and big headings: the chat window is small.
         """
@@ -251,7 +253,12 @@ final class ClaudeService {
             return
         }
         guard state.chatProvider == .anthropic else {
-            await chatOpenAICompatible(query: query, context: context, state: state)
+            if state.chatProvider.isSubscription {
+                // Koncluí: Claude Code, Codex or the Koncluí Proxy, no API key
+                await KoncluiChat.shared.chat(query: query, context: context, state: state)
+            } else {
+                await chatOpenAICompatible(query: query, context: context, state: state)
+            }
             return
         }
         guard let key = apiKey, !key.isEmpty else {
@@ -301,7 +308,7 @@ final class ClaudeService {
 
     func chatOpenAICompatible(query: String, context: PromptContext?, state: AppState) async {
         let provider = state.chatProvider
-        guard provider != .anthropic else { return }
+        guard provider != .anthropic, !provider.isSubscription else { return }
 
         let baseURL: String
         if provider == .ollama {
@@ -315,7 +322,7 @@ final class ClaudeService {
             case .deepseek:  baseURL = "https://api.deepseek.com/v1"
             case .qwen:      baseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
             case .moonshot:  baseURL = "https://api.moonshot.cn/v1"
-            case .anthropic, .ollama, .lmstudio: baseURL = ""
+            case .anthropic, .ollama, .lmstudio, .claudeCode, .codex, .koncluiProxy: baseURL = ""
             }
         }
 
@@ -743,7 +750,7 @@ final class ClaudeService {
 
     // MARK: - File content block builder
 
-    private func readFileAsBlock(url: URL) -> [String: Any]? {
+    func readFileAsBlock(url: URL) -> [String: Any]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let ext = url.pathExtension.lowercased()
         let base64 = data.base64EncodedString()

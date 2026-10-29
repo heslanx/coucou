@@ -447,6 +447,7 @@ final class HookServer: @unchecked Sendable {
             bundleId.lowercased().contains("vscode"))
 
         // Routing:
+        // • an Orca terminal (any agent running in it: Claude Code, klaude, Codex…) → agent_orca
         // • "codex" → agent_codex (GitHub build only: workspace pill, approvals in the notch)
         // • other valid coucou_agent → external pill (fire-and-forget, no approval card)
         // • Cursor bundle ID → agent_cursor
@@ -457,10 +458,15 @@ final class HookServer: @unchecked Sendable {
         #else
         let isCodexEvent = false
         #endif
+        let isOrcaSession = ClaudeHost.isOrca(termProgram: termProgram, bundleId: bundleId)
         let agentId: String
         let isExternalAgent: Bool
         var hostApp: String? = nil
-        if isCodexEvent {
+        if isOrcaSession {
+            agentId = ClaudeHost.orcaPillId
+            isExternalAgent = false
+            hostApp = ClaudeHost.orcaBundleId
+        } else if isCodexEvent {
             agentId = "agent_codex"
             isExternalAgent = false
         } else if let agent = validAgent {
@@ -494,7 +500,13 @@ final class HookServer: @unchecked Sendable {
             session: sessionId,
             projectName: isExternalAgent ? (validAgent ?? projectName) : projectName,
             cwd: isExternalAgent ? "" : cwd,
-            hostApp: hostApp, bundleId: bundleId)
+            hostApp: hostApp, bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId)
+        // The Orca pill opens the terminal of the session that owns its card.
+        if isOrcaSession {
+            noteOrcaTerminal(payload, session: sessionId)
+            if name == "SessionEnd" { OrcaTerminals.shared.forget(session: sessionId) }
+        }
+        defer { if isOrcaSession { syncOrcaFocus() } }
         // For sessions that carry no id, derive a unique key from pill + cwd so that
         // concurrent anonymous sessions are tracked independently in RecapStore.
         let recapSessionId = (sessionId == "unknown" || sessionId.isEmpty)
@@ -854,8 +866,11 @@ final class HookServer: @unchecked Sendable {
         }
 
         // Determine which workspace pill owns the request.
+        let isOrcaSession = ClaudeHost.isOrca(termProgram: termProgram, bundleId: bundleId)
         let pillId: String
-        if isCodexRequest {
+        if isOrcaSession {
+            pillId = ClaudeHost.orcaPillId
+        } else if isCodexRequest {
             pillId = "agent_codex"
         } else if isCopilotRequest {
             pillId = "agent_copilot"
@@ -884,6 +899,7 @@ final class HookServer: @unchecked Sendable {
         let toolInput = payload["tool_input"] as? [String: Any] ?? [:]
         let inputKey = Self.approvalInputKey(toolInput)
         nbLog("PermissionRequest \(tool) [\(pillId)]")
+        if isOrcaSession { noteOrcaTerminal(payload, session: sessionId) }
 
         // AskUserQuestion is now handled via the dedicated --ask PreToolUse hook.
         // If it still arrives here as a PermissionRequest, reply "ask" so Claude Code
@@ -906,7 +922,8 @@ final class HookServer: @unchecked Sendable {
         let entry = QueuedApproval(id: UUID(), fd: fd, sessionId: sessionId, pillId: pillId,
                                    projectName: projectName, cwd: cwd, tool: tool,
                                    command: command, inputKey: inputKey,
-                                   hostApp: terminalHost?.bundleId, bundleId: bundleId)
+                                   hostApp: terminalHost?.bundleId,
+                                   bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId)
         guard approvals.enqueue(entry) == .accepted else {
             nbLog("PermissionRequest \(tool): \(ApprovalQueue.maxPending) already waiting, asked in the terminal")
             Task.detached { [weak self] in
@@ -920,9 +937,10 @@ final class HookServer: @unchecked Sendable {
         upsertTask(pill: pillId,
                    display: PillSessionRegistry.Display(session: sessionId, projectName: projectName,
                                                         cwd: cwd, hostApp: terminalHost?.bundleId,
-                                                        bundleId: bundleId),
+                                                        bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId),
                    working: true, externalAgent: nil)
         state.updateTask(id: pillId, state: .approval)
+        if isOrcaSession { syncOrcaFocus() }
         SoundEngine.shared.play("approval")
 
         // Monitor fd: if the agent closes the connection (answered in its own UI), drop the
@@ -995,7 +1013,13 @@ final class HookServer: @unchecked Sendable {
         let recapDecision = ["plan_auto": "allow", "plan_default": "allow", "plan_change": "deny"][decision] ?? decision
         RecapStore.shared.recordDecision(pillId: head.pillId, decision: recapDecision)
         removeApproval(id: head.id, answer: json)
-        if decision == "plan_change" { ClaudeHost.activate(head.hostApp) }
+        if decision == "plan_change" {
+            if head.pillId == ClaudeHost.orcaPillId {
+                ClaudeHost.focusOrca(handle: OrcaTerminals.shared.terminal(session: head.sessionId)?.handle)
+            } else {
+                ClaudeHost.activate(head.hostApp)
+            }
+        }
     }
 
     /// The plan's first non-empty line without its Markdown heading marks, for the card.
@@ -1029,8 +1053,11 @@ final class HookServer: @unchecked Sendable {
         #else
         let isCodexRequest = false
         #endif
+        let isOrcaSession = ClaudeHost.isOrca(termProgram: termProgram, bundleId: bundleId)
         let pillId: String
-        if isCodexRequest {
+        if isOrcaSession {
+            pillId = ClaudeHost.orcaPillId
+        } else if isCodexRequest {
             pillId = "agent_codex"
         } else if isCursorEditor {
             pillId = "agent_cursor"
@@ -1069,9 +1096,13 @@ final class HookServer: @unchecked Sendable {
         upsertTask(pill: pillId,
                    display: PillSessionRegistry.Display(session: sessionId, projectName: projectName,
                                                         cwd: cwd, hostApp: terminalHost?.bundleId,
-                                                        bundleId: bundleId),
+                                                        bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId),
                    working: true, externalAgent: nil)
         state.updateTask(id: pillId, state: .question)
+        if isOrcaSession {
+            noteOrcaTerminal(payload, session: sessionId)
+            syncOrcaFocus()
+        }
         state.pendingQuestion = parsed
         state.isPinned = true
         SoundEngine.shared.play("approval")
@@ -1103,6 +1134,20 @@ final class HookServer: @unchecked Sendable {
             }
             self.dismissQuestionCard(note: "")
         }
+    }
+
+    /// Remembers the Orca terminal (handle and worktree, sent by nb-hook) a session runs in.
+    private func noteOrcaTerminal(_ payload: [String: Any], session: String) {
+        OrcaTerminals.shared.note(session: session,
+                                  handle: payload["orca_terminal"] as? String,
+                                  worktree: payload["orca_worktree"] as? String)
+    }
+
+    /// The Orca pill opens the terminal of the session that owns its card (the oldest one at work,
+    /// else the one that worked last): follows the registry's choice, like the pill's name.
+    @MainActor
+    private func syncOrcaFocus() {
+        OrcaTerminals.shared.focus(session: sessions.displayOwner(of: ClaudeHost.orcaPillId)?.session)
     }
 
     /// "VS Code", "Warp"… — where the Claude Code pill's current session runs.
@@ -1445,33 +1490,45 @@ final class HookServer: @unchecked Sendable {
     }
 
     // MARK: - Claude Code settings.json hook installer
+    // ~/.claude/settings.json, or the settings.json of another Claude Code config folder:
+    // Koncluí's klaude (~/.klaude, KoncluiAgentHooks.swift) gets the same hooks through the same code.
 
-    private var _pendingHooksData: Data?
-    /// The bytes of settings.json the pending preview was computed from.
-    private var _pendingHooksOriginal: Data?
+    /// ~/.claude/settings.json
+    static var claudeSettingsURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/settings.json")
+    }
+
+    /// What each preview computed, per settings file: the new bytes, and the bytes of the file
+    /// they were computed from.
+    private var _pendingHooks: [String: (data: Data, original: Data?)] = [:]
 
     /// Returns preview JSON without writing — call writeClaudeHooks() to confirm.
-    func previewClaudeHooks() throws -> String {
-        let (data, original) = try buildHooksData()
-        _pendingHooksData = data
-        _pendingHooksOriginal = original
-        return String(data: data, encoding: .utf8) ?? ""
+    /// `install: false` previews the file without Koncluí's entries.
+    func previewClaudeHooks(at settingsURL: URL = HookServer.claudeSettingsURL, install: Bool = true) throws -> String {
+        let result: (data: Data, original: Data?)
+        if install {
+            result = try buildHooksData(at: settingsURL)
+        } else {
+            guard let removal = try hooksDataWithoutKoncluiEntries(at: settingsURL) else {
+                throw NSError(domain: "CoucouNoop", code: 0, userInfo: [
+                    NSLocalizedDescriptionKey: String(localized: "No Koncluí hooks to remove.")
+                ])
+            }
+            result = removal
+        }
+        _pendingHooks[settingsURL.path] = result
+        return String(data: result.data, encoding: .utf8) ?? ""
     }
 
     /// Writes the hooks to disk (call after user confirms preview).
     /// Refused if settings.json changed since the preview, or cannot be backed up.
-    func writeClaudeHooks() throws {
-        guard let data = _pendingHooksData else { return }
-        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/settings.json")
-        try ClaudeSettingsFile.write(data, to: settingsURL, expecting: _pendingHooksOriginal)
-        _pendingHooksData = nil
-        _pendingHooksOriginal = nil
+    func writeClaudeHooks(at settingsURL: URL = HookServer.claudeSettingsURL) throws {
+        guard let pending = _pendingHooks[settingsURL.path] else { return }
+        try ClaudeSettingsFile.write(pending.data, to: settingsURL, expecting: pending.original)
+        _pendingHooks[settingsURL.path] = nil
     }
 
-    private func buildHooksData() throws -> (data: Data, original: Data?) {
-        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/settings.json")
+    private func buildHooksData(at settingsURL: URL) throws -> (data: Data, original: Data?) {
         // Unreadable or invalid settings must stop here, never count as empty.
         let snapshot = try ClaudeSettingsFile.read(at: settingsURL)
         var settings = snapshot.object
@@ -1495,7 +1552,7 @@ final class HookServer: @unchecked Sendable {
         var hooks = try ClaudeSettingsFile.hooks(in: settings, name: "settings.json")
         for (event, timeout) in events {
             var existing = try ClaudeSettingsFile.hookGroups(in: hooks, event: event, name: "settings.json")
-            existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains { ($0["command"] as? String)?.contains("Konclui") == true || ($0["command"] as? String)?.contains("konclui") == true } ?? false }
+            existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains { KoncluiHook.owns($0["command"] as? String) } ?? false }
             existing.append(["hooks": [["type": "command", "command": quotedCmd, "timeout": timeout]]])
             hooks[event] = existing
         }
@@ -1511,28 +1568,36 @@ final class HookServer: @unchecked Sendable {
         return (data, snapshot.bytes)
     }
 
-    func uninstallClaudeHooks() throws {
-        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/settings.json")
+    func uninstallClaudeHooks(at settingsURL: URL = HookServer.claudeSettingsURL) throws {
+        guard let (data, original) = try hooksDataWithoutKoncluiEntries(at: settingsURL) else { return }
+        try ClaudeSettingsFile.write(data, to: settingsURL, expecting: original)
+    }
+
+    /// The settings without Koncluí's hook entries (KoncluiHook.owns): the new bytes and the bytes of the
+    /// file they come from. nil when none of Koncluí's entries is there. Other tools' entries stay as they are.
+    private func hooksDataWithoutKoncluiEntries(at settingsURL: URL) throws -> (data: Data, original: Data?)? {
         let snapshot = try ClaudeSettingsFile.read(at: settingsURL)
         var settings = snapshot.object
-        guard var hooks = settings["hooks"] as? [String: Any] else { return }
+        guard var hooks = settings["hooks"] as? [String: Any] else { return nil }
 
+        var removedAny = false
         for key in hooks.keys {
             if var matchers = hooks[key] as? [[String: Any]] {
+                let before = matchers.count
                 matchers.removeAll { matcher in
                     (matcher["hooks"] as? [[String: Any]])?.contains {
-                        ($0["command"] as? String)?.contains("Konclui") == true ||
-                        ($0["command"] as? String)?.contains("konclui") == true
+                        KoncluiHook.owns($0["command"] as? String)
                     } ?? false
                 }
+                if matchers.count != before { removedAny = true }
                 if matchers.isEmpty { hooks.removeValue(forKey: key) }
                 else { hooks[key] = matchers }
             }
         }
+        guard removedAny else { return nil }
         settings["hooks"] = hooks
         let newData = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-        try ClaudeSettingsFile.write(newData, to: settingsURL, expecting: snapshot.bytes)
+        return (newData, snapshot.bytes)
     }
 
     // MARK: - Claude plan status line installer
@@ -3349,6 +3414,14 @@ def normalize_tool_fields(payload):
     if not payload.get('cwd') and payload.get('workdir'):
         payload['cwd'] = payload['workdir']
 
+def add_orca_context(payload):
+    # Orca's terminals: the terminal handle and the worktree id let a click on the Orca pill open
+    # this exact terminal. Only these two ORCA_* values are read, never the hook token.
+    for key, var in (('orca_terminal', 'ORCA_TERMINAL_HANDLE'), ('orca_worktree', 'ORCA_WORKTREE_ID')):
+        value = os.environ.get(var, '')
+        if value:
+            payload.setdefault(key, value)
+
 def add_session_name(payload):
     # Name the pill after the folder the session started in, not the current cwd (the
     # agent may cd into subfolders), or after the session's /rename title. Both come
@@ -3440,6 +3513,7 @@ def main():
         payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
         payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
         payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+        add_orca_context(payload)
         if 'cwd' not in payload or not payload['cwd']:
             paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
             if isinstance(paths, list) and paths:
@@ -3508,6 +3582,7 @@ def main():
     payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
     payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
     payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+    add_orca_context(payload)
     if 'cwd' not in payload or not payload['cwd']:
         paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
         if isinstance(paths, list) and paths:
@@ -3702,6 +3777,14 @@ def normalize_tool_fields(payload):
     if not payload.get('cwd') and payload.get('workdir'):
         payload['cwd'] = payload['workdir']
 
+def add_orca_context(payload):
+    # Orca's terminals: the terminal handle and the worktree id let a click on the Orca pill open
+    # this exact terminal. Only these two ORCA_* values are read, never the hook token.
+    for key, var in (('orca_terminal', 'ORCA_TERMINAL_HANDLE'), ('orca_worktree', 'ORCA_WORKTREE_ID')):
+        value = os.environ.get(var, '')
+        if value:
+            payload.setdefault(key, value)
+
 def add_session_name(payload):
     # Name the pill after the folder the session started in, not the current cwd (the
     # agent may cd into subfolders), or after the session's /rename title. Both come
@@ -3793,6 +3876,7 @@ def main():
         payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
         payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
         payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+        add_orca_context(payload)
         if 'cwd' not in payload or not payload['cwd']:
             paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
             if isinstance(paths, list) and paths:
@@ -3860,6 +3944,7 @@ def main():
     payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
     payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
     payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+    add_orca_context(payload)
     if 'cwd' not in payload or not payload['cwd']:
         paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
         if isinstance(paths, list) and paths:

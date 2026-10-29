@@ -140,9 +140,20 @@ struct SettingsView: View {
     /// Shown inside the Coucou Flow window (GitHub build): one section, without this window's
     /// sidebar, as the window has its own.
     private var embeddedSection: String? = nil
-    private var section: String { embeddedSection ?? selectedSection }
+    private var section: String {
+        let chosen = embeddedSection ?? selectedSection
+        // Koncluí: a section whose feature is off falls back to General.
+        if let id = KoncluiFeatureRegistry.sectionFeatureId(chosen), !KoncluiFeatures.isOn(id) { return "general" }
+        return chosen
+    }
     // Active pills: the pill whose colour palette is open, if any
     @State private var colorPalettePill: String? = nil
+    // Koncluí: Active pills, Agents, Chat and Integrations list what was recognized on this Mac, and what was added
+    // with "Add…" (KoncluiRecognition.swift); a flag that is off hides a block (KoncluiFeatureRegistry.swift).
+    @ObservedObject private var koncluiFeatures = KoncluiFeatureModel.shared
+    @ObservedObject private var koncluiAdded = KoncluiAddedModel.shared
+    @ObservedObject private var chatAccess = ChatAccess.shared
+    @State private var koncluiTools: Set<KoncluiTool> = KoncluiRecognition.liveTools()
     #if PHONE_LINK
     @AppStorage("iPhoneSyncEnabled") private var iPhoneSyncEnabled = false
     @AppStorage("iPhoneLiveActivityEnabled") private var iPhoneLiveActivityEnabled = false
@@ -185,16 +196,25 @@ struct SettingsView: View {
                         get: { Optional(selectedSection) },
                         set: { if let v = $0 { selectedSection = v; statusMessage = "" } }
                     )) {
+                        // Koncluí: each row shows only while its feature is on.
                         SettingsSidebarRow(title: "General",      icon: "gearshape.fill",                    color: "#8E939C").tag("general")
+                            .koncluiShown(KoncluiFeatures.isOn("page_general"))
                         SettingsSidebarRow(title: "Active pills", icon: "square.grid.2x2.fill",              color: "#F5A524").tag("activepills")
+                            .koncluiShown(KoncluiFeatures.isOn("page_pills"))
                         SettingsSidebarRow(title: "Agents",       icon: "terminal.fill",                     color: "#3B9EFF").tag("agents")
+                            .koncluiShown(KoncluiFeatures.isOn("page_agents"))
                         SettingsSidebarRow(title: "Chat",         icon: "bubble.left.and.bubble.right.fill", color: "#E07950").tag("chat")
+                            .koncluiShown(KoncluiFeatures.isOn("page_chat"))
                         SettingsSidebarRow(title: "Integrations", icon: "puzzlepiece.extension.fill",        color: "#7C5CFF").tag("integrations")
+                            .koncluiShown(KoncluiFeatures.isOn("page_integrations"))
                         SettingsSidebarRow(title: "Reminders",    icon: "bell.badge.fill",                   color: "#F59E0B").tag("reminders")
+                            .koncluiShown(KoncluiFeatures.isOn("block_reminders"))
                         #if !APPSTORE
                         SettingsSidebarRow(title: "Voice",        icon: "mic.fill",                          color: "#F97316").tag("voice")
+                            .koncluiShown(KoncluiFeatures.isOn("page_voice"))
                         #endif
                         SettingsSidebarRow(title: "Shortcuts",    icon: "keyboard.fill",                     color: "#6366F1").tag("shortcuts")
+                            .koncluiShown(KoncluiFeatures.isOn("page_shortcuts"))
                     }
                     .listStyle(.sidebar)
                     .scrollContentBackground(.hidden)
@@ -238,6 +258,9 @@ struct SettingsView: View {
             #if !APPSTORE
             state.refreshPlanRelayState()
             #endif
+            // Koncluí: look again at what this Mac has, and at the sign-ins.
+            koncluiTools = KoncluiRecognition.liveTools(maxAge: 0)
+            Task { await chatAccess.refresh() }
             guard fetchedModels.isEmpty,
                   let key = KeychainStore.shared.get("anthropic-api-key"), !key.isEmpty else { return }
             Task {
@@ -406,6 +429,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(KoncluiFeatures.isOn("block_vitals"))
 
         GroupBox("Hotkey") {
             VStack(alignment: .leading, spacing: 10) {
@@ -458,6 +482,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(KoncluiFeatures.isOn("block_recap"))
 
         GroupBox(String(localized: "Language")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -535,6 +560,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(KoncluiFeatures.isOn("block_iphone"))
         #endif
     }
 
@@ -548,6 +574,7 @@ struct SettingsView: View {
     // MARK: - Active pills section
 
     @ViewBuilder private var activePillsSection: some View {
+        let signals = koncluiSignals   // Koncluí: only the pills this Mac has, turned on or added are listed
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Choose the tools you use. Koncluí only shows what you declare here.")
@@ -568,7 +595,7 @@ struct SettingsView: View {
                 }
 
                 ForEach(PillCategory.allCases, id: \.self) { cat in
-                    let catPills = PillCatalog.available.filter { $0.category == cat }
+                    let catPills = PillCatalog.available.filter { $0.category == cat && koncluiPillShown($0, signals) }
                     if !catPills.isEmpty {
                         Divider()
                         Text(cat.title)
@@ -579,6 +606,11 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                KoncluiAddMenu(
+                    items: PillCatalog.available.filter { !koncluiPillShown($0, signals) }
+                        .map { .init(id: $0.id, title: $0.name, section: $0.category.title) },
+                    onPick: { koncluiAdded.add(.pills, $0) })
             }
             .padding(6)
         }
@@ -587,6 +619,9 @@ struct SettingsView: View {
     // MARK: - Agents section
 
     @ViewBuilder private var agentsSection: some View {
+        // Koncluí: klaude's hooks (unit K11); then only the agents this Mac has, hooked up or added.
+        KlaudeHooksSection()
+
         GroupBox(String(localized: "hooks.claude-code.title")) {
             VStack(alignment: .leading, spacing: 10) {
                 if hookNeedsUpdate {
@@ -652,9 +687,11 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.claudeCode))
 
         #if !APPSTORE
         ClaudeDesktopChatSettingsSection()
+            .koncluiShown(koncluiAgentShown(.claudeDesktop))
 
         GroupBox(String(localized: "hooks.gemini.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -688,6 +725,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.gemini))
 
         GroupBox(String(localized: "hooks.antigravity.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -721,6 +759,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.antigravity))
 
         GroupBox(String(localized: "hooks.codex.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -754,6 +793,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.codex))
 
         GroupBox(String(localized: "hooks.copilot.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -787,6 +827,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.copilot))
 
         GroupBox(String(localized: "hooks.muse.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -820,6 +861,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.muse))
 
         GroupBox(String(localized: "plugin.opencode.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -853,6 +895,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.opencode))
 
         GroupBox(String(localized: "plugin.amp.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -886,6 +929,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.amp))
 
         GroupBox(String(localized: "plugin.hermes.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -967,6 +1011,7 @@ struct SettingsView: View {
             await MainActor.run { hermesSupportsApprovals = result }
         }
         #endif
+        .koncluiShown(koncluiAgentShown(.hermes))
 
         GroupBox(String(localized: "plan.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -1037,12 +1082,21 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiAgentShown(.plan))
         #endif
+
+        KoncluiAddMenu(
+            items: koncluiAgentBlocks.filter { !koncluiAgentShown($0) }.map { .init(id: $0.rawValue, title: $0.title) },
+            onPick: { koncluiAdded.add(.agents, $0) })
     }
 
     // MARK: - Chat section
 
     @ViewBuilder private var chatSection: some View {
+        // Koncluí: the chat through what this Mac is signed in to (unit K10); then only the key-based and local
+        // providers that have a key or a server, or were added.
+        KoncluiChatSubscriptionsSection()
+
         GroupBox(String(localized: "chat.anthropic-api.title")) {
             VStack(alignment: .leading, spacing: 8) {
                 SecureField(String(localized: "chat.api-key.claude"), text: $apiKey)
@@ -1081,6 +1135,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(koncluiChatShown(.anthropic))
 
         GroupBox(String(localized: "chat.other-providers.title")) {
             VStack(alignment: .leading, spacing: 12) {
@@ -1088,76 +1143,83 @@ struct SettingsView: View {
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
 
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#4285F4")).frame(width: 8, height: 8)
-                    Text(String(localized: "chat.google-ai")).font(.system(size: 12, weight: .semibold))
+                if koncluiChatShown(.google) {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#4285F4")).frame(width: 8, height: 8)
+                        Text(String(localized: "chat.google-ai")).font(.system(size: 12, weight: .semibold))
+                    }
+                    SecureField(String(localized: "chat.api-key.google"), text: $googleKey)
+                        .textFieldStyle(.roundedBorder)
+                    Button(String(localized: "Save")) {
+                        KeychainStore.shared.set("google-api-key", value: googleKey)
+                        statusMessage = String(localized: "status.google-key-saved")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Divider().koncluiShown(koncluiChatShownAfter(.google))
                 }
-                SecureField(String(localized: "chat.api-key.google"), text: $googleKey)
-                    .textFieldStyle(.roundedBorder)
-                Button(String(localized: "Save")) {
-                    KeychainStore.shared.set("google-api-key", value: googleKey)
-                    statusMessage = String(localized: "status.google-key-saved")
-                }
-                .buttonStyle(.borderedProminent)
 
-                Divider()
+                if koncluiChatShown(.openai) {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#10A37F")).frame(width: 8, height: 8)
+                        Text(String(localized: "chat.openai")).font(.system(size: 12, weight: .semibold))
+                    }
+                    SecureField(String(localized: "chat.api-key.openai"), text: $openAIKey)
+                        .textFieldStyle(.roundedBorder)
+                    Button(String(localized: "Save")) {
+                        KeychainStore.shared.set("openai-api-key", value: openAIKey)
+                        statusMessage = String(localized: "status.openai-key-saved")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Divider().koncluiShown(koncluiChatShownAfter(.openai))
+                }
 
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#10A37F")).frame(width: 8, height: 8)
-                    Text(String(localized: "chat.openai")).font(.system(size: 12, weight: .semibold))
+                if koncluiChatShown(.deepseek) {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#5B8FF9")).frame(width: 8, height: 8)
+                        Text("DeepSeek").font(.system(size: 12, weight: .semibold))
+                    }
+                    SecureField("API key", text: $deepseekKey)
+                        .textFieldStyle(.roundedBorder)
+                    Button(String(localized: "Save")) {
+                        KeychainStore.shared.set("deepseek-api-key", value: deepseekKey)
+                        statusMessage = String(localized: "status.deepseek-key-saved")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Divider().koncluiShown(koncluiChatShownAfter(.deepseek))
                 }
-                SecureField(String(localized: "chat.api-key.openai"), text: $openAIKey)
-                    .textFieldStyle(.roundedBorder)
-                Button(String(localized: "Save")) {
-                    KeychainStore.shared.set("openai-api-key", value: openAIKey)
-                    statusMessage = String(localized: "status.openai-key-saved")
-                }
-                .buttonStyle(.borderedProminent)
 
-                Divider()
+                if koncluiChatShown(.qwen) {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#FF6A00")).frame(width: 8, height: 8)
+                        Text("Qwen (Alibaba)").font(.system(size: 12, weight: .semibold))
+                    }
+                    SecureField("API key", text: $qwenKey)
+                        .textFieldStyle(.roundedBorder)
+                    Button(String(localized: "Save")) {
+                        KeychainStore.shared.set("qwen-api-key", value: qwenKey)
+                        statusMessage = String(localized: "status.qwen-key-saved")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Divider().koncluiShown(koncluiChatShownAfter(.qwen))
+                }
 
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#5B8FF9")).frame(width: 8, height: 8)
-                    Text("DeepSeek").font(.system(size: 12, weight: .semibold))
+                if koncluiChatShown(.moonshot) {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#7C5CFC")).frame(width: 8, height: 8)
+                        Text("Moonshot (Kimi)").font(.system(size: 12, weight: .semibold))
+                    }
+                    SecureField("API key", text: $moonshotKey)
+                        .textFieldStyle(.roundedBorder)
+                    Button(String(localized: "Save")) {
+                        KeychainStore.shared.set("moonshot-api-key", value: moonshotKey)
+                        statusMessage = String(localized: "status.moonshot-key-saved")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                SecureField("API key", text: $deepseekKey)
-                    .textFieldStyle(.roundedBorder)
-                Button(String(localized: "Save")) {
-                    KeychainStore.shared.set("deepseek-api-key", value: deepseekKey)
-                    statusMessage = String(localized: "status.deepseek-key-saved")
-                }
-                .buttonStyle(.borderedProminent)
-
-                Divider()
-
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#FF6A00")).frame(width: 8, height: 8)
-                    Text("Qwen (Alibaba)").font(.system(size: 12, weight: .semibold))
-                }
-                SecureField("API key", text: $qwenKey)
-                    .textFieldStyle(.roundedBorder)
-                Button(String(localized: "Save")) {
-                    KeychainStore.shared.set("qwen-api-key", value: qwenKey)
-                    statusMessage = String(localized: "status.qwen-key-saved")
-                }
-                .buttonStyle(.borderedProminent)
-
-                Divider()
-
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#7C5CFC")).frame(width: 8, height: 8)
-                    Text("Moonshot (Kimi)").font(.system(size: 12, weight: .semibold))
-                }
-                SecureField("API key", text: $moonshotKey)
-                    .textFieldStyle(.roundedBorder)
-                Button(String(localized: "Save")) {
-                    KeychainStore.shared.set("moonshot-api-key", value: moonshotKey)
-                    statusMessage = String(localized: "status.moonshot-key-saved")
-                }
-                .buttonStyle(.borderedProminent)
             }
             .padding(.vertical, 4)
         }
+        .koncluiShown(Self.koncluiKeyProviders.contains(where: koncluiChatShown))
 
         GroupBox(String(localized: "chat.local.title")) {
             VStack(alignment: .leading, spacing: 12) {
@@ -1165,81 +1227,91 @@ struct SettingsView: View {
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
 
-                // ── Ollama ──────────────────────────────────────────────────────
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#FACC15")).frame(width: 8, height: 8)
-                    Text("Ollama").font(.system(size: 12, weight: .semibold))
-                    if !state.ollamaServerURL.isEmpty {
-                        Text(String(localized: "Connected"))
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(hex: "#22C55E"))
+                if koncluiChatShown(.ollama) {
+                    // ── Ollama ──────────────────────────────────────────────────────
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#FACC15")).frame(width: 8, height: 8)
+                        Text("Ollama").font(.system(size: 12, weight: .semibold))
+                        if !state.ollamaServerURL.isEmpty {
+                            Text(String(localized: "Connected"))
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "#22C55E"))
+                        }
                     }
-                }
-                if state.ollamaServerURL.isEmpty {
-                    TextField("http://127.0.0.1:11434", text: $ollamaURL)
-                        .textFieldStyle(.roundedBorder)
-                    Button(connectingOllama ? String(localized: "chat.connecting") : String(localized: "chat.connect")) {
-                        Task { await connectLocal(provider: .ollama) }
+                    if state.ollamaServerURL.isEmpty {
+                        TextField("http://127.0.0.1:11434", text: $ollamaURL)
+                            .textFieldStyle(.roundedBorder)
+                        Button(connectingOllama ? String(localized: "chat.connecting") : String(localized: "chat.connect")) {
+                            Task { await connectLocal(provider: .ollama) }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(connectingOllama)
+                    } else {
+                        Text(state.ollamaServerURL)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Button(String(localized: "chat.disconnect")) {
+                            state.ollamaServerURL = ""
+                            ollamaURL = ""
+                            state.fetchedProviderModels[.ollama] = nil
+                            state.providerModelFetchError[.ollama] = nil
+                            if state.chatProvider == .ollama { state.chatProvider = .anthropic }
+                            statusMessage = String(localized: "status.local.ollama-disconnected")
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(connectingOllama)
-                } else {
-                    Text(state.ollamaServerURL)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.secondary)
-                    Button(String(localized: "chat.disconnect")) {
-                        state.ollamaServerURL = ""
-                        ollamaURL = ""
-                        state.fetchedProviderModels[.ollama] = nil
-                        state.providerModelFetchError[.ollama] = nil
-                        if state.chatProvider == .ollama { state.chatProvider = .anthropic }
-                        statusMessage = String(localized: "status.local.ollama-disconnected")
-                    }
-                    .buttonStyle(.bordered)
+                    Divider().koncluiShown(koncluiChatShown(.lmstudio))
                 }
 
-                Divider()
-
-                // ── LM Studio ───────────────────────────────────────────────────
-                HStack(spacing: 8) {
-                    Circle().fill(Color(hex: "#A3E635")).frame(width: 8, height: 8)
-                    Text("LM Studio").font(.system(size: 12, weight: .semibold))
-                    if !state.lmstudioServerURL.isEmpty {
-                        Text(String(localized: "Connected"))
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(hex: "#22C55E"))
+                if koncluiChatShown(.lmstudio) {
+                    // ── LM Studio ───────────────────────────────────────────────────
+                    HStack(spacing: 8) {
+                        Circle().fill(Color(hex: "#A3E635")).frame(width: 8, height: 8)
+                        Text("LM Studio").font(.system(size: 12, weight: .semibold))
+                        if !state.lmstudioServerURL.isEmpty {
+                            Text(String(localized: "Connected"))
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "#22C55E"))
+                        }
                     }
-                }
-                if state.lmstudioServerURL.isEmpty {
-                    TextField("http://127.0.0.1:1234", text: $lmstudioURL)
-                        .textFieldStyle(.roundedBorder)
-                    Button(connectingLMStudio ? String(localized: "chat.connecting") : String(localized: "chat.connect")) {
-                        Task { await connectLocal(provider: .lmstudio) }
+                    if state.lmstudioServerURL.isEmpty {
+                        TextField("http://127.0.0.1:1234", text: $lmstudioURL)
+                            .textFieldStyle(.roundedBorder)
+                        Button(connectingLMStudio ? String(localized: "chat.connecting") : String(localized: "chat.connect")) {
+                            Task { await connectLocal(provider: .lmstudio) }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(connectingLMStudio)
+                    } else {
+                        Text(state.lmstudioServerURL)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Button(String(localized: "chat.disconnect")) {
+                            state.lmstudioServerURL = ""
+                            lmstudioURL = ""
+                            state.fetchedProviderModels[.lmstudio] = nil
+                            state.providerModelFetchError[.lmstudio] = nil
+                            if state.chatProvider == .lmstudio { state.chatProvider = .anthropic }
+                            statusMessage = String(localized: "status.local.lmstudio-disconnected")
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(connectingLMStudio)
-                } else {
-                    Text(state.lmstudioServerURL)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.secondary)
-                    Button(String(localized: "chat.disconnect")) {
-                        state.lmstudioServerURL = ""
-                        lmstudioURL = ""
-                        state.fetchedProviderModels[.lmstudio] = nil
-                        state.providerModelFetchError[.lmstudio] = nil
-                        if state.chatProvider == .lmstudio { state.chatProvider = .anthropic }
-                        statusMessage = String(localized: "status.local.lmstudio-disconnected")
-                    }
-                    .buttonStyle(.bordered)
                 }
             }
             .padding(.vertical, 4)
         }
+        .koncluiShown(koncluiChatShown(.ollama) || koncluiChatShown(.lmstudio))
+
+        KoncluiAddMenu(
+            items: Self.koncluiAddableChatProviders.filter { !koncluiChatShown($0) }
+                .map { .init(id: $0.rawValue, title: $0 == .anthropic ? "Anthropic API" : $0.displayName) },
+            onPick: { koncluiAdded.add(.chat, $0) })
     }
 
     // MARK: - Integrations section
 
     @ViewBuilder private var integrationsSection: some View {
+        let signals = koncluiSignals   // Koncluí: only the services that are configured, turned on or added show
         GroupBox {
             VStack(alignment: .leading, spacing: 14) {
 
@@ -1254,6 +1326,7 @@ struct SettingsView: View {
                     TextField("From address  (you@yourdomain.com)", text: $resendFrom)
                         .textFieldStyle(.roundedBorder)
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_resend", signals))
 
                 // n8n
                 VStack(alignment: .leading, spacing: 5) {
@@ -1273,6 +1346,7 @@ struct SettingsView: View {
                         onLoad: loadN8nWorkflows
                     )
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_n8n", signals))
 
                 // Vercel
                 VStack(alignment: .leading, spacing: 5) {
@@ -1290,6 +1364,7 @@ struct SettingsView: View {
                         onLoad: loadVercelProjects
                     )
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_vercel", signals))
 
                 // GitHub
                 VStack(alignment: .leading, spacing: 5) {
@@ -1303,6 +1378,7 @@ struct SettingsView: View {
                         .font(.system(size: 10))
                         .foregroundColor(Color(hex: "#8E939C"))
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_github", signals))
 
                 // Stripe
                 VStack(alignment: .leading, spacing: 5) {
@@ -1313,6 +1389,7 @@ struct SettingsView: View {
                     SecureField("Secret key  (sk_live_… or sk_test_…)", text: $stripeKey)
                         .textFieldStyle(.roundedBorder)
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_stripe", signals))
 
                 // Cal.com
                 VStack(alignment: .leading, spacing: 5) {
@@ -1323,6 +1400,7 @@ struct SettingsView: View {
                     SecureField("API key  (cal_live_…)", text: $calcomKey)
                         .textFieldStyle(.roundedBorder)
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_calcom", signals))
 
                 // Notion
                 VStack(alignment: .leading, spacing: 5) {
@@ -1333,6 +1411,7 @@ struct SettingsView: View {
                     SecureField("Integration token  (secret_…)", text: $notionKey)
                         .textFieldStyle(.roundedBorder)
                 }
+                .koncluiShown(koncluiIntegrationShown("integration_notion", signals))
 
                 // Crypto: public prices, no key. Changes apply at once.
                 VStack(alignment: .leading, spacing: 5) {
@@ -1368,15 +1447,18 @@ struct SettingsView: View {
                 }
                 .onChange(of: cryptoExchange) { _, _ in CryptoController.shared.settingsChanged() }
                 .onChange(of: cryptoCurrency) { _, _ in CryptoController.shared.settingsChanged() }
+                .koncluiShown(koncluiIntegrationShown("integration_crypto", signals))
 
                 // Portfolio: exchange accounts + wallets.
                 PortfolioSettingsSection()
                     .padding(.top, 4)
+                    .koncluiShown(koncluiIntegrationShown("integration_portfolio", signals))
 
                 #if !APPSTORE
                 // WhatsApp through a local gateway: its own fields, saved by its own button.
                 WhatsAppSettingsSection()
                     .padding(.top, 4)
+                    .koncluiShown(koncluiIntegrationShown("integration_whatsapp", signals))
                 #endif
 
                 Button(String(localized: "integrations.save")) {
@@ -1384,6 +1466,12 @@ struct SettingsView: View {
                     CryptoController.shared.settingsChanged()
                 }
                     .buttonStyle(.borderedProminent)
+                    .koncluiShown(Self.koncluiKeyServices.contains { koncluiIntegrationShown($0, signals) })
+
+                KoncluiAddMenu(
+                    items: Self.koncluiServices.filter { KoncluiFeatures.isOn($0) && !koncluiIntegrationShown($0, signals) }
+                        .compactMap { id in PillCatalog.definition(for: id).map { .init(id: id, title: $0.name) } },
+                    onPick: { koncluiAdded.add(.integrations, $0) })
             }
             .padding(6)
         }
@@ -2459,5 +2547,113 @@ extension SettingsView {
     init(embeddedSection: String) {
         self.init()
         self.embeddedSection = embeddedSection
+    }
+}
+
+// MARK: - Koncluí: recognized-only lists
+
+/// Active pills, Agents, Chat and Integrations list what this Mac has (installed, configured, signed in or turned
+/// on) and what the user added with "Add…". The rules are KoncluiRecognition.swift; this is what the screens feed them.
+extension SettingsView {
+    /// The key-based chat providers listed in "Other providers", in their order.
+    static let koncluiKeyProviders: [ChatProvider] = [.google, .openai, .deepseek, .qwen, .moonshot]
+    /// Every chat provider with a block of its own here (the subscriptions are KoncluiChatSubscriptionsSection's).
+    static let koncluiAddableChatProviders: [ChatProvider] = [.anthropic] + koncluiKeyProviders + [.ollama, .lmstudio]
+    /// The services with a block in Integrations.
+    static var koncluiServices: [String] {
+        var ids = ["integration_resend", "integration_n8n", "integration_vercel", "integration_github", "integration_stripe",
+                   "integration_calcom", "integration_notion", "integration_crypto", "integration_portfolio"]
+        #if !APPSTORE
+        ids.append("integration_whatsapp")
+        #endif
+        return ids
+    }
+    /// The ones the "Save" button of Integrations writes.
+    static let koncluiKeyServices = ["integration_resend", "integration_n8n", "integration_vercel", "integration_github",
+                                     "integration_stripe", "integration_calcom", "integration_notion"]
+
+    // MARK: Pills and integrations
+
+    private var koncluiSignals: KoncluiRecognition.Signals {
+        var tools = koncluiTools
+        for block in koncluiActiveAgents { if let tool = block.tool { tools.insert(tool) } }
+        var keys: Set<String> = []
+        for name in KoncluiRecognition.allKeys where !(KeychainStore.shared.get(name) ?? "").isEmpty { keys.insert(name) }
+        var chatReady: Set<String> = []
+        for provider in ChatProvider.allCases where koncluiChatConfigured(provider) || chatAccess.status(provider).isReady {
+            chatReady.insert(provider.rawValue)
+        }
+        var signals = KoncluiRecognition.Signals(on: state.activeIntegrations.union([state.mainPillId]),
+                                                 tools: tools, keys: keys, chatReady: chatReady)
+        #if !APPSTORE
+        signals.spotifyInstalled = SpotifyController.shared.isInstalled
+        #endif
+        return signals
+    }
+
+    private func koncluiPillShown(_ def: PillDefinition, _ signals: KoncluiRecognition.Signals) -> Bool {
+        KoncluiRecognition.pillRecognized(def.id, signals) || koncluiAdded.contains(.pills, def.id)
+    }
+
+    private func koncluiIntegrationShown(_ id: String, _ signals: KoncluiRecognition.Signals) -> Bool {
+        guard KoncluiFeatures.isOn(id) else { return false }
+        return KoncluiRecognition.pillRecognized(id, signals) || koncluiAdded.contains(.integrations, id)
+    }
+
+    // MARK: Agents
+
+    /// The agents whose hooks, plugin or switch are already on: their blocks show whatever the detection says.
+    private var koncluiActiveAgents: Set<KoncluiRecognition.AgentBlock> {
+        #if APPSTORE
+        return [.claudeCode]   // the sandbox cannot look for the CLI: the one block there is always listed
+        #else
+        var on: Set<KoncluiRecognition.AgentBlock> = []
+        if geminiHooksInstalled { on.insert(.gemini) }
+        if agyHooksInstalled { on.insert(.antigravity) }
+        if codexHooksInstalled { on.insert(.codex) }
+        if copilotHooksInstalled { on.insert(.copilot) }
+        if museHooksInstalled { on.insert(.muse) }
+        if openCodePluginInstalled { on.insert(.opencode) }
+        if ampPluginInstalled { on.insert(.amp) }
+        if hermesPluginInstalled { on.insert(.hermes) }
+        if ClaudeDesktopChatWatcher.enabled { on.insert(.claudeDesktop) }
+        if state.planRelayInstalled || state.showPlanInNotch || state.showCodexPlanInNotch { on.insert(.plan) }
+        return on
+        #endif
+    }
+
+    private var koncluiAgentBlocks: [KoncluiRecognition.AgentBlock] {
+        #if APPSTORE
+        return [.claudeCode]
+        #else
+        return KoncluiRecognition.AgentBlock.allCases
+        #endif
+    }
+
+    private func koncluiAgentShown(_ block: KoncluiRecognition.AgentBlock) -> Bool {
+        KoncluiRecognition.agentRecognized(block, tools: koncluiTools, active: koncluiActiveAgents)
+            || koncluiAdded.contains(.agents, block.rawValue)
+    }
+
+    // MARK: Chat
+
+    /// A key is saved (key-based providers) or a server is connected (local ones).
+    private func koncluiChatConfigured(_ provider: ChatProvider) -> Bool {
+        if provider == .ollama { return !state.ollamaServerURL.isEmpty }
+        if provider == .lmstudio { return !state.lmstudioServerURL.isEmpty }
+        return !provider.keychainKey.isEmpty && !(KeychainStore.shared.get(provider.keychainKey) ?? "").isEmpty
+    }
+
+    /// A provider's block shows when it is configured, when a local server answers, or when it was added.
+    private func koncluiChatShown(_ provider: ChatProvider) -> Bool {
+        koncluiChatConfigured(provider)
+            || (provider.isLocal && chatAccess.status(provider).isReady)
+            || koncluiAdded.contains(.chat, provider.rawValue)
+    }
+
+    /// Whether a key-based provider listed after `provider` shows: the divider under `provider` is only for it.
+    private func koncluiChatShownAfter(_ provider: ChatProvider) -> Bool {
+        guard let i = Self.koncluiKeyProviders.firstIndex(of: provider) else { return false }
+        return Self.koncluiKeyProviders[(i + 1)...].contains(where: koncluiChatShown)
     }
 }

@@ -9,6 +9,10 @@ extension TerminalTarget {
         let running = Set(apps.compactMap(\.bundleIdentifier))
         guard let id = pick(sessionBundleId: sessionBundleId, running: running),
               let app = apps.first(where: { $0.bundleIdentifier == id }) else { return false }
+        // Koncluí: Orca holds many terminals, so it also opens the one the Orca pill's session runs in.
+        if id == ClaudeHost.orcaBundleId {
+            ClaudeHost.switchOrcaTerminal(handle: OrcaTerminals.shared.focusTerminal?.handle)
+        }
         return app.activate(options: .activateIgnoringOtherApps)
     }
 }

@@ -145,6 +145,15 @@ final class AppState: ObservableObject {
     @Published var moonshotChatModel: String = ChatProvider.moonshot.defaultModel {
         didSet { UserDefaults.standard.set(moonshotChatModel, forKey: "moonshotChatModel") }
     }
+    @Published var claudeCodeChatModel: String = ChatProvider.claudeCode.defaultModel {
+        didSet { UserDefaults.standard.set(claudeCodeChatModel, forKey: "claudeCodeChatModel") }
+    }
+    @Published var codexChatModel: String = ChatProvider.codex.defaultModel {
+        didSet { UserDefaults.standard.set(codexChatModel, forKey: "codexChatModel") }
+    }
+    @Published var koncluiProxyChatModel: String = ChatProvider.koncluiProxy.defaultModel {
+        didSet { UserDefaults.standard.set(koncluiProxyChatModel, forKey: "koncluiProxyChatModel") }
+    }
     @Published var ollamaServerURL: String = "" {
         didSet { UserDefaults.standard.set(ollamaServerURL, forKey: "ollamaServerURL") }
     }
@@ -201,6 +210,26 @@ final class AppState: ObservableObject {
             }
             return
         }
+        // Koncluí: Claude Code, Codex and the Koncluí Proxy need no key of ours
+        if provider.isSubscription {
+            loadingProviderModels.insert(provider)
+            providerModelFetchError.removeValue(forKey: provider)
+            Task {
+                let result = await KoncluiChatModels.load(provider)
+                loadingProviderModels.remove(provider)
+                switch result {
+                case .success(let models):
+                    fetchedProviderModels[provider] = models
+                    let current = activeChatModel(for: provider)
+                    if !models.contains(where: { $0.id == current }) {
+                        setActiveChatModel(models.first(where: { $0.id == provider.defaultModel })?.id ?? models[0].id, for: provider)
+                    }
+                case .failure(.message(let message)):
+                    providerModelFetchError[provider] = message
+                }
+            }
+            return
+        }
         // Remote providers: require API key
         guard let apiKey = KeychainStore.shared.get(provider.keychainKey), !apiKey.isEmpty else {
             providerModelFetchError[provider] = "No API key — add it in Settings."
@@ -217,7 +246,7 @@ final class AppState: ObservableObject {
             case .deepseek:  models = await ClaudeService.fetchOpenAICompatibleModels(baseURL: "https://api.deepseek.com/v1", apiKey: apiKey)
             case .qwen:      models = await ClaudeService.fetchOpenAICompatibleModels(baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", apiKey: apiKey)
             case .moonshot:  models = await ClaudeService.fetchOpenAICompatibleModels(baseURL: "https://api.moonshot.cn/v1", apiKey: apiKey)
-            case .ollama, .lmstudio: models = []  // handled above
+            case .ollama, .lmstudio, .claudeCode, .codex, .koncluiProxy: models = []  // handled above
             }
             loadingProviderModels.remove(provider)
             if models.isEmpty {
@@ -249,15 +278,17 @@ final class AppState: ObservableObject {
                     if !models.contains(where: { $0.id == moonshotChatModel }) {
                         moonshotChatModel = models.first!.id
                     }
-                case .ollama, .lmstudio: break
+                case .ollama, .lmstudio, .claudeCode, .codex, .koncluiProxy: break
                 }
             }
         }
     }
 
     /// The model currently active for chat (provider-aware).
-    var activeChatModel: String {
-        switch chatProvider {
+    var activeChatModel: String { activeChatModel(for: chatProvider) }
+
+    func activeChatModel(for provider: ChatProvider) -> String {
+        switch provider {
         case .anthropic: return claudeModel
         case .google:    return googleChatModel
         case .openai:    return openAIChatModel
@@ -266,6 +297,25 @@ final class AppState: ObservableObject {
         case .deepseek:  return deepseekChatModel
         case .qwen:      return qwenChatModel
         case .moonshot:  return moonshotChatModel
+        case .claudeCode:   return claudeCodeChatModel
+        case .codex:        return codexChatModel
+        case .koncluiProxy: return koncluiProxyChatModel
+        }
+    }
+
+    func setActiveChatModel(_ id: String, for provider: ChatProvider) {
+        switch provider {
+        case .anthropic: claudeModel = id
+        case .google:    googleChatModel = id
+        case .openai:    openAIChatModel = id
+        case .ollama:    ollamaChatModel = id
+        case .lmstudio:  lmstudioChatModel = id
+        case .deepseek:  deepseekChatModel = id
+        case .qwen:      qwenChatModel = id
+        case .moonshot:  moonshotChatModel = id
+        case .claudeCode:   claudeCodeChatModel = id
+        case .codex:        codexChatModel = id
+        case .koncluiProxy: koncluiProxyChatModel = id
         }
     }
 
@@ -538,6 +588,9 @@ final class AppState: ObservableObject {
         if let v = ud.string(forKey: "deepseekChatModel"), !v.isEmpty { deepseekChatModel = v }
         if let v = ud.string(forKey: "qwenChatModel"),     !v.isEmpty { qwenChatModel     = v }
         if let v = ud.string(forKey: "moonshotChatModel"), !v.isEmpty { moonshotChatModel = v }
+        if let v = ud.string(forKey: "claudeCodeChatModel"),   !v.isEmpty { claudeCodeChatModel   = v }
+        if let v = ud.string(forKey: "codexChatModel"),        !v.isEmpty { codexChatModel        = v }
+        if let v = ud.string(forKey: "koncluiProxyChatModel"), !v.isEmpty { koncluiProxyChatModel = v }
         if let v = ud.string(forKey: "ollamaServerURL"), !v.isEmpty { ollamaServerURL = v }
         if let v = ud.string(forKey: "lmstudioServerURL"), !v.isEmpty { lmstudioServerURL = v }
         // Migrate old 60s default → 15s
