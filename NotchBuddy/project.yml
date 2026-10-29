@@ -139,9 +139,9 @@ targets:
     info:
       path: Resources/Info.plist
       properties:
-        CFBundleName: Coucou
-        CFBundleDisplayName: Coucou
-        CFBundleIdentifier: fr.louisraille.NotchBuddy
+        CFBundleName: Koncluí
+        CFBundleDisplayName: Koncluí
+        CFBundleIdentifier: com.konclui.mac
         CFBundleVersion: "20"
         CFBundleShortVersionString: "0.5.3"
         CFBundlePackageType: APPL
@@ -149,12 +149,12 @@ targets:
         NSHighResolutionCapable: YES
         NSSupportsAutomaticGraphicsSwitching: YES
         NSAppleEventsUsageDescription: "Pour sauter au terminal, envoyer des mails et piloter Musique et Spotify."
-        NSMicrophoneUsageDescription: "Coucou uses the microphone when you dictate, and to note your calls when you ask it to."
-        NSAudioCaptureUsageDescription: "Coucou records what your Mac plays only while you note a call, to write down what the other people say."
-        NSSpeechRecognitionUsageDescription: "Coucou turns your voice into the text of a chat message."
+        NSMicrophoneUsageDescription: "Koncluí uses the microphone when you dictate, and to note your calls when you ask it to."
+        NSAudioCaptureUsageDescription: "Koncluí records what your Mac plays only while you note a call, to write down what the other people say."
+        NSSpeechRecognitionUsageDescription: "Koncluí turns your voice into the text of a chat message."
         NSAccessibilityUsageDescription: "Pour lire le titre de la fenêtre active et l'attacher comme contexte."
-        NSContactsUsageDescription: "Coucou looks up an email address when you ask it, by voice, to prepare an email."
-        NSFocusStatusUsageDescription: "Coucou stays quiet about new WhatsApp messages while a Focus is on."
+        NSContactsUsageDescription: "Koncluí looks up an email address when you ask it, by voice, to prepare an email."
+        NSFocusStatusUsageDescription: "Koncluí stays quiet about new WhatsApp messages while a Focus is on."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         CFBundleLocalizations:
@@ -174,13 +174,23 @@ targets:
           - zh-Hant
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: fr.louisraille.NotchBuddy
-        PRODUCT_NAME: Coucou
+        PRODUCT_BUNDLE_IDENTIFIER: com.konclui.mac
+        PRODUCT_NAME: Konclui
         INFOPLIST_FILE: Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MACOSX_DEPLOYMENT_TARGET: "15.0"
         ENABLE_SANDBOX: NO
       configs:
+        # Koncluí: Debug signs ad hoc ("-"), without a team, so it builds and runs on any Mac.
+        Debug:
+          CODE_SIGNING_ALLOWED: YES
+          CODE_SIGNING_REQUIRED: NO
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_STYLE: Manual
+          DEVELOPMENT_TEAM: ""
+          ENABLE_HARDENED_RUNTIME: NO
+        # Koncluí: DebugCloud, Release and ReleaseCloud still use Coucou's team, profile and iCloud
+        # container (project-level settings above): they need Koncluí's own before they can sign (KONCLUI.md).
         DebugCloud:
           CODE_SIGN_ENTITLEMENTS: Resources/CoucouCloud.entitlements
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG PHONE_LINK"
@@ -227,8 +237,8 @@ targets:
     info:
       path: Resources/InfoAppStore.plist
       properties:
-        CFBundleName: Coucou
-        CFBundleDisplayName: Coucou
+        CFBundleName: Koncluí
+        CFBundleDisplayName: Koncluí
         CFBundleIdentifier: fr.louisraille.Coucou
         CFBundleVersion: "6"
         CFBundleShortVersionString: "1.1"

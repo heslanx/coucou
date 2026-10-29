@@ -6,11 +6,11 @@ import Foundation
 // `vX.Y.Z` with a `Coucou.zip`; Windows, Linux and Android have their own prefixed tags.
 
 enum MacUpdate {
-    static let owner = "Louis-CFM"
+    static let owner = "heslanx"
     static let repo = "coucou"
     static let releasesURL = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases?per_page=20")!
     /// What the downloaded app must be signed as: Coucou's bundle id, Louis's Developer ID team.
-    static let bundleId = "fr.louisraille.NotchBuddy"
+    static let bundleId = "com.konclui.mac"
     static let teamId = "256AUJ9555"
     static var codeRequirement: String {
         "anchor apple generic and identifier \"\(bundleId)\" and certificate leaf[subject.OU] = \"\(teamId)\""
@@ -33,7 +33,7 @@ enum MacUpdate {
             guard r["draft"] as? Bool != true, r["prerelease"] as? Bool != true,
                   let tag = r["tag_name"] as? String, let version = macVersion(tag),
                   let assets = r["assets"] as? [[String: Any]],
-                  let zip = assets.first(where: { $0["name"] as? String == "Coucou.zip" }),
+                  let zip = assets.first(where: { $0["name"] as? String == "Konclui.zip" }),
                   let s = zip["browser_download_url"] as? String, let url = URL(string: s),
                   let page = (r["html_url"] as? String).flatMap(URL.init(string:)) else { return nil }
             return Release(version: version, tag: tag, zipURL: url, size: (zip["size"] as? Int) ?? 0,

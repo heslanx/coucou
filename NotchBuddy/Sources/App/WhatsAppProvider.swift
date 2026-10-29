@@ -132,10 +132,10 @@ actor GOWAProvider: WhatsAppProvider {
             deviceId = found.id
             return found
         }
-        let (made, madeCode) = try await http.call("POST", "/devices", json: ["device_id": "coucou"])
+        let (made, madeCode) = try await http.call("POST", "/devices", json: ["device_id": "konclui"])
         try check(made, madeCode)
-        deviceId = "coucou"
-        return ("coucou", WAStatus(link: .needsQR, me: nil))
+        deviceId = "konclui"
+        return ("konclui", WAStatus(link: .needsQR, me: nil))
     }
 
     private func scoped(_ method: String, _ path: String, query: [URLQueryItem] = [], json: [String: any Sendable]? = nil) async throws -> Data {
@@ -249,7 +249,7 @@ actor OpenWAProvider: WhatsAppProvider {
         let all = ((try? JSONSerialization.jsonObject(with: data)) as? [Any] ?? []).compactMap(WAOpenWA.session)
         let pick = all.first { $0.status == "ready" }
             ?? all.first { ($0.id == sessionId) }
-            ?? named("coucou", in: data) ?? all.first
+            ?? named("konclui", in: data) ?? all.first
         if var s = pick {
             sessionId = s.id
             if WAOpenWA.needsStart(s.status) {
@@ -259,7 +259,7 @@ actor OpenWAProvider: WhatsAppProvider {
             }
             return s
         }
-        let (made, madeCode) = try await http.call("POST", "/api/sessions", json: ["name": "coucou"])
+        let (made, madeCode) = try await http.call("POST", "/api/sessions", json: ["name": "konclui"])
         try check(made, madeCode)
         guard let s = WAOpenWA.session(try? JSONSerialization.jsonObject(with: made)) else { throw WAError.refused("session") }
         sessionId = s.id

@@ -26,12 +26,12 @@ struct RemindersSettingsSection: View {
     private var screens: [NSScreen] { NSScreen.screens }
     private var hasSnoozeActionButton: Bool { buttons.contains { $0.action == .snooze } }
     private var mcpScriptPath: String {
-        NSHomeDirectory() + "/Library/Application Support/NotchBuddy/coucou-mcp.py"
+        NSHomeDirectory() + "/Library/Application Support/Konclui/coucou-mcp.py"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Create a reminder and choose how Coucou should interrupt you.")
+            Text("Create a reminder and choose how Koncluí should interrupt you.")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -213,7 +213,7 @@ struct RemindersSettingsSection: View {
     private var mcpInstructions: some View {
         GroupBox("Connect a local MCP client") {
             VStack(alignment: .leading, spacing: 9) {
-                Text("Coucou keeps reminders on this Mac. The MCP bridge uses a private local socket; it does not edit other apps’ settings or send calendar data.")
+                Text("Koncluí keeps reminders on this Mac. The MCP bridge uses a private local socket; it does not edit other apps’ settings or send calendar data.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -236,7 +236,7 @@ struct RemindersSettingsSection: View {
     }
 
     private var mcpConfiguration: String {
-        let config: [String: Any] = ["mcpServers": ["coucou-reminders": [
+        let config: [String: Any] = ["mcpServers": ["konclui-reminders": [
             "command": "/usr/bin/python3",
             "args": ["-I", mcpScriptPath]
         ]]]

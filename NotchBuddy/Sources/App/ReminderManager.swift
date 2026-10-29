@@ -296,7 +296,7 @@ final class ReminderManager: ObservableObject {
         if updatedSettings.authorizationStatus == .authorized || updatedSettings.authorizationStatus == .provisional {
             scheduleNotifications()
         } else {
-            statusMessage = "macOS notifications are off. Reminders will appear only while Coucou is open."
+            statusMessage = "macOS notifications are off. Reminders will appear only while Koncluí is open."
         }
     }
 

@@ -462,7 +462,7 @@ final class VoiceEngine: ObservableObject {
     private var deafWindows = 0
 
     private static func describe(_ st: WakeSpotter.WindowStats) -> String {
-        "partials=\(st.partials) words=\(st.maxWords) coucou-like=\(st.nearWake ? "yes" : "no")"
+        "partials=\(st.partials) words=\(st.maxWords) koru-like=\(st.nearWake ? "yes" : "no")"
     }
 
     private func checkDeafRecognizer(_ st: WakeSpotter.WindowStats, elapsed: TimeInterval) {
@@ -614,7 +614,7 @@ final class VoiceEngine: ObservableObject {
             // Logged once per turn (no words): helps when an answer seems unheard.
             if !loggedDropWhileSpeaking {
                 loggedDropWhileSpeaking = true
-                appendAppLog("nb.log", "[Voice] words heard while Coucou was speaking: ignored")
+                appendAppLog("nb.log", "[Voice] words heard while Koncluí was speaking: ignored")
             }
             return
         }

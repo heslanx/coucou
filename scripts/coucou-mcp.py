@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local stdio MCP server for creating and managing Coucou reminders."""
+"""Local stdio MCP server for creating and managing Koncluí reminders."""
 
 import json
 import os
@@ -7,9 +7,9 @@ import socket
 import sys
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_NAME = "coucou-reminders"
+SERVER_NAME = "konclui-reminders"
 MAX_MESSAGE_BYTES = 1_000_000
-DEFAULT_SOCKET = os.path.expanduser("~/Library/Application Support/NotchBuddy/nb.sock")
+DEFAULT_SOCKET = os.path.expanduser("~/Library/Application Support/Konclui/nb.sock")
 
 TOOLS = [
     {
@@ -44,7 +44,7 @@ TOOLS = [
             "additionalProperties": False
         }
     },
-    {"name": "list_reminders", "description": "List reminders stored locally by Coucou on this Mac.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "list_reminders", "description": "List reminders stored locally by Koncluí on this Mac.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "dismiss_reminder", "description": "Dismiss this reminder occurrence. Repeating reminders continue at their next scheduled time.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string", "format": "uuid"}}, "required": ["id"], "additionalProperties": False}},
     {"name": "complete_reminder", "description": "Mark this reminder occurrence complete. Repeating reminders continue at their next scheduled time.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string", "format": "uuid"}}, "required": ["id"], "additionalProperties": False}},
     {"name": "snooze_reminder", "description": "Snooze a reminder for a chosen duration (1 to 1,440 minutes), when snooze is enabled for that reminder.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string", "format": "uuid"}, "minutes": {"type": "integer", "minimum": 1, "maximum": 1440}}, "required": ["id", "minutes"], "additionalProperties": False}},
@@ -80,7 +80,7 @@ def call_coucou(arguments):
                 break
             response.extend(chunk)
     if not response:
-        raise RuntimeError("Coucou returned no response.")
+        raise RuntimeError("Koncluí returned no response.")
     return json.loads(response)
 
 
@@ -112,7 +112,7 @@ def handle(message):
     if method == "tools/call":
         name = params.get("name")
         if name not in TOOL_ACTIONS:
-            return error(identifier, -32602, "Unknown Coucou reminder tool.")
+            return error(identifier, -32602, "Unknown Koncluí reminder tool.")
         arguments = params.get("arguments") or {}
         if not isinstance(arguments, dict):
             return error(identifier, -32602, "Tool arguments must be an object.")

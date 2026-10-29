@@ -4,7 +4,7 @@ import Security
 // MARK: - Keychain helpers
 
 enum Keychain {
-    static let service = "fr.louisraille.NotchBuddy"
+    static let service = "com.konclui.mac"
 
     static func save(key: String, value: String) {
         guard let data = value.data(using: .utf8) else { return }
@@ -225,9 +225,9 @@ final class ClaudeService {
     /// neutral otherwise — same wording as the Windows build.
     private nonisolated static func makeSystemPrompt() -> String {
         let opening = if let firstName = resolveUserFirstName() {
-            "You are Mochi, \(firstName)'s personal AI assistant embedded in the notch of their Mac."
+            "You are Koru, \(firstName)'s personal AI assistant embedded in the notch of their Mac."
         } else {
-            "You are Mochi, a personal AI assistant embedded in the notch of the user's Mac."
+            "You are Koru, a personal AI assistant embedded in the notch of the user's Mac."
         }
         return """
         \(opening) \
@@ -578,14 +578,14 @@ final class ClaudeService {
             .locale(Locale(identifier: french ? "fr_FR" : "en_US")))
         let system = french
             ? """
-              Tu es Coucou, un assistant vocal dans le notch du Mac. Nous sommes le \(today). \
+              Tu es Koncluí, un assistant vocal dans le notch du Mac. Nous sommes le \(today). \
               Ta réponse est lue à voix haute : 2 à 4 phrases courtes, en français, sans markdown, sans liste, \
               sans lien, sans citer tes sources. Cherche sur le web dès que la réponse peut avoir changé \
               (actualité, résultats, prix, horaires, météo, personnes). Donne directement les faits utiles. \
               S'il y a clairement plus à raconter, termine par une seule courte question pour proposer la suite.
               """
             : """
-              You are Coucou, a voice assistant in the Mac's notch. Today is \(today). \
+              You are Koncluí, a voice assistant in the Mac's notch. Today is \(today). \
               Your answer is read aloud: 2 to 4 short sentences in English, no markdown, no lists, no links, \
               never cite sources. Search the web whenever the answer may have changed (news, scores, prices, \
               opening hours, weather, people). Give the useful facts straight away. \

@@ -436,7 +436,7 @@ enum VoiceQuery {
             ["est", "ce", "que", "tu", "pourrais"], ["est", "ce", "que", "tu", "peux"], ["je", "veux", "que", "tu"],
             ["i", "want", "you", "to"], ["tu", "pourrais"], ["pourrais", "tu"], ["tu", "peux"], ["peux", "tu"],
             ["can", "you"], ["could", "you"], ["would", "you"],
-            ["ok"], ["okay"], ["coucou"], ["hey"], ["dis"], ["alors"], ["bon"], ["euh"], ["please"], ["stp"],
+            ["ok"], ["okay"], ["coucou"], ["koru"], ["hey"], ["dis"], ["alors"], ["bon"], ["euh"], ["please"], ["stp"],
             ["fais", "moi", "une", "recherche"], ["fais", "une", "recherche"], ["faire", "une", "recherche"],
             ["fais", "des", "recherches"], ["do", "a", "web", "search"], ["do", "a", "search"],
             ["recherche", "internet"], ["recherche"], ["recherches"], ["rechercher"],
@@ -478,7 +478,7 @@ enum VoiceQuery {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         var n = IntentParser.normalise(trimmed).split(separator: " ").map(String.init)
         while let f = n.first, n.count > 1,
-              ["ok", "okay", "coucou", "hey", "alors", "bon", "euh", "et", "and", "so", "mais", "but"].contains(f) {
+              ["ok", "okay", "coucou", "koru", "hey", "alors", "bon", "euh", "et", "and", "so", "mais", "but"].contains(f) {
             n.removeFirst()
         }
         guard let first = n.first else { return false }
@@ -612,8 +612,8 @@ enum VoiceAnswer {
     static func text(_ topic: VoiceTopic, _ s: VoiceSnapshot, french fr: Bool) -> String {
         func t(_ f: String, _ e: String) -> String { fr ? f : e }
         if !s.configured {
-            return t("\(serviceName(topic)) n'est pas connecté dans les réglages de Coucou.",
-                     "\(serviceName(topic)) isn't connected in Coucou's settings.")
+            return t("\(serviceName(topic)) n'est pas connecté dans les réglages de Koncluí.",
+                     "\(serviceName(topic)) isn't connected in Koncluí's settings.")
         }
         switch topic {
         case .stripe:
@@ -722,8 +722,8 @@ enum VoiceAnswer {
             return (main + others).trimmingCharacters(in: .whitespaces)
 
         case .weatherToday, .weatherTomorrow:
-            if s.weatherOff { return t("Active la météo dans les réglages de Coucou, section Voix.", "Turn on weather in Coucou's settings, Voice section.") }
-            if s.weatherNoCity { return t("Indique ta ville dans les réglages de Coucou, section Voix.", "Set your city in Coucou's settings, Voice section.") }
+            if s.weatherOff { return t("Active la météo dans les réglages de Koncluí, section Voix.", "Turn on weather in Koncluí's settings, Voice section.") }
+            if s.weatherNoCity { return t("Indique ta ville dans les réglages de Koncluí, section Voix.", "Set your city in Koncluí's settings, Voice section.") }
             guard let w = s.weather else { return t("Je n'arrive pas à avoir la météo pour l'instant.", "I can't get the weather right now.") }
             let sky = weatherText(w.code, fr: fr)
             var out: String
@@ -753,7 +753,7 @@ enum VoiceAnswer {
         case .codexPlan:  return "Codex"
         case .agents:     return "Claude Code"
         case .music:      return "Music"
-        case .pills:      return "Coucou"
+        case .pills:      return "Koncluí"
         case .weatherToday, .weatherTomorrow: return "Météo"
         }
     }
