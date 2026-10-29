@@ -1456,9 +1456,10 @@ struct SettingsView: View {
 
                 #if !APPSTORE
                 // WhatsApp through a local gateway: its own fields, saved by its own button.
-                WhatsAppSettingsSection()
+                // Koncluí: one line with an options popover and a live notch preview (KoncluiWhatsAppSection.swift).
+                KoncluiWhatsAppSection()
                     .padding(.top, 4)
-                    .koncluiShown(koncluiIntegrationShown("integration_whatsapp", signals))
+                    .koncluiShown(koncluiIntegrationShown("integration_whatsapp", signals) || KoncluiWhatsAppDebug.forcesBlock)
                 #endif
 
                 Button(String(localized: "integrations.save")) {

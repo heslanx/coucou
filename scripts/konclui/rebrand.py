@@ -108,6 +108,12 @@ GRAMMAR: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
+# Koncluí's glossary (docs/konclui/UX.md, section 5): one name per concept. In pt-BR a notch pill is an "aba",
+# as the Settings sidebar says ("Abas ativas"); both words are feminine, so the articles stay.
+TERMS: dict[str, list[tuple[str, str]]] = {
+    "pt-BR": [(r"\bPílulas\b", "Abas"), (r"\bpílulas\b", "abas"), (r"\bPílula\b", "Aba"), (r"\bpílula\b", "aba")],
+}
+
 # Mochi in the scripts that transliterate it, Coucou in Arabic.
 NAMES_LOCAL = {
     "ar": [("موتشي", "كورو"), ("كوكو", APP)],
@@ -154,6 +160,8 @@ def brand(text: str, lang: str = "en") -> str:
             for old, new in NAMES_LOCAL.get(lang, []):
                 chunk = chunk.replace(old, new)
             for pat, rep in AGREEMENT.get(lang, []):
+                chunk = re.sub(pat, rep, chunk)
+            for pat, rep in TERMS.get(lang, []):
                 chunk = re.sub(pat, rep, chunk)
         out.append(chunk)
     return "".join(out)

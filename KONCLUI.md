@@ -36,6 +36,18 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   Orca pill (`agent_orca`), and a click on it brings that session's own terminal forward. klaude, which
   runs Claude Code with its own config folder (`~/.klaude`), gets Koncluí's hooks too: Settings → Agents
   has a klaude block (shown only when `~/.local/bin/klaude` or `~/.klaude` exists).
+- Settings → Integrations → WhatsApp is one calm line when connected (status, the number written as "+55 11 91234-5678",
+  the gateway version) with an "Options" popover for the daily options, ignored chats, the update, privacy and the
+  advanced gateway; setting up (install, QR, a failed install) expands in place as a card and a stopped gateway adds its
+  panel. A live preview of the notch sits on top and follows the options (sample conversations through the real inbox
+  rules, nothing real, nothing clickable). "Install WhatsApp" also turns the integration on. The number and the ignored
+  chats are doors (a popover to open the chat or copy the number or the id), the line and the tags show the pointing hand,
+  and what changes data offers Undo for ten seconds (ignore, stop ignoring, saving the gateway, switching WhatsApp off).
+  Files: `App/KoncluiWhatsAppModel.swift` (pure rules, `scripts/konclui/test-whatsapp-preview.sh`),
+  `KoncluiWhatsAppSection.swift`, `KoncluiWhatsAppPreview.swift`; design: `design/konclui/whatsapp/whatsapp-settings-10.html`
+  (versions 8 and 7); rules: `docs/konclui/UX.md`. There is no "update available" notice: nothing in the app knows a newer
+  gateway exists without a network call the user did not configure, so "Update gateway" stays inside the popover (it
+  downloads the latest, as before).
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -210,10 +222,12 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `HubRouter.page` falls back, `HubRouter.showFeatures` | a page that is off is replaced by the first one that is on; the Features screen |
 | | `FlowHubView`: observes flags, shows `KoncluiFeaturesPage`, `hubPage` | the hidden screen takes the page's place once unlocked |
 | | `HubSidebar`: ⌥-click on the wordmark, the Features item, `selected` | the unlock gesture and the item |
+| | `HubRouter.init()` (`#if DEBUG` only) | `-konclui.debug.page <HubPage rawValue>` opens the window on that page, for screenshots |
 | `App/SettingsView.swift` | `.koncluiShown(...)` after a block or row (General: Koru and your Mac, Weekly recap, iPhone; the standalone sidebar's rows; Agents' blocks; Chat's; Integrations') | a block shows only while its flag is on and it was recognized or added |
 | | `activePillsSection`, `agentsSection`, `chatSection`, `integrationsSection` | recognized-only lists and the "Add…" menu; `KlaudeHooksSection()` and `KoncluiChatSubscriptionsSection()` at the top of Agents and Chat |
 | | `extension SettingsView` at the end | the signals the screens feed `KoncluiRecognition` |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages | the Features screen and "Add…" |
+| | `KoncluiWhatsAppSection()` in place of `WhatsAppSettingsSection()` in `integrationsSection`, shown also when `KoncluiWhatsAppDebug.forcesBlock` | the new WhatsApp block (one line, popover, notch preview). `WhatsAppViews.swift` is untouched and still holds the old block, the notch card and the rows the preview reuses (`WhatsAppRow`, `WhatsAppStatus`); the new block repeats the old one's Advanced fields and save logic, and the preview repeats `WhatsAppCardView`'s header and status layout: after an upstream merge, mirror changes to those two places. DEBUG only, for screenshots: `-konclui.debug.whatsappState` with `fresh`, `installing`, `qr`, `connected`, `stopped`, `unauthorized`, `failed`, `connecting`, `off` or `noroom` draws that state (no setting, Keychain item or gateway is read or written), and `-konclui.debug.whatsappPopover` with `options`, `ignored` or `advanced` opens the popover |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages | the Features screen and "Add…"; the WhatsApp block and its notch preview |
 
 ## Open items
 

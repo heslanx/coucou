@@ -140,6 +140,15 @@ final class HubRouter: ObservableObject {
     }
     /// Koncluí: the hidden Features screen (KoncluiFeaturesPage) is shown instead of `page`.
     @Published var showFeatures = false
+
+    init() {
+        #if DEBUG
+        // Koncluí: `-konclui.debug.page <HubPage rawValue>` opens the window on that page, for screenshots.
+        if let raw = UserDefaults.standard.string(forKey: "konclui.debug.page"), let debugPage = HubPage(rawValue: raw) {
+            page = HubPage.resolved(debugPage)
+        }
+        #endif
+    }
 }
 
 /// Opens the Coucou Flow window: the history of the dictations, the Notetaker, the numbers, the

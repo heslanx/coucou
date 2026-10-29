@@ -171,7 +171,7 @@ Interface text is part of the product's function. Koncluí ships in 14 languages
 | Errors | What happened + impact + next step. Never blame the person, never a technical code. | "Não foi possível salvar. Suas alterações continuam na tela. Tente de novo em instantes." |
 | Empty states | Why there is nothing, and the button for the next action. | "Nenhum ditado ainda. Segure ⌥ da direita em qualquer app e fale." |
 | Blocked controls | One line: the reason and how to unlock it. | "Salve uma chave de API para usar este provedor." |
-| Vocabulary | One name per concept across the app (glossary below). | If the app says "pílula", no screen says "aba". |
+| Vocabulary | One name per concept across the app (glossary below). | The app says "aba"; no screen says "pílula". |
 
 Existing strings that break a rule (many use "—") are rewritten when their screen is touched; do not leave a touched screen
 half-converted.
@@ -182,7 +182,7 @@ half-converted.
 |---|---|---|---|
 | The app | Koncluí | Koncluí | never "Coucou" or "NotchBuddy" in the UI |
 | The character | a Koru | Koru | feminine in pt-BR, es, fr, de, ru |
-| A tab in the notch for a tool, agent or service | **to decide** | pill | the sidebar says "Abas ativas" while texts say "pílula"/"Pílulas ativas": pick one and rename everywhere |
+| A tab in the notch for a tool, agent or service | aba | pill | owner's choice; `scripts/konclui/rebrand.py` (TERMS) turns every pt-BR "pílula" into "aba" |
 | Claude Code hook integration | hooks | hooks | |
 | The WhatsApp gateway | gateway | gateway | "GOWA" only under Details |
 
