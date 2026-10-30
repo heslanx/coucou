@@ -160,18 +160,17 @@ lists the checks that ran locally, and protecting `main` cannot require status c
 
 ## Where things stand (2026-10-30)
 
-| Branch | Where | State |
-|---|---|---|
-| `heslanx/konclui` | Orca worktree `~/orca/workspaces/coucou/konclui`, pushed | the app as of today; `konclui/main` is behind it (a fast-forward) |
-| `feat/koru-canvas-prototype` | `~/Developments/study/coucou`, pushed | the Koru prototype, its sounds, the Alexa skill, the owner's reminders page; 9 commits the app branch lacks |
-| `main` (local) | not checked out | tracks the public `origin`, one commit ahead (`f32fb85`, already in `konclui/main`) |
-| `konclui/main` | GitHub's default branch | unprotected, behind `heslanx/konclui` |
+`main` of `konclui/konclui-notch` has everything: the app, the Koru prototype, the Alexa skill and the owner's reminders work
+(pull request #1, `858ee90`). The local `main` tracks `konclui/main`, and Orca starts new worktrees of this repository from
+it.
 
-Getting to the model, in order:
+| Branch | State |
+|---|---|
+| `main` | the primary branch; not protected yet |
+| `heslanx/konclui`, `feat/koru-canvas-prototype` | merged into `main`; to delete once their two checkouts (the Orca worktree, `~/Developments/study/coucou`) move to `main` or to a task branch |
+
+Next, in order:
 
 1. The owner protects `main` on GitHub (Settings, Branches: require a pull request, block force pushes and deletion).
-2. A pull request `heslanx/konclui` → `main` (a fast-forward, no conflict).
-3. A pull request `feat/koru-canvas-prototype` → `main`. Its conflicts are where the owner's reminders lines meet the app's copy
-   of them (`FlowHub.swift`, `FlowHubMochis.swift`, `Localizable.xcstrings`): the app's side wins (KONCLUI.md).
-4. The local `main` tracks `konclui/main` ("Remotes"), Orca's base is `konclui/main`, and the two old branches are deleted.
-5. `sync/upstream-<date>` with Coucou's 97 new commits.
+2. The two merged branches are deleted, locally and on `konclui`.
+3. `sync/upstream-<date>` with Coucou's 97 new commits.
