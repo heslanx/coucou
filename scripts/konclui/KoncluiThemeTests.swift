@@ -55,12 +55,10 @@ struct KoncluiThemeTests {
         check(KoncluiMotion.rate(visible: false, key: true, reduceMotion: false) == .still, "hidden: still")
         check(KoncluiMotionRate.live.minimumInterval == nil && KoncluiMotionRate.eco.minimumInterval == 1.0 / 30, "intervals")
         check(KoncluiMotionRate.still.paused && !KoncluiMotionRate.live.paused && !KoncluiMotionRate.eco.paused, "only still pauses")
-        // Only the Ditado band has particles, and never under Reduce Motion.
-        check(KoncluiMotion.bandIsLive(page: "dictation", rate: .live), "the Ditado band is live")
-        check(!KoncluiMotion.bandIsLive(page: "dictation", rate: .still), "Reduce Motion stills even the Ditado band")
-        for page in ["notes", "insights", "dictionary", "snippets", "styles", "settings", "general", "pills", "agents", "chat", "integrations", "voice", "shortcuts"] {
-            check(!KoncluiMotion.bandIsLive(page: page, rate: .live), "\(page) band is a still wash")
-        }
+        // Every band drifts while the window shows it, at 30 Hz behind; Reduce Motion or a hidden window stills it.
+        check(KoncluiMotion.bandIsLive(rate: .live), "a band in the front window is live")
+        check(KoncluiMotion.bandIsLive(rate: .eco), "a band in a window behind still drifts, at 30 Hz")
+        check(!KoncluiMotion.bandIsLive(rate: .still), "Reduce Motion or a hidden window stills every band")
 
         if failures == 0 { print("KoncluiThemeTests: all passed") }
         exit(failures == 0 ? 0 : 1)

@@ -294,8 +294,8 @@ struct HubHero<Trailing: View>: View {
     var body: some View {
         let theme = HubHeroTheme.of(page)
         ZStack(alignment: .bottomTrailing) {
-            // Koncluí: only the Ditado band has particles (KoncluiMotion.liveBandPages); the others are a still colour wash.
-            HubHeroBackdrop(color: theme.color, light: light, live: KoncluiMotion.liveBandPages.contains(page.rawValue))
+            // Koncluí: every band drifts, still where the rate is (KoncluiMotion.bandIsLive)
+            HubHeroBackdrop(color: theme.color, light: light, live: true)
                 .overlay { KoncluiGrain() }   // Koncluí: the brand's grain, as on the website's dark boxes
                 .allowsHitTesting(false)
             HubMochiScene(cast: theme.cast, range: 0...1)
@@ -434,8 +434,8 @@ final class HubHeroLight: ObservableObject {
 
 /// A band's background: an ultra deep black, the page's colour as a glow that breathes in a
 /// corner, and particles drifting up all the time, pushed away by the pointer and brighter near it.
-/// Koncluí: the drifting is only where `live` is set (the Ditado band) and never under Reduce Motion; otherwise it is the
-/// colour wash drawn once, which costs no frames. Over scrolling content (`koncluiGlassHeader`) the black is translucent.
+/// Koncluí: the drifting is where `live` is set (every page's band, not the glow cards) and never under Reduce Motion or in a
+/// hidden window; otherwise it is the colour wash drawn once, which costs no frames. Over scrolling content (`koncluiGlassHeader`) the black is translucent.
 struct HubHeroBackdrop: View {
     let color: Color
     let light: HubHeroLight

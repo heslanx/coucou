@@ -408,7 +408,12 @@ private func drawMochi(_ ctx: CGContext, p: GreetPose) {
     let hh = CGFloat(p.hb/2), hw = hh*GASP; guard hh > 0.4 else { return }
 
     // Halo (golden → blue)
-    if p.halo > 0 {
+    #if APPSTORE
+    let halo = p.halo
+    #else
+    let halo = 0.0   // Koncluí: the card's own light (KoncluiGreetingAmbient) replaces the golden haze laid over it
+    #endif
+    if halo > 0 {
         let bl = CGFloat(p.haloBlue)
         let cr = gLerpF(232/255, 59/255, bl)
         let cg = gLerpF(195/255, 158/255, bl)
@@ -615,6 +620,10 @@ private func drawGreeting(_ ctx: CGContext, size: CGSize, t: Double,
         gRR(ctx, GCARD.minX, GCARD.minY, GCARD.width, GCARD.height, GCARD_R)
         ctx.setFillColor(gHex("#141518")); ctx.fillPath()
         ctx.restoreGState()
+        #if !APPSTORE
+        // Koncluí: the bands' life behind the Koru once she lands (KoncluiGreetingAmbient.swift)
+        KoncluiGreetingAmbient.draw(ctx, card: GCARD, radius: GCARD_R, t: t, alpha: p.card)
+        #endif
 
         ctx.saveGState()
         gRR(ctx, GCARD.minX, GCARD.minY, GCARD.width, GCARD.height, GCARD_R)

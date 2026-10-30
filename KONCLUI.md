@@ -87,8 +87,8 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   every page lines up with its header card (the Notetaker's "Gravar uma chamada" included), text that passes 4.5:1, one primary look
   (ink on mint, 15:1), a disabled button that never looks enabled, switches in one column, a status drawn one way, Reduce
   Motion, Increase Contrast and Reduce Transparency honoured. The notch pages' header is the compact band pinned over the scroll
-  view with macOS 26's soft scroll edge (the window's only glass; macOS 15 to 25 get a fade). Only the Ditado band has particles;
-  the others are a still colour wash. The rules are in UX.md section 11.
+  view with macOS 26's soft scroll edge (the window's only glass; macOS 15 to 25 get a fade). Every page's band is alive
+  (particles, a breathing glow, the light under the pointer); the glow cards inside pages stay still. The rules are in UX.md section 11.
 - **The design system's colours.** The window wears konclui-platform's dark navy family with mint as the one accent, and its
   background is the Painel Gestor's sidebar (navy, ink, deep teal at -160° with the mint glow, `KoncluiBrandBackdrop`) under
   the website's grain (`KoncluiGrain`, also on the pages' bands and the reminder's card). The notch keeps its black: it has to
@@ -413,6 +413,7 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/FlowHubHome.swift` | Home's "Record a call": `KoncluiNoteSpeech.engine != .needsDownload` instead of `Parakeet.shared.isReady` | same gate |
 | `App/FlowHub.swift` | `HubTheme.muted` is `KoncluiTheme.textTertiary` | the muted grey passes 4.5:1 (was 3.5:1 on a card) |
 | | every `HubTheme` colour is its `KoncluiTheme` token (`sidebar` is clear); `FlowHubView`'s background is `KoncluiBrandBackdrop()`; `HubSidebarItem`: the selected item's icon is the accent on a 12 % accent wash | the design system's colours (UX.md 11.1): navy surfaces, mint, the Painel Gestor's sidebar gradient with the website's grain |
+| `App/GreetingCanvasView.swift` | `drawGreeting`: `KoncluiGreetingAmbient.draw(…)` after the card's fill (`#if !APPSTORE`) | the greeting's card has the bands' life behind the Koru once she lands: the mint glow breathing, particles rising, the website's grain (`App/KoncluiGreetingAmbient.swift`) |
 | `App/FlowHubMochis.swift` | `HubHeroTheme.of(.dictation)`: the accent and a mint Koru where Coucou's orange was; `HubHeroBackdrop`: the band's base is `KoncluiTheme.sunken`, with `KoncluiGrain` over it | the home band wears the brand; every band sits in the navy family with the site's texture |
 | | `FlowHubView.body`: `.koncluiTheme()` and `.environment(\.koncluiMotion, …)`, `@Environment(\.accessibilityReduceMotion)` | the hub's GroupBox, Toggle and button styles at the root; the canvases' rate (window front, behind, hidden, Reduce Motion) |
 | | `hubPage`: the notch pages are `KoncluiSettingsPage(page:section:)` | the compact header pinned over `SettingsView`'s scroll (`App/KoncluiSettingsPage.swift`); `SettingsView` is untouched |
@@ -420,7 +421,7 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `HubSidebarHeader`, `HubSidebarItem`, `HubPageScaffold`, `HubCard`, `HubLabel`, `HubRow`, `HubDivider`, `HubIconButton` | tokens (gutter, label role, hairline with Increase Contrast), the pointing hand |
 | | `HubButtonStyle.makeBody` is `KoncluiButtonLook`; `HubField` is `KoncluiField` (+ `label`, `hint`) | one button look with a disabled state; a field with an edge, a focus ring, a label and a hint |
 | `App/FlowHubMochis.swift` | `HubWindowState`: `key` and the two key notifications | the window being the front one |
-| | `HubMochiScene` and `HubHeroBackdrop` read `koncluiMotion`; `HubHeroBackdrop(live:)` | still under Reduce Motion or when hidden, 30 Hz behind; particles only where `KoncluiMotion.liveBandPages` says |
+| | `HubMochiScene` and `HubHeroBackdrop` read `koncluiMotion`; `HubHeroBackdrop(live:)` | still under Reduce Motion or when hidden, 30 Hz behind; every band drifts (`HubHero` passes `live: true`; `KoncluiMotion.bandIsLive`), the glow cards do not |
 | | `HubHero`: title 30 pt and inset 18 on every page, `minHeight` instead of a fixed height, a material behind the pinned band | the title no longer jumps between pages; a long subtitle grows the band |
 | `App/FlowHubNotes.swift` | list column `.padding(.leading, KoncluiSpace.gutter)`, detail panes `KoncluiSpace.gutter`, `startError` is `KoncluiStatus` | the list column and the detail pane line up with the header card |
 | `App/FlowHubHome.swift` | `needsSetup`, `bandSubtitle`, the band's trailing button; `HubSetupCard` no longer drawn (kept in the file) | while dictation is off or cannot paste, the band's one primary is the setup; recording a call is the primary only when dictation works |

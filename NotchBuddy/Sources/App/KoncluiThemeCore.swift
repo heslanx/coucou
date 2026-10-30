@@ -115,13 +115,10 @@ enum KoncluiMotion {
         return key ? .live : .eco
     }
 
-    /// The pages whose band has drifting particles and a breathing glow. Elsewhere the band is a still colour wash with the
-    /// Koru on it (the identity, quieter, and 2 to 6 canvases fewer drawing every frame). Raw values of `HubPage`.
-    static let liveBandPages: Set<String> = ["dictation"]
-
-    static func bandIsLive(page: String, rate: KoncluiMotionRate) -> Bool {
-        liveBandPages.contains(page) && rate != .still
-    }
+    /// Every page's band drifts: particles in the page's colour rising, a glow breathing in its corner, the light under the
+    /// pointer. One band is on screen at a time, so it is one canvas; it stands still where the rate does (Reduce Motion, a
+    /// hidden window) and draws at 30 Hz while the window is not the front one. The glow cards inside pages stay still.
+    static func bandIsLive(rate: KoncluiMotionRate) -> Bool { rate != .still }
 }
 
 /// What Increase Contrast changes: the hairlines, the second text role and the strokes of cards.

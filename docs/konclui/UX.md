@@ -434,8 +434,14 @@ displacement.
 - Every canvas reads one environment value, `koncluiMotion` (`KoncluiMotion.rate`): the display's own rate while the window is the
   front one, 30 frames a second while it is visible but not the front one, and once (still) when the window is hidden,
   minimised or covered, or when **Reduce Motion** is on. Reduce Motion draws the colour wash still, with the Koru standing.
-- A band has drifting particles and a breathing glow only where `KoncluiMotion.liveBandPages` says (the Ditado page). Every other
-  band, and the glow cards, are a colour wash drawn once, with the Koru on it.
+- Every page's band is alive (`KoncluiMotion.bandIsLive`): particles in the page's colour rising with depth (far ones small, slow
+  and dim; one in nine white), its colour breathing in the top corner (about 7 s a breath), and the light under the pointer that
+  brightens the particles near it and pushes them away. It is the page's identity and answers the hand without asking for the
+  eye; only one band is on screen at a time, so it is one canvas. The glow cards inside pages stay a still wash: they are
+  content, not a page's header.
+- The notch's greeting card has the same life behind the Koru (`KoncluiGreetingAmbient`): it arrives eased out once she lands,
+  after the warp and the ring that are her entrance (one focal point at a time), and leaves with the card. Reduce Motion keeps
+  its glow and grain, without particles.
 - A new animation reads `koncluiMotion` (or Reduce Motion) before it asks for the display's rate; the 0 % CPU rule for a hidden
   island is unchanged.
 - Increase Contrast: hairlines 7 % become 20 %, supporting text becomes `textBody`, control edges 16 % become 40 %. Components read

@@ -185,7 +185,7 @@ struct KoncluiGrain: View {
         }
     }
 
-    private static let tile: CGImage? = {
+    static let tile: CGImage? = {
         let side = 128, alpha = 31   // 0x1F, the site's tile
         let tones = [70, 110, 150, 190]
         var seed: UInt64 = 0x4B6F6E636C7569   // fixed: the same grain on every launch
