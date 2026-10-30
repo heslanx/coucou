@@ -9,7 +9,8 @@ fork changes and why is in [KONCLUI.md](../../KONCLUI.md).
 and no fabricated urgency.
 
 Where a rule from the web version of the guide has no meaning in a Mac app, section 9 says so and gives the native
-equivalent, so nobody has to re-decide it.
+equivalent, so nobody has to re-decide it. Section 11 says how the hub window's visual system (tokens, components, glass,
+motion) meets the contrast, motion and polish rules of sections 6 and 8.
 
 ---
 
@@ -40,6 +41,13 @@ equivalent, so nobody has to re-decide it.
   version 8 of `design/konclui/whatsapp/whatsapp-settings-10.html`): one calm line with the status; clicking it, or its
   "Options" button, opens a subtle popover built from the existing component (the same hooks block, the same toggles).
   Setup expands in place and collapses back to the line when it is done.
+- The popover of an agent follows the state: the **primary is the one thing that state needs** (Install when nothing is
+  installed, Update when outdated, no primary when it is fine); the **quiet** button (Uninstall) exists only once there is
+  something to take back; before anything is written the popover shows **only the lines Koncluí adds or removes**, with the
+  whole file behind "Ver o arquivo inteiro". A path is a detail, never a status line: it lives under "Detalhes" with the two
+  actions a path is for (Show in Finder, Copy path).
+- A switch the product blocks (the 4-tab limit) keeps its reason beside it as a door that offers the way out (a list of the
+  tabs that can be turned off, one click each); it is never a bare grey control.
 
 ### 1.3 Habits: the ten habits of the product
 1. **Measure friction**: notice where people get stuck or repeat clicks.
@@ -169,7 +177,8 @@ Interface text is part of the product's function. Koncluí ships in 14 languages
 
 | Context | Rule | Example (pt-BR) |
 |---|---|---|
-| Sentences | Short and direct, with full stops, commas or parentheses only. **No dashes** (no "—" or "–" used as punctuation). | "O arquivo passa de 10 MB. Escolha uma imagem menor." |
+| Sentences | Short and direct, with full stops, commas or parentheses only. **No dashes** (no "—" or "–" used as punctuation) in any of the 14 languages. Russian too: use a colon, a comma or a full stop. | "O arquivo passa de 10 MB. Escolha uma imagem menor." |
+| Paths and ranges | A path to a menu item is written with Apple's chevron "›" and the page's own name, never "Settings → Chat" when Chat is a page of the window. A range is "a" or "…", never a dash. | "Ative em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade." / "Adicione a chave em Chat." / "⌘1 … ⌘9" |
 | Buttons | Active voice + a specific verb saying what happens. Never "OK", "Yes" or "Confirm" alone. | "Instalar hooks", "Salvar contato" instead of "Confirmar" |
 | Errors | What happened + impact + next step. Never blame the person, never a technical code. | "Não foi possível salvar. Suas alterações continuam na tela. Tente de novo em instantes." |
 | Empty states | Why there is nothing, and the button for the next action. | "Nenhum ditado ainda. Segure ⌥ da direita em qualquer app e fale." |
@@ -185,10 +194,20 @@ half-converted.
 | Concept | pt-BR | en | Notes |
 |---|---|---|---|
 | The app | Koncluí | Koncluí | never "Coucou" or "NotchBuddy" in the UI |
+| The window of the app | Koncluí | Koncluí | never "Koncluí Flow", "Flow" or "Ditado Flow". The sidebar's first group is "Ditado e notas" (`konclui.hub.section.flow`); the second is "Notch". |
 | The character | a Koru | Koru | feminine in pt-BR, es, fr, de, ru |
-| A tab in the notch for a tool, agent or service | aba | pill | owner's choice; `scripts/konclui/rebrand.py` (TERMS) turns every pt-BR "pílula" into "aba" |
+| The expanded and the closed bar at the top of the screen | notch | notch | never "ilha", "island" or "o island". "Dynamic Island" stays only where it is the iPhone's feature (`iphone.live-activity.toggle`). |
+| A tab in the notch for a tool, agent or service | aba | pill | owner's choice; `scripts/konclui/rebrand.py` (TERMS) turns every pt-BR "pílula" into "aba". Counted as "N de 4 abas ligadas", never "slots". |
+| The small floating indicator while you dictate (Settings, "Posição do indicador de ditado") | indicador de ditado | dictation pill | not an "aba": it is not a tab of the notch |
+| Dictation, the Flow pages of the window | ditado | dictation | the page that holds its options is "Ajustes do ditado" (en "Dictation settings"); a button that opens it says "Abrir os ajustes do ditado" |
+| Koncluí's settings as a whole (menu bar, window of the standalone Settings) | Ajustes | Settings | menu "Ajustes…", window "Ajustes do Koncluí". Never for one page. |
+| macOS System Settings | Ajustes do Sistema | System Settings | paths inside it use "›" |
+| A page of the window's Notch group | its own name: Geral, Abas ativas, Agentes, Chat, Integrações, Voz, Atalhos | General, Active pills, Agents, Chat, Integrations, Voice, Shortcuts | a sentence says "em Chat", "em Integrações", not "Ajustes → Chat" |
+| The call-notes feature | Notetaker | Notetaker | owner decision (A1-52): stays the feature's name in pt-BR, es, fr, ru, id, ar, bn, hi, tr; de, th, zh keep their upstream words. No "Notas de chamada". |
 | Claude Code hook integration | hooks | hooks | |
-| The WhatsApp gateway | gateway | gateway | "GOWA" only under Details |
+| The WhatsApp gateway | gateway | gateway | "GOWA" only under Details (Advanced fields, the install progress); never in the sentences of a failed install |
+| Where a Koncluí subscription is meant | assinatura | subscription | "Conectado pela sua assinatura Koncluí"; "Koncluí Proxy" only as a product name in Chat's list |
+| Quotes around a name or phrase | “…” | “…” | per language: es, ru, ar «…»; fr « … »; de „…“; zh-Hant 「…」. Never French guillemets in pt-BR or en. |
 
 Add a row whenever a new concept reaches the interface.
 
@@ -207,8 +226,8 @@ Add a row whenever a new concept reaches the interface.
   - **No hover dependency**: no action or essential information appears only on hover.
   - **VoiceOver**: every control has an accessible name; status changes that matter are announced.
   - **Contrast and colour**: at least **4.5:1** for text (3:1 for large text), checked against the real background
-    including transparency; no information by colour alone (an error has colour + icon + text). Known issue: the orange
-    primary button with white text is about 2.2:1.
+    including transparency; no information by colour alone (an error has colour + icon + text). Primary buttons draw ink
+    on the accent (section 11.1), not white text, which was about 2.2:1.
   - **Motion and transparency**: respect Reduce Motion (the prototype's Koru does, `design/prototype/koru/docs/MOTION.md`;
     the app must too) and Reduce Transparency / Increase Contrast.
 
@@ -219,14 +238,22 @@ Add a row whenever a new concept reaches the interface.
 - [ ] The four states are designed: loading, empty with the next action, error with a way out, partial.
 - [ ] Unavailable data reads "unavailable", not `0`.
 - [ ] Exactly **one** primary action stands out per region.
+- [ ] A first-run tool (a demo, a tour) steps back once the person has set the product up; it does not lead a set-up screen.
 - [ ] Everything clickable shows the pointing-hand cursor and works with the keyboard, without hover.
 - [ ] A disclosure or expanding row opens from its whole label; no name is cut by "…" where a short form fits.
 - [ ] No control can be blocked silently: a blocked one says why and how to unlock it.
 - [ ] Data on screen (names, numbers, paths, statuses, dates) opens a popover with quick actions.
 - [ ] Numbers and counters are clickable and show the records behind them (zero included).
 - [ ] Actions that change data offer Undo, or a preview + confirmation when irreversible.
+- [ ] A removal or uninstall previews like an install (what changes, in lines) and says per file what happened afterwards.
 - [ ] Buttons use specific verbs; texts have no dashes and no technical jargon; terms match the glossary.
+- [ ] No retired word on the screen: notch (never "ilha"/"island"), aba, Ajustes with one meaning, "Koncluí" for the window
+      (`python3 scripts/konclui/test-copy.py`).
 - [ ] The view's state (page, filters, selection) survives closing and reopening.
+- [ ] Page edges and columns line up with the header card (gutter 28; text at gutter + 18).
+- [ ] Text uses a role of 11.1 (4.5:1 on its surface); status uses `KoncluiStatus`; no new grey, green, red or amber.
+- [ ] A disabled control cannot be mistaken for an enabled one; a blocked "Adicionar" says what is missing.
+- [ ] Nothing animates under Reduce Motion; Increase Contrast and Reduce Transparency were looked at.
 - [ ] Every new string exists in all 14 languages (`python3 scripts/test-localization.py`).
 - [ ] The changed path was walked in the running app, including blocked, error and recovery states, and with the keyboard
       (a screenshot or a unit test alone does not prove an interaction).
@@ -296,3 +323,91 @@ can run the skill of the same name for a full pass.
   before adding.
 - **Interface review** (`/better-interface`): one ranked report across accessibility, layout, writing, typography, colour and
   polish, used before a release.
+
+---
+
+## 11. Visual system (the hub window)
+
+Section 6 (Contrast and colour; Motion and transparency) says what is required. This section says how the hub window meets it, so a
+change does not have to re-decide it. The numbers live in `KoncluiThemeCore.swift` (pure, tested by
+`scripts/konclui/test-theme.sh`), the colours, type roles and controls in `KoncluiTheme.swift`. Nothing here adds a hue, a size or
+a radius the app did not already use (section 8). The checklist lines for it are in section 7.
+
+### 11.1 Tokens
+
+| Group | Token | Value | Use |
+|---|---|---|---|
+| Surface | canvas, panel, card, field, control | #000000, #0E0F11, #18191C, #1F2024, #1D1E22 | window and sidebar, the page's big card, cards, text fields, secondary buttons |
+| Text | textPrimary, textBody, textSecondary, textTertiary | #F5F6F8, #C7CAD0, #8E939C, #83888F | titles and values, reading text, supporting text, the quietest text that still reads (4.5:1 on every surface, fields included) |
+| Accent | accent, onAccent, selection | #FB923C, #170C04, #C2410C | the region's one primary, text links and focus; ink on the accent (8.5:1; white on it is 2.3:1); a selected segment, where macOS draws white on the tint (5.2:1) |
+| Status | ok, attention, error, off | #34D399, #F5B83D, #FF453A, textSecondary | status is never the accent |
+| Space | gutter, cardPadding, sectionGap, rowGap, labelGap | 28, 18, 22, 12, 8 | page edge and every column, card content, between sections, between rows, label to card |
+| Radius | panel, band, card, control, chip | 20, 18, 14, 9, capsule | the page's card, the header band, cards, buttons and fields and menus, chips |
+
+Type roles (minimum 11 pt): display 30 bold, tracking -0.6 (page title) · title 15 semibold · body 13.5 · bodyStrong 13.5 medium ·
+detail 12 · label 11 bold, capitals, tracking 1.2 (section titles, GroupBox titles) · metric 30 bold, monospaced digits.
+Hierarchy comes from size, weight and value together, never from low contrast. `.koncluiType(_:)` applies a role.
+
+The old greys fold into the four text roles: #A4A9B1, #A4A9B2, #B7BBC2, #C7CBD2, #C7CAD0, #D5D7DB become `textBody` (or
+`textSecondary` for supporting text); `HubTheme.muted` (#6B7079, 3.5:1 on a card) is `textTertiary`. Two greens, two reds and two
+ambers become `ok`, `error`, `attention`. A new colour needs a row in this table.
+
+### 11.2 One gutter
+
+Every page's left edge is the gutter (28 pt) and its right edge is the gutter again: the header card, cards, section labels, a
+Notetaker column and its detail pane all start and end there. Text inside a card (and the header's title) starts at gutter +
+`cardPadding` (18): one inner edge. Check each page against its header card in the before/after stills; a column that sits 14 pt
+left of the card (the owner's complaint about the Notetaker) is a defect. The Notetaker's list column is 280 pt: gutter on the
+card side, 14 pt free beside its divider, so "Gravar uma chamada" is 238 pt wide and still fits in the longest language.
+
+### 11.3 Components (the hub's own)
+
+- **Buttons**: `.koncluiPrimary` (ink on the accent) and `.koncluiSecondary` (neutral) for settings pages; `HubButtonStyle` for the
+  Flow pages (same look, 34 pt high). A disabled button drops to the card colour with secondary text and the arrow cursor, so it
+  never looks like an enabled primary; the reason still belongs beside it (section 1.1), and "Adicionar" and "Salvar" stay enabled
+  and say what is missing under the field. A destructive role is red text. One primary per region (the squint test).
+- **Segmented controls**: `.pickerStyle(.segmented).koncluiSegmented()`; the selected segment is `selection`, not the accent.
+- **Cards**: `HubCard` on Flow pages; every `GroupBox` in the hub is drawn the same way (`KoncluiGroupBoxStyle`): its title above in
+  the label role, the content on a full-width card; a box inside a card is flat. Do not nest cards.
+- **Toggles**: a labelled `Toggle` is a row, label left and switch right (`KoncluiToggleStyle`), so every on/off sits in one
+  column. A `Toggle` with `.labelsHidden()` is a selection in a list (Abas ativas, Atalhos) and stays a checkbox, drawn with an
+  off box you can see (3:1 against the card). An on/off setting with a hidden label asks for `.toggleStyle(.switch)`.
+- **Status**: `KoncluiStatus(tone:text:door:)`: a dot (an icon for an error), a sentence, a chevron when it opens a popover. One
+  way to say "installed", "not installed", "needs attention", "failed", "off". Never the accent, never a grey caption that looks
+  like a link.
+- **Doors**: a status or a name that opens a popover is a `Button` with the pointing hand (`.koncluiPointer()`), a hover fill and a
+  chevron; the popover is a short list of `KoncluiPopoverAction` rows, the likeliest first.
+- **Fields**: `KoncluiField` (via `HubField`): an edge you can see (white 16 %), a 2 pt accent ring with focus, an optional label
+  above that stays while typing, an optional line below that says what is missing.
+- **Key caps**: `KoncluiKeyCap`: one filled chip for every shortcut.
+- **Popovers** are their own windows: they take the system's glass and do not inherit the hub's styles; a popover's content calls
+  `.koncluiTheme()` when it uses hub buttons, toggles or boxes.
+
+Upstream's settings views reach this look without being rewritten: `FlowHubView` injects the styles once (`.koncluiTheme()`), and
+`scripts/konclui/rebrand.py` (`HUB_STYLES`) turns `.borderedProminent`, `.bordered` and `.pickerStyle(.segmented)` into the three
+names above. Outside the hub (the standalone Settings window) the same names draw upstream's own styles, so that window is
+unchanged.
+
+### 11.4 Where glass is allowed
+
+In exactly one place: the compact page header of the notch pages (Geral, Abas ativas, Agentes, Chat, Integrações, Voz, Atalhos)
+while the settings scroll under it (`KoncluiSettingsPage`, `View.koncluiPinnedHeader`). On macOS 26 it is `safeAreaBar(edge: .top)`
+with `scrollEdgeEffectStyle(.soft, for: .top)`; on macOS 15 to 25 it is `safeAreaInset` with a 12 pt fade under the bar. The band is
+translucent over `.ultraThinMaterial`; Reduce Transparency draws it solid (`panel`). Pinned chrome is compact (116 pt); a full-height
+band is never pinned over scrolling content, and content meets chrome through a soft edge, not a hard cut.
+
+No glass on cards, bands, the sidebar or buttons: the window is OLED black, so a blur over it frosts nothing, and over a live band it
+would re-blur every frame. Popovers keep the system's own. Do not animate blur radius, and do not add refraction or "liquid"
+displacement.
+
+### 11.5 Motion rules
+
+- Every canvas reads one environment value, `koncluiMotion` (`KoncluiMotion.rate`): the display's own rate while the window is the
+  front one, 30 frames a second while it is visible but not the front one, and once (still) when the window is hidden,
+  minimised or covered, or when **Reduce Motion** is on. Reduce Motion draws the colour wash still, with the Koru standing.
+- A band has drifting particles and a breathing glow only where `KoncluiMotion.liveBandPages` says (the Ditado page). Every other
+  band, and the glow cards, are a colour wash drawn once, with the Koru on it.
+- A new animation reads `koncluiMotion` (or Reduce Motion) before it asks for the display's rate; the 0 % CPU rule for a hidden
+  island is unchanged.
+- Increase Contrast: hairlines 7 % become 20 %, supporting text becomes `textBody`, control edges 16 % become 40 %. Components read
+  `colorSchemeContrast`; a view that hard-codes a hairline does not meet section 6.

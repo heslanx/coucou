@@ -105,7 +105,7 @@ private struct KoncluiNoteSpeechPopover: View {
             }
             Text("konclui.notes.speech.detail")
                 .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#C7CAD0"))
+                .foregroundColor(KoncluiTheme.textBody)
                 .fixedSize(horizontal: false, vertical: true)
             KoncluiNoteSpeechProgress()
             if parakeet.state != .unsupported {
@@ -113,7 +113,7 @@ private struct KoncluiNoteSpeechPopover: View {
                 HubLabel(String(localized: "konclui.notes.speech.upgrade-label"))
                 Text("konclui.notes.speech.upgrade-detail")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#C7CAD0"))
+                    .foregroundColor(KoncluiTheme.textBody)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("konclui.notes.speech.one-voice")
                     .font(.system(size: 12))

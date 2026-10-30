@@ -37,7 +37,7 @@ struct ShortcutsSettingsView: View {
                 HStack {
                     Spacer()
                     Button(String(localized: "shortcut.reset-defaults")) { resetAll() }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                         .controlSize(.small)
                 }
                 .padding(.top, 6)

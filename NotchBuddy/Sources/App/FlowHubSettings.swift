@@ -12,7 +12,7 @@ struct HubSettingsPage: View {
     @State private var openAtLaunch = FlowHubController.openAtLaunch
 
     var body: some View {
-        HubPageScaffold(title: String(localized: "hub.page.settings")) {
+        HubPageScaffold(title: String(localized: "hub.page.settings"), subtitle: String(localized: "konclui.settings.sub")) {   // Koncluí: a band with one word had no subtitle
             HubLabel(String(localized: "hub.settings.keys"))
             HubCard {
                 HubRow(title: String(localized: "flow.enable")) {
@@ -33,6 +33,7 @@ struct HubSettingsPage: View {
                         ForEach(FlowPillEdge.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                    .koncluiSegmented()   // Koncluí
                     .labelsHidden()
                     .fixedSize()
                 }
@@ -80,7 +81,7 @@ struct HubSettingsPage: View {
                             .foregroundColor(HubTheme.accent)
                         Text("hub.cleanup-key")
                             .font(.system(size: 12.5))
-                            .foregroundColor(Color(hex: "#C7CAD0"))
+                            .foregroundColor(KoncluiTheme.textBody)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         Button(String(localized: "hub.open-settings")) {
@@ -104,7 +105,7 @@ struct HubSettingsPage: View {
                 } else {
                     Text("flow.accessibility")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#C7CAD0"))
+                        .foregroundColor(KoncluiTheme.textBody)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }
                         .buttonStyle(HubButtonStyle(primary: true))
@@ -184,11 +185,7 @@ struct HubKeyCap: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 12.5, weight: .semibold))
-            .padding(.horizontal, 10)
-            .frame(height: 26)
-            .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.08)))
+        KoncluiKeyCap(text: text)   // Koncluí: one key cap for Ajustes and Atalhos
     }
 }
 
@@ -257,10 +254,11 @@ struct HubRecognitionSettings: View {
             Menu {
                 Button(String(localized: "hub.engine.remove"), role: .destructive) { parakeet.remove() }
             } label: {
-                Label(String(localized: "hub.engine.installed"), systemImage: "checkmark.circle.fill")
-                    .foregroundColor(HubTheme.green)
+                // Koncluí: a menu tints its label with the accent; the status draws its own dot and chevron.
+                KoncluiStatus(tone: .ok, text: String(localized: "hub.engine.installed"), door: true)
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
         case .failed:
             Button(String(localized: "hub.engine.retry")) { parakeet.download() }
@@ -282,7 +280,7 @@ private struct HubEngineRow<Trailing: View>: View {
             Button(action: choose) {
                 HStack(spacing: 12) {
                     ZStack {
-                        Circle().strokeBorder(selected ? HubTheme.accent : Color(hex: "#5A5F68"),
+                        Circle().strokeBorder(selected ? HubTheme.accent : Color.white.opacity(KoncluiIncreasedContrast.checkboxStroke),   // Koncluí: 3:1 when off
                                               lineWidth: selected ? 5 : 1.5)
                     }
                     .frame(width: 17, height: 17)
@@ -298,6 +296,7 @@ private struct HubEngineRow<Trailing: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .koncluiPointer()   // Koncluí
             trailing()
         }
     }

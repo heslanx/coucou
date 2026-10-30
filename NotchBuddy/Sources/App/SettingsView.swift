@@ -31,7 +31,11 @@ struct SettingsView: View {
     @State private var statusMessage: String = ""
     @State private var showDiff: Bool = false
     @State private var pendingHookJSON: String = ""
-    @State private var hookNeedsUpdate: Bool = HookServer.hooksNeedUpdate()
+    // Koncluí: what Koncluí wrote in the agents' files comes from KoncluiHookStatus (read off the main thread), not from the files
+    // at every redraw; these start from its last answer and follow it (`koncluiApplyHooks`).
+    @State private var hookNeedsUpdate: Bool = KoncluiHookStatus.shared.snapshot.claudeOutdated
+    @State private var claudeHooksInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.claudeCode)
+    @State private var claudePendingInstall: Bool = true
 
     #if !APPSTORE
     @State private var showStatusLineDiff: Bool = false
@@ -39,42 +43,42 @@ struct SettingsView: View {
     @State private var statusLinePendingInstall: Bool = true
     @State private var planTogglePending: Bool = false
 
-    @State private var geminiHooksInstalled: Bool = HookServer.geminiHooksInstalled()
+    @State private var geminiHooksInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.gemini)
     @State private var showGeminiDiff: Bool = false
     @State private var pendingGeminiJSON: String = ""
     @State private var geminiPendingInstall: Bool = true
 
-    @State private var agyHooksInstalled: Bool = HookServer.agyHooksInstalled()
+    @State private var agyHooksInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.antigravity)
     @State private var showAgyDiff: Bool = false
     @State private var pendingAgyJSON: String = ""
     @State private var agyPendingInstall: Bool = true
 
-    @State private var codexHooksInstalled: Bool = HookServer.codexHooksInstalled()
+    @State private var codexHooksInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.codex)
     @State private var showCodexDiff: Bool = false
     @State private var pendingCodexJSON: String = ""
     @State private var codexPendingInstall: Bool = true
 
-    @State private var copilotHooksInstalled: Bool = HookServer.copilotHooksInstalled()
+    @State private var copilotHooksInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.copilot)
     @State private var showCopilotDiff: Bool = false
     @State private var pendingCopilotJSON: String = ""
     @State private var copilotPendingInstall: Bool = true
 
-    @State private var museHooksInstalled: Bool = HookServer.museHooksInstalled()
+    @State private var museHooksInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.muse)
     @State private var showMuseDiff: Bool = false
     @State private var pendingMuseJSON: String = ""
     @State private var musePendingInstall: Bool = true
 
-    @State private var openCodePluginInstalled: Bool = HookServer.openCodePluginInstalled()
+    @State private var openCodePluginInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.opencode)
     @State private var showOpenCodeDiff: Bool = false
     @State private var pendingOpenCodeContent: String = ""
     @State private var openCodePendingInstall: Bool = true
 
-    @State private var ampPluginInstalled: Bool = HookServer.ampPluginInstalled()
+    @State private var ampPluginInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.amp)
     @State private var showAmpDiff: Bool = false
     @State private var pendingAmpContent: String = ""
     @State private var ampPendingInstall: Bool = true
 
-    @State private var hermesPluginInstalled: Bool = HookServer.hermesPluginInstalled()
+    @State private var hermesPluginInstalled: Bool = KoncluiHookStatus.shared.snapshot.isInstalled(.hermes)
     @State private var showHermesPluginDiff: Bool = false
     @State private var pendingHermesPluginContent: String = ""
     @State private var hermesPluginPendingInstall: Bool = true
@@ -153,7 +157,11 @@ struct SettingsView: View {
     @ObservedObject private var koncluiFeatures = KoncluiFeatureModel.shared
     @ObservedObject private var koncluiAdded = KoncluiAddedModel.shared
     @ObservedObject private var chatAccess = ChatAccess.shared
-    @State private var koncluiTools: Set<KoncluiTool> = KoncluiRecognition.liveTools()
+    @ObservedObject private var koncluiHooks = KoncluiHookStatus.shared
+    @State private var koncluiTools: Set<KoncluiTool> = KoncluiHookStatus.shared.loaded
+        ? KoncluiHookStatus.shared.snapshot.tools : KoncluiRecognition.liveTools()
+    // Koncluí: the tab whose "4 tabs is the limit" popover is open (Active pills).
+    @State private var koncluiLimitPill: String? = KoncluiPageDebug.limitPill
     // Koncluí: the agent whose options popover is open (Agents) and the pill whose "not installed" door is open (Active pills).
     @State private var koncluiOpenAgent: String? = KoncluiAgentsDebug.target?.id
     @State private var koncluiDoorPill: String? = KoncluiAgentsDebug.doorPill
@@ -257,12 +265,14 @@ struct SettingsView: View {
                 }
             }
         }
+        .onChange(of: koncluiHooks.snapshot) { _, snap in koncluiApplyHooks(snap) }
+        .onChange(of: koncluiInstalledFlags) { _, _ in koncluiHooks.refresh() }
         .onAppear {
             #if !APPSTORE
             state.refreshPlanRelayState()
             #endif
-            // Koncluí: look again at what this Mac has, and at the sign-ins.
-            koncluiTools = KoncluiRecognition.liveTools(maxAge: 0)
+            // Koncluí: look again at what this Mac has (off the main thread; `onChange` below applies the answer), and at the sign-ins.
+            koncluiHooks.refresh()
             koncluiDebugPreview()   // Koncluí: DEBUG only, `-konclui.debug.agentPopover <id>:preview`
             Task { await chatAccess.refresh() }
             guard fetchedModels.isEmpty,
@@ -319,20 +329,14 @@ struct SettingsView: View {
     // MARK: - General section
 
     @ViewBuilder private var generalSection: some View {
-        GroupBox(String(localized: "demo.groupbox.title")) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(String(localized: "demo.description"))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button(demoEngine.isActive ? String(localized: "demo.stop") : String(localized: "demo.start")) {
-                    if demoEngine.isActive { DemoEngine.shared.stop() }
-                    else { DemoEngine.shared.start() }
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding(6)
-        }
+        // Koncluí: agents found on this Mac and not connected yet: one calm card, first (KoncluiConnectAgentsCard.swift).
+        #if !APPSTORE
+        KoncluiConnectAgentsCard(waiting: koncluiWaitingAgents, openAgents: koncluiOpenAgentsPage)
+            .koncluiShown((koncluiHooks.loaded || KoncluiPageDebug.waiting != nil) && KoncluiGeneralPage.showsConnectCard(waiting: koncluiWaitingAgents))
+        #endif
+        // Koncluí: the demo is a first-run tool: first while nothing is connected, at the end (as a quiet button) after.
+        demoBox(quiet: false)
+            .koncluiShown(koncluiHooks.loaded && !KoncluiGeneralPage.demoComesLast(anyAgentConnected: koncluiAnyAgentConnected))
 
         GroupBox("Sound") {
             VStack(alignment: .leading, spacing: 10) {
@@ -462,6 +466,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+        .koncluiShown(embeddedSection == nil)   // Koncluí: in the hub window the Shortcuts page owns this switch (one switch, one place)
 
         GroupBox("Startup") {
             Toggle("Launch at Mac startup", isOn: $launchAtStartup)
@@ -471,6 +476,7 @@ struct SettingsView: View {
 
         #if !APPSTORE
         UpdateSettingsSection()
+            .koncluiShown(KoncluiFeatures.isOn("block_updates"))   // Koncluí: ships off, the updater cannot install Koncluí yet (KONCLUI.md)
         #endif
 
         GroupBox(String(localized: "Weekly recap")) {
@@ -527,7 +533,7 @@ struct SettingsView: View {
                         try? task.run()
                         NSApp.terminate(nil)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.koncluiSecondary)
                     Text(String(localized: "Applies on next launch"))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
@@ -566,6 +572,40 @@ struct SettingsView: View {
         }
         .koncluiShown(KoncluiFeatures.isOn("block_iphone"))
         #endif
+
+        // Koncluí: an agent is connected already: the demo steps back to a quiet button here, and the way out of every
+        // integration Koncluí wrote is one click away (previewed and confirmed, KoncluiRemoveIntegrations.swift).
+        demoBox(quiet: true)
+            .koncluiShown(koncluiHooks.loaded && KoncluiGeneralPage.demoComesLast(anyAgentConnected: koncluiAnyAgentConnected))
+        #if !APPSTORE
+        KoncluiRemoveIntegrations(snapshot: koncluiHooks.snapshot, done: { koncluiHooks.refresh() })
+            .koncluiShown(koncluiHooks.loaded && KoncluiGeneralPage.offersRemoval(koncluiHooks.snapshot))
+        #endif
+    }
+
+    /// The demo: an orange primary while nothing is connected, a plain button once an agent is.
+    @ViewBuilder
+    private func demoBox(quiet: Bool) -> some View {
+        GroupBox(String(localized: "demo.groupbox.title")) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(String(localized: "demo.description"))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                let toggleDemo = {
+                    if demoEngine.isActive { DemoEngine.shared.stop() } else { DemoEngine.shared.start() }
+                }
+                let title = demoEngine.isActive ? String(localized: "demo.stop") : String(localized: "demo.start")
+                if quiet {
+                    Button(title, action: toggleDemo)
+                        .buttonStyle(.koncluiSecondary)
+                } else {
+                    Button(title, action: toggleDemo)
+                        .buttonStyle(.koncluiPrimary)
+                }
+            }
+            .padding(6)
+        }
     }
 
     private func refreshConnectedScreens() {
@@ -611,23 +651,27 @@ struct SettingsView: View {
                     }
                 }
 
-                KoncluiAddMenu(
-                    items: PillCatalog.available.filter { !koncluiPillShown($0, signals) }
-                        .map { .init(id: $0.id, title: $0.name, section: $0.category.title) },
-                    onPick: { koncluiAdded.add(.pills, $0) })
             }
             .padding(6)
         }
+        // Koncluí: "Add…" sits at the page's outer edge on every list (Active pills, Agents, Chat, Integrations).
+        KoncluiAddMenu(
+            items: PillCatalog.available.filter { !koncluiPillShown($0, signals) }
+                .map { .init(id: $0.id, title: $0.name, section: $0.category.title) },
+            onPick: { koncluiAdded.add(.pills, $0) })
     }
 
     // MARK: - Agents section
 
     @ViewBuilder private var agentsSection: some View {
         // Koncluí: klaude's hooks (unit K11); then only the agents this Mac has, hooked up or added.
-        KlaudeHooksSection()
+        #if !APPSTORE
+        KoncluiKlaudeHooksSection()
+        #endif
 
-        koncluiAgentRow(.claudeCode, .hooks, installed: HookServer.claudeHooksInstalled(), outdated: hookNeedsUpdate) {   // Koncluí: row + popover
+        koncluiAgentRow(.claudeCode, .hooks, installed: claudeHooksInstalled, outdated: hookNeedsUpdate) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
+                #if APPSTORE
                 if hookNeedsUpdate {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -636,337 +680,98 @@ struct SettingsView: View {
                             .font(.system(size: 11))
                             .foregroundColor(.orange)
                     }
-                    #if APPSTORE
                     Button(String(localized: "hooks.update")) { installHooksAppStore() }
-                    #else
-                    Button(String(localized: "hooks.update")) { installHooks() }
-                    #endif
                 }
-                #if APPSTORE
                 Text("~/.claude/konclui/nb-hook")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.secondary)
                 HStack(spacing: 10) {
                     Button(String(localized: "hooks.install")) { installHooksAppStore() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.koncluiPrimary)
                     Button(String(localized: "hooks.uninstall")) { uninstallHooksAppStore() }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                 }
                 #else
-                Text("nb-hook : \(HookServer.hookScriptPath)")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "hooks.install")) { installHooks() }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { uninstallHooks() }
-                        .buttonStyle(.bordered)
-                }
+                // Koncluí: the state, the one primary it needs and the review of what changes (KoncluiHookControls.swift).
+                koncluiHookControls(.claudeCode, installed: claudeHooksInstalled, outdated: hookNeedsUpdate, show: showDiff,
+                                    pending: pendingHookJSON, pendingInstall: claudePendingInstall,
+                                    preview: { $0 ? installHooks() : uninstallHooks() }, confirm: { confirmInstall() },
+                                    cancel: { showDiff = false; pendingHookJSON = "" })
                 #endif
-                Toggle("Answer questions and permissions from terminal sessions in the notch", isOn: $terminalCardsEnabled)
-                Text("Off: sessions in Warp, Terminal, iTerm… show in the notch, but their questions and permission requests are asked in the terminal. On: the notch shows them first, and the terminal waits until you answer there or close the island (up to 2 min).")
+                Divider()
+                Toggle(String(localized: "konclui.terminals.toggle"), isOn: $terminalCardsEnabled)
+                Text("konclui.terminals.about")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                #if !APPSTORE
-                if showDiff {
-                    ScrollView {
-                        Text(pendingHookJSON)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmInstall() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showDiff = false; pendingHookJSON = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-                #endif
             }
             .padding(6)
         }
         .koncluiShown(koncluiAgentShown(.claudeCode))
 
         #if !APPSTORE
+        // Koncluí: Orca's sessions come through Claude Code's hooks; this row decides if their approvals wait on the notch.
+        KoncluiOrcaRow()
+            .koncluiShown(koncluiTools.contains(.orca) || KoncluiAgentsDebug.opens("orca"))
+
         ClaudeDesktopChatSettingsSection()
             .koncluiShown(koncluiAgentShown(.claudeDesktop))
 
         koncluiAgentRow(.gemini, .hooks, installed: geminiHooksInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(geminiHooksInstalled
-                     ? String(localized: "hooks.gemini.installed")
-                     : "~/.gemini/settings.json")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "hooks.install")) { triggerGeminiPreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerGeminiPreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showGeminiDiff {
-                    ScrollView {
-                        Text(pendingGeminiJSON)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmGeminiOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showGeminiDiff = false; pendingGeminiJSON = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.gemini, installed: geminiHooksInstalled, show: showGeminiDiff, pending: pendingGeminiJSON, pendingInstall: geminiPendingInstall,
+                                preview: { triggerGeminiPreview(install: $0) }, confirm: { confirmGeminiOp() },
+                                cancel: { showGeminiDiff = false; pendingGeminiJSON = "" })
         }
         .koncluiShown(koncluiAgentShown(.gemini))
 
         koncluiAgentRow(.antigravity, .hooks, installed: agyHooksInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(agyHooksInstalled
-                     ? String(localized: "hooks.antigravity.installed")
-                     : "~/.gemini/config/hooks.json")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "hooks.install")) { triggerAgyPreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerAgyPreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showAgyDiff {
-                    ScrollView {
-                        Text(pendingAgyJSON)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmAgyOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showAgyDiff = false; pendingAgyJSON = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.antigravity, installed: agyHooksInstalled, show: showAgyDiff, pending: pendingAgyJSON, pendingInstall: agyPendingInstall,
+                                preview: { triggerAgyPreview(install: $0) }, confirm: { confirmAgyOp() },
+                                cancel: { showAgyDiff = false; pendingAgyJSON = "" })
         }
         .koncluiShown(koncluiAgentShown(.antigravity))
 
         koncluiAgentRow(.codex, .hooks, installed: codexHooksInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(codexHooksInstalled
-                     ? String(localized: "hooks.codex.installed")
-                     : "~/.codex/hooks.json")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "hooks.install")) { triggerCodexPreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerCodexPreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showCodexDiff {
-                    ScrollView {
-                        Text(pendingCodexJSON)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmCodexOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showCodexDiff = false; pendingCodexJSON = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.codex, installed: codexHooksInstalled, show: showCodexDiff, pending: pendingCodexJSON, pendingInstall: codexPendingInstall,
+                                preview: { triggerCodexPreview(install: $0) }, confirm: { confirmCodexOp() },
+                                cancel: { showCodexDiff = false; pendingCodexJSON = "" })
         }
         .koncluiShown(koncluiAgentShown(.codex))
 
         koncluiAgentRow(.copilot, .hooks, installed: copilotHooksInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(copilotHooksInstalled
-                     ? String(localized: "hooks.copilot.installed")
-                     : "~/.copilot/hooks/konclui.json")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "hooks.install")) { triggerCopilotPreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerCopilotPreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showCopilotDiff {
-                    ScrollView {
-                        Text(pendingCopilotJSON)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmCopilotOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showCopilotDiff = false; pendingCopilotJSON = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.copilot, installed: copilotHooksInstalled, show: showCopilotDiff, pending: pendingCopilotJSON, pendingInstall: copilotPendingInstall,
+                                preview: { triggerCopilotPreview(install: $0) }, confirm: { confirmCopilotOp() },
+                                cancel: { showCopilotDiff = false; pendingCopilotJSON = "" })
         }
         .koncluiShown(koncluiAgentShown(.copilot))
 
         koncluiAgentRow(.muse, .hooks, installed: museHooksInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(museHooksInstalled
-                     ? String(localized: "hooks.muse.installed")
-                     : "~/.config/muse/settings.json")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "hooks.install")) { triggerMusePreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerMusePreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showMuseDiff {
-                    ScrollView {
-                        Text(pendingMuseJSON)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmMuseOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showMuseDiff = false; pendingMuseJSON = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.muse, installed: museHooksInstalled, show: showMuseDiff, pending: pendingMuseJSON, pendingInstall: musePendingInstall,
+                                preview: { triggerMusePreview(install: $0) }, confirm: { confirmMuseOp() },
+                                cancel: { showMuseDiff = false; pendingMuseJSON = "" })
         }
         .koncluiShown(koncluiAgentShown(.muse))
 
         koncluiAgentRow(.opencode, .plugin, installed: openCodePluginInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(openCodePluginInstalled
-                     ? String(localized: "plugin.opencode.installed")
-                     : "~/.config/opencode/plugins/konclui.js")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "plugin.install")) { triggerOpenCodePreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerOpenCodePreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showOpenCodeDiff {
-                    ScrollView {
-                        Text(pendingOpenCodeContent)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmOpenCodeOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showOpenCodeDiff = false; pendingOpenCodeContent = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.opencode, installed: openCodePluginInstalled, show: showOpenCodeDiff, pending: pendingOpenCodeContent, pendingInstall: openCodePendingInstall,
+                                preview: { triggerOpenCodePreview(install: $0) }, confirm: { confirmOpenCodeOp() },
+                                cancel: { showOpenCodeDiff = false; pendingOpenCodeContent = "" })
         }
         .koncluiShown(koncluiAgentShown(.opencode))
 
         koncluiAgentRow(.amp, .plugin, installed: ampPluginInstalled) {   // Koncluí: row + popover
-            VStack(alignment: .leading, spacing: 10) {
-                Text(ampPluginInstalled
-                     ? String(localized: "plugin.amp.installed")
-                     : "~/.config/amp/plugins/konclui.ts")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    Button(String(localized: "plugin.install")) { triggerAmpPreview(install: true) }
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "hooks.uninstall")) { triggerAmpPreview(install: false) }
-                        .buttonStyle(.bordered)
-                }
-                if showAmpDiff {
-                    ScrollView {
-                        Text(pendingAmpContent)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 140)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmAmpOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showAmpDiff = false; pendingAmpContent = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
-            .padding(6)
+            koncluiHookControls(.amp, installed: ampPluginInstalled, show: showAmpDiff, pending: pendingAmpContent, pendingInstall: ampPendingInstall,
+                                preview: { triggerAmpPreview(install: $0) }, confirm: { confirmAmpOp() },
+                                cancel: { showAmpDiff = false; pendingAmpContent = "" })
         }
         .koncluiShown(koncluiAgentShown(.amp))
 
         koncluiAgentRow(.hermes, .plugin, installed: hermesPluginInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
-                Text(hermesPluginInstalled
-                     ? String(localized: "plugin.hermes.installed")
-                     : "~/.hermes/plugins/konclui/__init__.py")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                HStack(spacing: 10) {
-                    if !hermesPluginInstalled {
-                        Button(String(localized: "plugin.install")) { triggerHermesPluginPreview(install: true) }
-                            .buttonStyle(.borderedProminent)
-                    } else {
-                        Button(String(localized: "hooks.uninstall")) { triggerHermesPluginPreview(install: false) }
-                            .buttonStyle(.bordered)
-                    }
-                }
-                if showHermesPluginDiff {
-                    ScrollView {
-                        Text(pendingHermesPluginContent)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 180)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    HStack {
-                        Button(String(localized: "hooks.confirm-write")) { confirmHermesPluginOp() }
-                            .buttonStyle(.borderedProminent)
-                        Button(String(localized: "Cancel")) { showHermesPluginDiff = false; pendingHermesPluginContent = "" }
-                            .buttonStyle(.bordered)
-                    }
-                }
+                koncluiHookControls(.hermes, installed: hermesPluginInstalled, show: showHermesPluginDiff,
+                                    pending: pendingHermesPluginContent, pendingInstall: hermesPluginPendingInstall,
+                                    preview: { triggerHermesPluginPreview(install: $0) }, confirm: { confirmHermesPluginOp() },
+                                    cancel: { showHermesPluginDiff = false; pendingHermesPluginContent = "" })
 
                 if hermesPluginInstalled {
                     Divider()
@@ -997,9 +802,9 @@ struct SettingsView: View {
                         .cornerRadius(6)
                         HStack {
                             Button(String(localized: "hooks.confirm-write")) { confirmHermesConfigOp() }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.koncluiPrimary)
                             Button(String(localized: "Cancel")) { showHermesConfigDiff = false; pendingHermesConfigContent = "" }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(.koncluiSecondary)
                         }
                     }
                 }
@@ -1045,13 +850,13 @@ struct SettingsView: View {
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                         Button(String(localized: "plan.relay.uninstall")) { uninstallStatusLine() }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.koncluiSecondary)
                     } else {
                         Text(String(localized: "plan.relay.not-installed"))
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                         Button(String(localized: "plan.relay.install")) { installStatusLine() }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.koncluiPrimary)
                     }
                 }
                 if showStatusLineDiff {
@@ -1065,13 +870,13 @@ struct SettingsView: View {
                     .cornerRadius(6)
                     HStack {
                         Button(String(localized: "hooks.confirm-write")) { confirmStatusLine() }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.koncluiPrimary)
                         Button(String(localized: "Cancel")) {
                             showStatusLineDiff = false
                             pendingStatusLineJSON = ""
                             planTogglePending = false
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                     }
                 }
                 Divider()
@@ -1109,7 +914,7 @@ struct SettingsView: View {
                     KeychainStore.shared.set("anthropic-api-key", value: apiKey)
                     statusMessage = String(localized: "status.key-saved")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.koncluiPrimary)
 
                 Divider().padding(.vertical, 2)
 
@@ -1158,7 +963,7 @@ struct SettingsView: View {
                         KeychainStore.shared.set("google-api-key", value: googleKey)
                         statusMessage = String(localized: "status.google-key-saved")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.google))
                 }
 
@@ -1173,7 +978,7 @@ struct SettingsView: View {
                         KeychainStore.shared.set("openai-api-key", value: openAIKey)
                         statusMessage = String(localized: "status.openai-key-saved")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.openai))
                 }
 
@@ -1188,7 +993,7 @@ struct SettingsView: View {
                         KeychainStore.shared.set("deepseek-api-key", value: deepseekKey)
                         statusMessage = String(localized: "status.deepseek-key-saved")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.deepseek))
                 }
 
@@ -1203,7 +1008,7 @@ struct SettingsView: View {
                         KeychainStore.shared.set("qwen-api-key", value: qwenKey)
                         statusMessage = String(localized: "status.qwen-key-saved")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.qwen))
                 }
 
@@ -1218,7 +1023,7 @@ struct SettingsView: View {
                         KeychainStore.shared.set("moonshot-api-key", value: moonshotKey)
                         statusMessage = String(localized: "status.moonshot-key-saved")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                 }
             }
             .padding(.vertical, 4)
@@ -1248,7 +1053,7 @@ struct SettingsView: View {
                         Button(connectingOllama ? String(localized: "chat.connecting") : String(localized: "chat.connect")) {
                             Task { await connectLocal(provider: .ollama) }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.koncluiPrimary)
                         .disabled(connectingOllama)
                     } else {
                         Text(state.ollamaServerURL)
@@ -1262,7 +1067,7 @@ struct SettingsView: View {
                             if state.chatProvider == .ollama { state.chatProvider = .anthropic }
                             statusMessage = String(localized: "status.local.ollama-disconnected")
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                     }
                     Divider().koncluiShown(koncluiChatShown(.lmstudio))
                 }
@@ -1284,7 +1089,7 @@ struct SettingsView: View {
                         Button(connectingLMStudio ? String(localized: "chat.connecting") : String(localized: "chat.connect")) {
                             Task { await connectLocal(provider: .lmstudio) }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.koncluiPrimary)
                         .disabled(connectingLMStudio)
                     } else {
                         Text(state.lmstudioServerURL)
@@ -1298,7 +1103,7 @@ struct SettingsView: View {
                             if state.chatProvider == .lmstudio { state.chatProvider = .anthropic }
                             statusMessage = String(localized: "status.local.lmstudio-disconnected")
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                     }
                 }
             }
@@ -1428,12 +1233,12 @@ struct SettingsView: View {
                             Text(verbatim: ex.name).tag(ex.rawValue)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).koncluiSegmented()
                     Picker(String(localized: "crypto.currency"), selection: $cryptoCurrency) {
                         Text(verbatim: "EUR €").tag("EUR")
                         Text(verbatim: "USD $").tag("USD")
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).koncluiSegmented()
                     TextField(String(localized: "crypto.coins-placeholder"), text: $cryptoCoins)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { CryptoController.shared.settingsChanged() }
@@ -1470,16 +1275,17 @@ struct SettingsView: View {
                     saveIntegrations()
                     CryptoController.shared.settingsChanged()
                 }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                     .koncluiShown(Self.koncluiKeyServices.contains { koncluiIntegrationShown($0, signals) })
 
-                KoncluiAddMenu(
-                    items: Self.koncluiServices.filter { KoncluiFeatures.isOn($0) && !koncluiIntegrationShown($0, signals) }
-                        .compactMap { id in PillCatalog.definition(for: id).map { .init(id: id, title: $0.name) } },
-                    onPick: { koncluiAdded.add(.integrations, $0) })
             }
             .padding(6)
         }
+        // Koncluí: "Add…" sits at the page's outer edge on every list (Active pills, Agents, Chat, Integrations).
+        KoncluiAddMenu(
+            items: Self.koncluiServices.filter { KoncluiFeatures.isOn($0) && !koncluiIntegrationShown($0, signals) }
+                .compactMap { id in PillCatalog.definition(for: id).map { .init(id: id, title: $0.name) } },
+            onPick: { koncluiAdded.add(.integrations, $0) })
     }
 
     // MARK: - Voice section
@@ -1547,7 +1353,7 @@ struct SettingsView: View {
                             voicePermissionsGranted = ok
                         }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                 }
             }
             .padding(6)
@@ -1568,7 +1374,7 @@ struct SettingsView: View {
                         Text(verbatim: "English").tag("en")
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).koncluiSegmented()
                     .frame(maxWidth: 260)
                 }
                 HStack(spacing: 10) {
@@ -1579,7 +1385,7 @@ struct SettingsView: View {
                         Text(verbatim: "English").tag("en")
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.segmented).koncluiSegmented()
                     .frame(maxWidth: 180)
                     .onChange(of: voiceLanguage) { _, _ in
                         // Chosen by hand: Coucou no longer offers to switch.
@@ -1622,7 +1428,7 @@ struct SettingsView: View {
                     Text(String(localized: "voice.tts-female")).tag("female")
                     Text(String(localized: "voice.tts-male")).tag("male")
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).koncluiSegmented()
                 .frame(maxWidth: 220)
                 .onChange(of: elevenGender) { _, _ in ElevenLabsTTS.shared.reset() }
 
@@ -1786,6 +1592,7 @@ struct SettingsView: View {
         do {
             try HookServer.shared.installAndWriteClaudeHooksAppStore(claudeURL: claudeURL)
             hookNeedsUpdate = false
+            claudeHooksInstalled = true
             statusMessage = String(localized: "status.hooks-installed-claude")
         } catch {
             statusMessage = "❌ \(error.localizedDescription)"
@@ -1796,6 +1603,7 @@ struct SettingsView: View {
         guard let claudeURL = pickClaudeFolder(prompt: "Select") else { return }
         do {
             try HookServer.shared.uninstallClaudeHooksAppStore(claudeURL: claudeURL)
+            claudeHooksInstalled = false
             statusMessage = String(localized: "status.hooks-removed")
         } catch {
             statusMessage = "❌ \(error.localizedDescription)"
@@ -1842,6 +1650,7 @@ struct SettingsView: View {
     private func installHooks() {
         do {
             pendingHookJSON = try HookServer.shared.previewClaudeHooks()
+            claudePendingInstall = true
             showDiff = true
             statusMessage = String(localized: "hooks.review-json")
         } catch {
@@ -1853,18 +1662,26 @@ struct SettingsView: View {
         do {
             try HookServer.shared.writeClaudeHooks()
             showDiff = false
-            statusMessage = String(localized: "status.hooks-installed-settings")
+            statusMessage = claudePendingInstall ? String(localized: "status.hooks-installed-settings")
+                                                 : String(localized: "status.hooks-removed")
             pendingHookJSON = ""
-            hookNeedsUpdate = false
+            claudeHooksInstalled = claudePendingInstall
+            if claudePendingInstall { hookNeedsUpdate = false }
         } catch {
             statusMessage = "❌ Write error: \(error.localizedDescription)"
         }
     }
 
+    // Koncluí: removing the hooks is previewed and confirmed like installing them (CLAUDE.md: never write
+    // ~/.claude/settings.json without showing what changes); it used to write at once.
     private func uninstallHooks() {
         do {
-            try HookServer.shared.uninstallClaudeHooks()
-            statusMessage = String(localized: "status.hooks-removed")
+            pendingHookJSON = try HookServer.shared.previewClaudeHooks(install: false)
+            claudePendingInstall = false
+            showDiff = true
+            statusMessage = String(localized: "hooks.review-json")
+        } catch let e as NSError where e.domain == "CoucouNoop" {
+            statusMessage = e.localizedDescription
         } catch {
             statusMessage = "❌ \(error.localizedDescription)"
         }
@@ -2273,18 +2090,21 @@ struct SettingsView: View {
     private func pillRow(_ def: PillDefinition) -> some View {
         let isMain = def.id == state.mainPillId
         let isOn   = state.activeIntegrations.contains(def.id)
-        let atMax  = state.activeIntegrations.count >= 4 && !isOn && !isMain
+        let atMax  = KoncluiTabLimit.blocks(activeCount: state.activeIntegrations.count, isOn: isOn, isMain: isMain)   // Koncluí
+            || (KoncluiPageDebug.limitPill != nil && !isOn && !isMain)   // DEBUG screenshots only
+        // Koncluí: the installed state comes from KoncluiHookStatus (read off the main thread), not from the files at every redraw.
+        let hooks = koncluiHooks.snapshot, hooksKnown = koncluiHooks.loaded
         let hint: String? = {
             if isMain { return nil }
             if def.comingSoon { return String(localized: "Coming soon") }
             #if !APPSTORE
-            if def.id == "agent_gemini"        && !HookServer.geminiHooksInstalled()      { return String(localized: "Hooks not installed") }
-            if def.id == "agent_antigravity"   && !HookServer.agyHooksInstalled()        { return String(localized: "Hooks not installed") }
-            if def.id == "agent_codex"         && !HookServer.codexHooksInstalled()      { return String(localized: "Hooks not installed") }
-            if def.id == "agent_copilot"       && !HookServer.copilotHooksInstalled()    { return String(localized: "Hooks not installed") }
-            if def.id == "agent_muse"          && !HookServer.museHooksInstalled()       { return String(localized: "Hooks not installed") }
-            if def.id == "agent_opencode"      && !HookServer.openCodePluginInstalled()  { return String(localized: "Plugin not installed") }
-            if def.id == "agent_amp"           && !HookServer.ampPluginInstalled()       { return String(localized: "Plugin not installed") }
+            if def.id == "agent_gemini"        && hooksKnown && !hooks.isInstalled(.gemini)      { return String(localized: "Hooks not installed") }
+            if def.id == "agent_antigravity"   && hooksKnown && !hooks.isInstalled(.antigravity) { return String(localized: "Hooks not installed") }
+            if def.id == "agent_codex"         && hooksKnown && !hooks.isInstalled(.codex)       { return String(localized: "Hooks not installed") }
+            if def.id == "agent_copilot"       && hooksKnown && !hooks.isInstalled(.copilot)     { return String(localized: "Hooks not installed") }
+            if def.id == "agent_muse"          && hooksKnown && !hooks.isInstalled(.muse)        { return String(localized: "Hooks not installed") }
+            if def.id == "agent_opencode"      && hooksKnown && !hooks.isInstalled(.opencode)    { return String(localized: "Plugin not installed") }
+            if def.id == "agent_amp"           && hooksKnown && !hooks.isInstalled(.amp)         { return String(localized: "Plugin not installed") }
             if def.id == SpotifyController.pillId && !SpotifyController.shared.isInstalled { return String(localized: "Not installed") }
             #endif
             if def.category == .ai {
@@ -2300,18 +2120,8 @@ struct SettingsView: View {
             return nil
         }()
         HStack(spacing: 8) {
-            // The dot is the row's colour control: it looks as it always did,
-            // and a click opens the palette.
-            Button {
-                colorPalettePill = def.id
-            } label: {
-                Circle()
-                    .fill(Color(hex: def.color))
-                    .frame(width: 10, height: 10)
-            }
-            .buttonStyle(.plain)
-            .help(String(localized: "Color"))
-            .accessibilityLabel(Text(def.name + " · " + String(localized: "Color")))
+            // The dot is the row's colour control; a click opens the palette. Koncluí: it is drawn as a door (KoncluiPillRowParts.swift).
+            koncluiColorDot(def)
             .popover(isPresented: Binding(
                 get: { colorPalettePill == def.id },
                 set: { open in if !open && colorPalettePill == def.id { colorPalettePill = nil } }
@@ -2334,7 +2144,9 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             } else {
-                if let h = hint {
+                if atMax {
+                    koncluiLimitDoor(def)   // Koncluí: the switch is blocked, and the row says why and how to free a place
+                } else if let h = hint {
                     koncluiHint(h, for: def)   // Koncluí: "Hooks not installed" is a door to the install (KoncluiAgentRow.swift)
                 }
                 Toggle("", isOn: Binding(
@@ -2443,12 +2255,12 @@ struct IntegrationFilterRow: View {
                     ProgressView().scaleEffect(0.6)
                 } else {
                     Button(items.isEmpty ? "Load list" : "Refresh") { onLoad() }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                         .controlSize(.mini)
                 }
                 if !filter.isEmpty {
                     Button("Clear") { filter = [] }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                         .controlSize(.mini)
                         .foregroundColor(.secondary)
                 }
@@ -2506,7 +2318,7 @@ struct ShortcutRecorderButton: View {
                 return nil
             }
         } label: {
-            Text(isRecording ? "Press keys…" : shortcutLabel)
+            Text(isRecording ? String(localized: "konclui.key.press") : shortcutLabel)
                 .font(.system(size: 11, design: .monospaced))
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(isRecording ? Color.accentColor.opacity(0.12) : Color(NSColor.controlBackgroundColor))
@@ -2524,7 +2336,7 @@ struct ShortcutRecorderButton: View {
         if f.contains(.shift)   { s += "⇧" }
         if f.contains(.command) { s += "⌘" }
         s += keyChar(code)
-        return s.isEmpty ? "None" : s
+        return s.isEmpty ? String(localized: "None") : s
     }
 
     private func keyChar(_ c: UInt16) -> String {
@@ -2533,7 +2345,7 @@ struct ShortcutRecorderButton: View {
             11:"B", 12:"Q", 13:"W", 14:"E", 15:"R", 16:"Y", 17:"T", 31:"O", 32:"U",
             34:"I", 37:"L", 38:"J", 40:"K", 45:"N", 46:"M", 49:"Space", 50:"`", 27:"-"
         ]
-        return map[c] ?? "·"
+        return map[c] ?? KoncluiKeyName.label(c)
     }
 }
 
@@ -2639,7 +2451,8 @@ extension SettingsView {
                                                 @ViewBuilder content: @escaping () -> Content) -> some View {
         KoncluiAgentRow(id: block.rawValue, name: block.title,
                         colorHex: KoncluiAgentRows.colorHex(for: block, custom: state.pillColors),
-                        status: KoncluiAgentRows.status(kind, installed: installed, outdated: outdated),
+                        status: koncluiHooks.loaded || kind == .toggle ? KoncluiAgentRows.status(kind, installed: installed, outdated: outdated)
+                                                                        : KoncluiAgentRows.checking,
                         note: statusMessage, isOpen: koncluiPopoverBinding(block.rawValue, open: $koncluiOpenAgent),
                         content: content)
     }
@@ -2659,6 +2472,40 @@ extension SettingsView {
 
     /// While a popover is open the message shows inside it; the window's bottom line would repeat it.
     private var koncluiPopoverOpen: Bool { koncluiOpenAgent != nil || koncluiDoorPill != nil }
+
+    /// The colour dot of an Active pills row.
+    @ViewBuilder
+    private func koncluiColorDot(_ def: PillDefinition) -> some View {
+        #if !APPSTORE
+        KoncluiColorDot(hex: def.color, tabName: def.name) { colorPalettePill = def.id }
+        #else
+        Button { colorPalettePill = def.id } label: {
+            Circle().fill(Color(hex: def.color)).frame(width: 10, height: 10)
+        }
+        .buttonStyle(.plain)
+        .help(String(localized: "Color"))
+        .accessibilityLabel(Text(def.name + " · " + String(localized: "Color")))
+        #endif
+    }
+
+    /// Four tabs are on: what the blocked switch of `def` offers instead of a silent grey.
+    @ViewBuilder
+    private func koncluiLimitDoor(_ def: PillDefinition) -> some View {
+        #if !APPSTORE
+        let order = PillCatalog.available.map(\.id)
+        let tabs: [KoncluiTabLimitDoor.Tab] = KoncluiTabLimit
+            .releasable(active: state.activeIntegrations, main: state.mainPillId, order: order)
+            .compactMap { id in PillCatalog.definition(for: id).map { .init(id: id, name: $0.name, colorHex: $0.color) } }
+        KoncluiTabLimitDoor(
+            name: def.name, tabs: tabs,
+            isOpen: Binding(get: { koncluiLimitPill == def.id },
+                            set: { on in if on { koncluiLimitPill = def.id } else if koncluiLimitPill == def.id { koncluiLimitPill = nil } }),
+            turnOff: { state.toggleIntegration($0) })
+        #else
+        Text(String(format: String(localized: "settings.slots-used %lld"), Int64(state.activeIntegrations.count)))
+            .font(.system(size: 11)).foregroundColor(.secondary)
+        #endif
+    }
 
     /// The hint on an Active pills row: plain text, or for an agent whose hooks or plugin are missing, a door to the install.
     @ViewBuilder
@@ -2702,15 +2549,19 @@ extension SettingsView {
         return KoncluiHookDoorPopover(
             name: def.name,
             colorHex: PillColors.color(for: def.id, catalogColor: def.defaultColor, in: state.pillColors),
-            kind: door.kind, showDiff: wiring?.showDiff ?? false, pending: wiring?.pending ?? "", note: statusMessage,
-            install: { wiring?.start() }, confirm: { wiring?.confirm() }, cancel: { wiring?.cancel() })
+            target: KoncluiHookTarget(block: door.block) ?? .codex, kind: door.kind,
+            installed: wiring?.installed ?? false, showDiff: wiring?.showDiff ?? false, pending: wiring?.pending ?? "",
+            pendingInstall: wiring?.pendingInstall ?? true, note: statusMessage,
+            preview: { wiring?.start($0) }, confirm: { wiring?.confirm() }, cancel: { wiring?.cancel() })
     }
 
     /// An agent's own install state and steps, so the door runs the very preview and confirmation of the Agents page.
     private struct KoncluiHookWiring {
+        var installed: Bool
         var showDiff: Bool
         var pending: String
-        var start: () -> Void
+        var pendingInstall: Bool
+        var start: (_ install: Bool) -> Void
         var confirm: () -> Void
         var cancel: () -> Void
     }
@@ -2718,36 +2569,36 @@ extension SettingsView {
     private func koncluiHookWiring(_ block: KoncluiRecognition.AgentBlock) -> KoncluiHookWiring? {
         switch block {
         case .gemini:
-            return KoncluiHookWiring(showDiff: showGeminiDiff, pending: pendingGeminiJSON,
-                                     start: { triggerGeminiPreview(install: true) }, confirm: { confirmGeminiOp() },
+            return KoncluiHookWiring(installed: geminiHooksInstalled, showDiff: showGeminiDiff, pending: pendingGeminiJSON, pendingInstall: geminiPendingInstall,
+                                     start: { triggerGeminiPreview(install: $0) }, confirm: { confirmGeminiOp() },
                                      cancel: { showGeminiDiff = false; pendingGeminiJSON = "" })
         case .antigravity:
-            return KoncluiHookWiring(showDiff: showAgyDiff, pending: pendingAgyJSON,
-                                     start: { triggerAgyPreview(install: true) }, confirm: { confirmAgyOp() },
+            return KoncluiHookWiring(installed: agyHooksInstalled, showDiff: showAgyDiff, pending: pendingAgyJSON, pendingInstall: agyPendingInstall,
+                                     start: { triggerAgyPreview(install: $0) }, confirm: { confirmAgyOp() },
                                      cancel: { showAgyDiff = false; pendingAgyJSON = "" })
         case .codex:
-            return KoncluiHookWiring(showDiff: showCodexDiff, pending: pendingCodexJSON,
-                                     start: { triggerCodexPreview(install: true) }, confirm: { confirmCodexOp() },
+            return KoncluiHookWiring(installed: codexHooksInstalled, showDiff: showCodexDiff, pending: pendingCodexJSON, pendingInstall: codexPendingInstall,
+                                     start: { triggerCodexPreview(install: $0) }, confirm: { confirmCodexOp() },
                                      cancel: { showCodexDiff = false; pendingCodexJSON = "" })
         case .copilot:
-            return KoncluiHookWiring(showDiff: showCopilotDiff, pending: pendingCopilotJSON,
-                                     start: { triggerCopilotPreview(install: true) }, confirm: { confirmCopilotOp() },
+            return KoncluiHookWiring(installed: copilotHooksInstalled, showDiff: showCopilotDiff, pending: pendingCopilotJSON, pendingInstall: copilotPendingInstall,
+                                     start: { triggerCopilotPreview(install: $0) }, confirm: { confirmCopilotOp() },
                                      cancel: { showCopilotDiff = false; pendingCopilotJSON = "" })
         case .muse:
-            return KoncluiHookWiring(showDiff: showMuseDiff, pending: pendingMuseJSON,
-                                     start: { triggerMusePreview(install: true) }, confirm: { confirmMuseOp() },
+            return KoncluiHookWiring(installed: museHooksInstalled, showDiff: showMuseDiff, pending: pendingMuseJSON, pendingInstall: musePendingInstall,
+                                     start: { triggerMusePreview(install: $0) }, confirm: { confirmMuseOp() },
                                      cancel: { showMuseDiff = false; pendingMuseJSON = "" })
         case .opencode:
-            return KoncluiHookWiring(showDiff: showOpenCodeDiff, pending: pendingOpenCodeContent,
-                                     start: { triggerOpenCodePreview(install: true) }, confirm: { confirmOpenCodeOp() },
+            return KoncluiHookWiring(installed: openCodePluginInstalled, showDiff: showOpenCodeDiff, pending: pendingOpenCodeContent, pendingInstall: openCodePendingInstall,
+                                     start: { triggerOpenCodePreview(install: $0) }, confirm: { confirmOpenCodeOp() },
                                      cancel: { showOpenCodeDiff = false; pendingOpenCodeContent = "" })
         case .amp:
-            return KoncluiHookWiring(showDiff: showAmpDiff, pending: pendingAmpContent,
-                                     start: { triggerAmpPreview(install: true) }, confirm: { confirmAmpOp() },
+            return KoncluiHookWiring(installed: ampPluginInstalled, showDiff: showAmpDiff, pending: pendingAmpContent, pendingInstall: ampPendingInstall,
+                                     start: { triggerAmpPreview(install: $0) }, confirm: { confirmAmpOp() },
                                      cancel: { showAmpDiff = false; pendingAmpContent = "" })
         case .hermes:
-            return KoncluiHookWiring(showDiff: showHermesPluginDiff, pending: pendingHermesPluginContent,
-                                     start: { triggerHermesPluginPreview(install: true) }, confirm: { confirmHermesPluginOp() },
+            return KoncluiHookWiring(installed: hermesPluginInstalled, showDiff: showHermesPluginDiff, pending: pendingHermesPluginContent, pendingInstall: hermesPluginPendingInstall,
+                                     start: { triggerHermesPluginPreview(install: $0) }, confirm: { confirmHermesPluginOp() },
                                      cancel: { showHermesPluginDiff = false; pendingHermesPluginContent = "" })
         case .claudeCode, .claudeDesktop, .plan:
             return nil
@@ -2755,15 +2606,75 @@ extension SettingsView {
     }
     #endif
 
-    /// DEBUG screenshots: `-konclui.debug.agentPopover <id>:preview` builds that agent's install preview (a read; nothing is written).
+    /// DEBUG screenshots: `-konclui.debug.agentPopover <id>:preview` (or `:remove`) builds that agent's install (or removal)
+    /// preview (a read; nothing is written).
     private func koncluiDebugPreview() {
         #if DEBUG
-        guard KoncluiAgentsDebug.previews, let id = KoncluiAgentsDebug.target?.id else { return }
-        if id == KoncluiRecognition.AgentBlock.claudeCode.rawValue { installHooks(); return }
+        guard let target = KoncluiAgentsDebug.target, target.preview || target.removal else { return }
+        if target.id == KoncluiRecognition.AgentBlock.claudeCode.rawValue {
+            if target.removal { uninstallHooks() } else { installHooks() }
+            return
+        }
         #if !APPSTORE
-        if let block = KoncluiRecognition.AgentBlock(rawValue: id) { koncluiHookWiring(block)?.start() }
+        if let block = KoncluiRecognition.AgentBlock(rawValue: target.id) { koncluiHookWiring(block)?.start(!target.removal) }
         #endif
         #endif
+    }
+
+    // MARK: What Koncluí wrote (KoncluiHookStatus.swift)
+
+    /// The agent's popover content: the state, the one primary it needs, the review before anything is written.
+    @ViewBuilder
+    private func koncluiHookControls(_ target: KoncluiHookTarget, installed: Bool, outdated: Bool = false, show: Bool,
+                                     pending: String, pendingInstall: Bool, preview: @escaping (Bool) -> Void,
+                                     confirm: @escaping () -> Void, cancel: @escaping () -> Void) -> some View {
+        #if !APPSTORE
+        KoncluiHookControls(target: target, name: target.name, installed: installed, outdated: outdated, showDiff: show,
+                            pending: pending, pendingInstall: pendingInstall, preview: preview, confirm: confirm, cancel: cancel)
+        #endif
+    }
+
+    /// The last read of the Mac, copied into the installed flags the install and removal steps keep up to date.
+    private func koncluiApplyHooks(_ snap: KoncluiHookSnapshot) {
+        hookNeedsUpdate = snap.claudeOutdated
+        claudeHooksInstalled = snap.isInstalled(.claudeCode)
+        koncluiTools = snap.tools
+        #if !APPSTORE
+        geminiHooksInstalled = snap.isInstalled(.gemini)
+        agyHooksInstalled = snap.isInstalled(.antigravity)
+        codexHooksInstalled = snap.isInstalled(.codex)
+        copilotHooksInstalled = snap.isInstalled(.copilot)
+        museHooksInstalled = snap.isInstalled(.muse)
+        openCodePluginInstalled = snap.isInstalled(.opencode)
+        ampPluginInstalled = snap.isInstalled(.amp)
+        hermesPluginInstalled = snap.isInstalled(.hermes)
+        #endif
+    }
+
+    /// Any install or removal flips one of these: the snapshot (Active pills' hints, Geral's card) reads the Mac again.
+    private var koncluiInstalledFlags: [Bool] {
+        #if APPSTORE
+        [claudeHooksInstalled]
+        #else
+        [claudeHooksInstalled, geminiHooksInstalled, agyHooksInstalled, codexHooksInstalled, copilotHooksInstalled,
+         museHooksInstalled, openCodePluginInstalled, ampPluginInstalled, hermesPluginInstalled]
+        #endif
+    }
+
+    /// Agents found on this Mac and not connected yet (a DEBUG launch argument can name some, for screenshots).
+    private var koncluiWaitingAgents: [KoncluiHookTarget] { KoncluiPageDebug.waiting ?? koncluiHooks.snapshot.waiting }
+
+    private var koncluiAnyAgentConnected: Bool { KoncluiPageDebug.connected ?? koncluiHooks.snapshot.anyConnected }
+
+    /// "Connect agents" on Geral: the Agents page, in the hub window or in the standalone Settings.
+    private func koncluiOpenAgentsPage() {
+        #if !APPSTORE
+        if embeddedSection != nil {
+            FlowHubController.shared.router.page = HubPage.forSettings("agents")
+            return
+        }
+        #endif
+        selectedSection = "agents"
     }
 
     // MARK: Chat

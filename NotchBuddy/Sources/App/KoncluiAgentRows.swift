@@ -44,6 +44,9 @@ enum KoncluiAgentRows {
         }
     }
 
+    /// What a row says until the first read of the Mac ends (KoncluiHookStatus): never a guess about what is installed.
+    static let checking = Status(key: "konclui.agents.checking", tone: .todo)
+
     /// The row as VoiceOver says it after a change: the name, then the state in words.
     static func spoken(name: String, status: String) -> String { "\(name), \(status)" }
 
@@ -95,16 +98,19 @@ enum KoncluiAgentRows {
     // MARK: DEBUG screenshots
 
     /// `-konclui.debug.agentPopover codex` opens that row's popover; `codex:preview` also builds the install preview in it
-    /// (it reads the agent's file, never writes). The id is an `AgentBlock` raw value, or `klaude`.
+    /// and `codex:remove` the removal preview (they read the agent's file, never write). The id is an `AgentBlock` raw
+    /// value, `klaude` or `orca`.
     struct DebugTarget: Equatable, Sendable {
         let id: String
         let preview: Bool
+        var removal = false
     }
 
     static func debugTarget(_ raw: String?) -> DebugTarget? {
         guard let raw, !raw.isEmpty else { return nil }
         let parts = raw.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
         guard let id = parts.first, !id.isEmpty else { return nil }
-        return DebugTarget(id: id, preview: parts.count > 1 && parts[1] == "preview")
+        let suffix = parts.count > 1 ? parts[1] : ""
+        return DebugTarget(id: id, preview: suffix == "preview", removal: suffix == "remove")
     }
 }

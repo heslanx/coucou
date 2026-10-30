@@ -272,9 +272,9 @@ struct KoncluiWhatsAppPreview: View {
         ZStack {
             switch beat.note {
             case .muted(let name):
-                annotation("speaker.slash.fill", "\(name) · \(String(localized: "konclui.whatsapp.preview.muted"))", color: Color(hex: "#C7CBD2"))
+                annotation("speaker.slash.fill", "\(name) · \(String(localized: "konclui.whatsapp.preview.muted"))", color: KoncluiTheme.textBody)
             case .held(let name):
-                annotation("moon.fill", "\(name) · \(String(localized: "konclui.whatsapp.preview.held"))", color: Color(hex: "#F5B83D"))
+                annotation("moon.fill", "\(name) · \(String(localized: "konclui.whatsapp.preview.held"))", color: KoncluiTheme.attention)
             default:
                 EmptyView()
             }
@@ -286,7 +286,7 @@ struct KoncluiWhatsAppPreview: View {
     private func annotation(_ symbol: String, _ text: String, color: Color) -> some View {
         HStack(spacing: 5) {
             Image(systemName: symbol).font(.system(size: 9))
-            Text(verbatim: text).font(.system(size: 10.5))
+            Text(verbatim: text).font(.system(size: 11))
         }
         .foregroundColor(color)
         .padding(.horizontal, 8).padding(.vertical, 3)
@@ -302,7 +302,7 @@ struct KoncluiWhatsAppPreview: View {
             // What the beat on the stage shows, in words (UX.md, habit 10): the stage's value says it for VoiceOver.
             Text(verbatim: line(for: shown.note))
                 .font(.system(size: 11, weight: .medium))
-                .foregroundColor(Color(hex: "#C7CBD2"))
+                .foregroundColor(KoncluiTheme.textBody)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, minHeight: 15, alignment: .leading)
@@ -311,7 +311,7 @@ struct KoncluiWhatsAppPreview: View {
                 .accessibilityHidden(true)
             HStack(alignment: .top, spacing: 10) {
                 Text("konclui.whatsapp.preview.caption")
-                    .font(.system(size: 10.5))
+                    .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#8E939C"))
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -386,7 +386,7 @@ struct KoncluiWhatsAppPreview: View {
                 .foregroundColor(Color(hex: "#F5F6F8"))
             if unread > 0 {
                 Text(String(format: String(localized: "%lld unread"), Int64(unread)))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Self.accent)
                     .monospacedDigit()
                     .padding(.horizontal, 6).padding(.vertical, 1)
@@ -403,9 +403,9 @@ struct KoncluiWhatsAppPreview: View {
     private var focusNote: some View {
         HStack(spacing: 5) {
             Image(systemName: "moon.fill").font(.system(size: 9))
-            Text("konclui.whatsapp.preview.focus-note").font(.system(size: 10))
+            Text("konclui.whatsapp.preview.focus-note").font(.system(size: 11))
         }
-        .foregroundColor(Color(hex: "#F5B83D"))
+        .foregroundColor(KoncluiTheme.attention)
         .padding(.top, 5)
         .padding(.leading, 108)
     }
@@ -446,7 +446,7 @@ struct KoncluiWhatsAppPreview: View {
                 Circle().fill(WhatsAppStatus.dot(link.real)).frame(width: 5, height: 5)
                 Text(WhatsAppStatus.label(link.real))
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "#6B7079"))
+                    .foregroundColor(KoncluiTheme.textTertiary)
                     .lineLimit(1).truncationMode(.tail)
             }
             Text("Settings…")

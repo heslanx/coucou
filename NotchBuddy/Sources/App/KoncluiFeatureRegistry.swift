@@ -46,7 +46,8 @@ enum KoncluiFeatureRegistry {
             ("block_iphone",    "iPhone"),
             ("block_recap",     String(localized: "Weekly recap")),
             ("block_vitals",    String(localized: "vitals.title")),
-            ("block_reminders", String(localized: "konclui.features.block.reminders")),
+            // Reminders is a page of the window now (HubPage.reminders, flag `block_reminders`): it is listed under Pages.
+            ("block_updates",   String(localized: "konclui.features.block.updates")),
         ]
     }
 
@@ -88,8 +89,8 @@ enum KoncluiFeatureRegistry {
 
 #if !APPSTORE
 extension HubPage {
-    /// The id of this page's flag.
-    var featureId: String { "page_" + rawValue }
+    /// The id of this page's flag. Reminders keeps the flag it had as a block of the standalone Settings window.
+    var featureId: String { self == .reminders ? "block_reminders" : "page_" + rawValue }
 
     /// The page itself when its feature is on, else the first page that is on.
     static func resolved(_ page: HubPage) -> HubPage {

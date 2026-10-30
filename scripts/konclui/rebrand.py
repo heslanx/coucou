@@ -21,6 +21,7 @@ code, so the rule needs a look.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import shutil
@@ -311,6 +312,24 @@ CODE += [("tests/WakePhraseTests.swift", pat, rep) for pat, rep in (
     (r"\bcuckoo\b", "kourou"), (r"\bkuku\b", "coru"), (r"\bcou cou\b", "ko ru"),
     (r"\bcoucou\b", "koru"), (r"\bCoucou\b", "Koru"), (r"\bCOUCOU\b", "KORU"))]
 
+# The hub window's look reaches upstream's settings views through three style names (KoncluiTheme.swift): inside the hub
+# they are the window's primary, secondary and segmented looks; anywhere else (the standalone Settings window) they are
+# upstream's own `.borderedProminent`, `.bordered` and segmented style, so nothing there changes. The segmented rule keeps
+# its chain on one line and is idempotent. Only the files and styles that exist today are listed; a rule that matches
+# nothing after a merge is harmless.
+HUB_STYLES = {
+    "NotchBuddy/Sources/App/SettingsView.swift": ("primary", "secondary", "segmented"),
+    "NotchBuddy/Sources/App/WhatsAppViews.swift": ("primary", "secondary", "segmented"),
+    "NotchBuddy/Sources/App/RemindersSettingsSection.swift": ("primary",),
+    "NotchBuddy/Sources/App/ShortcutsSettingsView.swift": ("secondary",),
+}
+HUB_STYLE_RULES = {
+    "primary": (r"\.buttonStyle\(\.borderedProminent\)", ".buttonStyle(.koncluiPrimary)"),
+    "secondary": (r"\.buttonStyle\(\.bordered\)", ".buttonStyle(.koncluiSecondary)"),
+    "segmented": (r"\.pickerStyle\(\.segmented\)(?!\.koncluiSegmented\(\))", ".pickerStyle(.segmented).koncluiSegmented()"),
+}
+CODE += [(rel, *HUB_STYLE_RULES[kind]) for rel, kinds in HUB_STYLES.items() for kind in kinds]
+
 # Insertions: (file, anchor, block). The block goes right before the anchor, once.
 INSERTS = [
     # The project guide points every developer and agent to the fork's own rules.
@@ -338,6 +357,15 @@ INSERTS = [
 
 """),
 ]
+
+# What the screens say besides the brand: COPY, SUBS, DASHES and PATHS over the catalog, the permission prompts, and the
+# hard-coded English literals of upstream views (scripts/konclui/rebrand_copy.py and its data file).
+_spec = importlib.util.spec_from_file_location("rebrand_copy", Path(__file__).with_name("rebrand_copy.py"))
+copy_rules = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(copy_rules)
+FIXED += copy_rules.FIXED
+INSERTS += copy_rules.INSERTS
+INFO_PLIST_CATALOG = "NotchBuddy/Resources/InfoPlist.xcstrings"
 
 # Brand words in scripts/coucou-mcp.py are what MCP clients show (tool descriptions, errors).
 MCP_SCRIPT = "scripts/coucou-mcp.py"
@@ -746,6 +774,19 @@ def main() -> int:
             log.append(f"{rel}: {count} strings")
     if len(json.loads(read("NotchBuddy/Resources/Localizable.xcstrings"))["strings"]) != keys_before:
         raise SystemExit("Localizable.xcstrings: a renamed key collides with an existing one")
+
+    # 6. what the screens say (copy_rules): the catalog's COPY, SUBS, DASHES and PATHS, then the permission prompts
+    catalog_rel = "NotchBuddy/Resources/Localizable.xcstrings"
+    new, count = copy_rules.apply(read(catalog_rel), stale)
+    json.loads(new)
+    if count:
+        stage(catalog_rel, new)
+        log.append(f"{catalog_rel}: {count} entries rewritten by the copy rules")
+    info_text = copy_rules.info_plist_catalog()
+    info_path = ROOT / INFO_PLIST_CATALOG
+    if not info_path.exists() or info_path.read_text(encoding="utf-8") != info_text:
+        pending[info_path] = info_text
+        log.append(f"{INFO_PLIST_CATALOG}: the permission prompts in 14 languages")
 
     for line in log:
         print("  " + line)

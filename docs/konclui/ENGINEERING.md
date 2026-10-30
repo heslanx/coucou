@@ -16,8 +16,12 @@ what it costs at the next `git merge upstream/main`.
 - New strings go in with `scripts/konclui/add-strings.py <strings.json>` (`{"key": {"en": "...", "pt-BR": "...", ...}}`, all
   14 languages): one line per key at the top of the catalog, upstream's entries untouched. Units working in parallel hand in
   their JSON and one person merges them.
-- Text that users see is rewritten by `scripts/konclui/rebrand.py`, not by hand. A new rule goes into the script so it is
-  applied again after a merge; `python3 scripts/konclui/rebrand.py --check` must report 0 changes and 0 stale rules.
+- Text that users see is rewritten by `scripts/konclui/rebrand.py` and its copy rules (`rebrand_copy.py`, data in
+  `rebrand_copy_data.py`), not by hand: COPY (a key's upstream English and the new text in the 14 languages), SUBS (a fragment
+  of a sentence), FILL (a language upstream never wrote), DASHES and PATHS (listed keys, never a blanket regex), FIXED (a
+  hard-coded literal in an upstream view, pointed at a catalog key). A new rule goes into the table so a merge re-applies it;
+  `python3 scripts/konclui/rebrand.py --check` must report 0 changes and 0 stale rules (a rule whose upstream English changed
+  is reported as STALE). Brand-new strings of ours still go through `add-strings.py`.
 - Internal identifiers stay upstream's (targets, Swift types, UserDefaults keys). Pill IDs, feature flag IDs, chat provider
   raw values and hook markers are **stable contract values**: never rename one that shipped.
 - New features ship behind a feature flag (`CoucouKit/KoncluiFeatures.swift`); deleting a feature for good is "delete its code
@@ -45,6 +49,11 @@ what it costs at the next `git merge upstream/main`.
   code in `Sources/App`.
 - **Contracts between parts are written down** (a protocol, a struct, a documented function) before two people code against
   them.
+- **A view never reads an agent's file** in its body or in a `@State` initializer. `KoncluiHookStatus` reads what Koncluí wrote
+  once, off the main thread, when a page appears and after an action; views read its last answer and show "Verificando…"
+  until the first read ends. Anything that parses a user's file to build a view goes through it.
+- When the same popover content serves several entry points (the Agents row, the Active pills door), it is one component fed
+  by one state (`KoncluiHookControls`), not a copy per entry point.
 
 ## 4. Pragmatic programming
 
@@ -73,7 +82,8 @@ what it costs at the next `git merge upstream/main`.
   one (`scripts/konclui/signing.sh`), so macOS keeps Koncluí's Keychain and privacy permissions across builds; without
   one it builds ad hoc and macOS asks again after each build.
 - The tests of what you touched: `scripts/test-*.sh`, `scripts/konclui/test-*.sh`, `python3 scripts/test-localization.py`,
-  `python3 scripts/test-whats-new.py`, and `python3 scripts/konclui/rebrand.py --check`.
+  `python3 scripts/test-whats-new.py`, `python3 scripts/konclui/test-copy.py`, `scripts/konclui/test-key-name.sh`, and
+  `python3 scripts/konclui/rebrand.py --check`.
 - A screen or interaction change is walked in the running app (UX.md, section 7). The Debug build accepts
   `-konclui.debug.page <page>` to open the Koncluí window on a given page for screenshots.
 - Report what ran, what passed, and what remains unverified.

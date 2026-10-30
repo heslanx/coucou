@@ -23,7 +23,7 @@ struct KoncluiFeaturesPage: View {
                 }
             }
             Button(String(localized: "konclui.features.restore")) { model.restoreDefaults() }
-                .buttonStyle(.bordered)
+                .buttonStyle(.koncluiSecondary)
         }
     }
 
@@ -58,6 +58,7 @@ struct KoncluiFeaturesPage: View {
                 get: { KoncluiFeatures.isOn(feature.id) },
                 set: { model.set(feature.id, $0) }
             ))
+            .toggleStyle(.switch)   // Koncluí: an on/off setting, not a list selection: a switch, like the other settings
             .labelsHidden()
             .disabled(feature.isRequired)
         }
@@ -80,7 +81,7 @@ struct KoncluiFeaturesSidebarItem: View {
                     .font(.system(size: 14, weight: selected ? .semibold : .regular))
                 Spacer(minLength: 0)
             }
-            .foregroundColor(selected ? HubTheme.text : Color(hex: "#B7BBC2"))
+            .foregroundColor(selected ? HubTheme.text : KoncluiTheme.textBody)
             .padding(.horizontal, 10)
             .frame(height: 32)
             .background(RoundedRectangle(cornerRadius: 9)
@@ -89,6 +90,7 @@ struct KoncluiFeaturesSidebarItem: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
+        .koncluiPointer()
     }
 }
 #endif

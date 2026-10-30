@@ -372,7 +372,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = SpotifyController.shared
         MailController.shared.start()
         WhatsAppController.shared.start()
-        MacUpdater.shared.start()
+        if KoncluiFeatures.isOn("block_updates") { MacUpdater.shared.start() }   // Koncluí: no update channel yet (KONCLUI.md)
         ClaudeDesktopChatWatcher.shared.start()
         #endif
         CryptoController.shared.start()

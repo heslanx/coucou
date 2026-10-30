@@ -96,27 +96,33 @@ struct KoncluiAgentRow<Content: View>: View {
         }
         .padding(14)
         .frame(width: 400, alignment: .leading)
+        #if !APPSTORE
+        .koncluiTheme()   // a popover is its own window: the hub's buttons do not reach it
+        #endif
     }
 }
 
 // MARK: - Door on Active pills
 
-/// What "Hooks not installed" opens on Active pills: one line on what the install does, then the same preview and
-/// confirmation as in Settings → Agents. It drives the Agents page's own state (SettingsView passes it in), so a preview
-/// started here shows there too, and nothing is written before "Confirm and write".
+/// What "Hooks not installed" opens on Active pills: the same controls as Settings → Agents (the state, the one primary it
+/// needs, the review of what changes), driven by the Agents page's own state (SettingsView passes it in), so a preview
+/// started here shows there too, and nothing is written before the person confirms.
 struct KoncluiHookDoorPopover: View {
     let name: String
     let colorHex: String
+    let target: KoncluiHookTarget
     let kind: KoncluiAgentRows.Kind
+    let installed: Bool
     let showDiff: Bool
     let pending: String
+    let pendingInstall: Bool
     let note: String
-    let install: () -> Void
+    let preview: (_ install: Bool) -> Void
     let confirm: () -> Void
     let cancel: () -> Void
 
     var body: some View {
-        let status = KoncluiAgentRows.status(kind, installed: false)
+        let status = KoncluiAgentRows.status(kind, installed: installed)
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Circle().fill(Color(hex: colorHex)).frame(width: 10, height: 10).accessibilityHidden(true)
@@ -126,39 +132,17 @@ struct KoncluiHookDoorPopover: View {
                 Spacer(minLength: 8)
                 KoncluiAgentStatusLabel(words: String(localized: String.LocalizationValue(status.key)), tone: status.tone, size: 12)
             }
-            Text(verbatim: explanation)
-                .font(.system(size: 11.5))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if showDiff {
-                ScrollView {
-                    Text(pending)
-                        .font(.system(size: 10, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(height: 140)
-                .background(Color(NSColor.textBackgroundColor))
-                .cornerRadius(6)
-                HStack {
-                    Button(String(localized: "hooks.confirm-write"), action: confirm)
-                        .buttonStyle(.borderedProminent)
-                    Button(String(localized: "Cancel"), action: cancel)
-                        .buttonStyle(.bordered)
-                }
-            } else {
-                Button(kind == .plugin ? String(localized: "plugin.install") : String(localized: "hooks.install"), action: install)
-                    .buttonStyle(.borderedProminent)
-            }
+            #if !APPSTORE
+            KoncluiHookControls(target: target, name: name, installed: installed, showDiff: showDiff, pending: pending,
+                                pendingInstall: pendingInstall, preview: preview, confirm: confirm, cancel: cancel)
+            #endif
             if !note.isEmpty { KoncluiAgentNote(text: note) }
         }
         .padding(14)
-        .frame(width: 360, alignment: .leading)
-    }
-
-    private var explanation: String {
-        let format = kind == .plugin ? String(localized: "konclui.agents.door.plugin %@")
-                                     : String(localized: "konclui.agents.door.hooks %@")
-        return String(format: format, name)
+        .frame(width: 400, alignment: .leading)
+        #if !APPSTORE
+        .koncluiTheme()   // a popover is its own window: the hub's buttons do not reach it
+        #endif
     }
 }
 
@@ -236,7 +220,7 @@ extension KoncluiAgentRows {
 
 /// `-konclui.debug.agentPopover <agent id>` (an `AgentBlock` raw value such as `codex`, or `klaude`) opens that row's popover
 /// on Settings → Agents, and shows the row even on a Mac without the agent; add `:preview` (`codex:preview`) to build the
-/// install preview in it as well. Opening and previewing only read: no hook file is ever written by the flag. On Active pills
+/// install preview in it as well, or `:remove` for the removal preview. Opening and previewing only read: no hook file is ever written by the flag. On Active pills
 /// the same id opens the door popover of that agent's "not installed" hint. In a release build every answer is nil or false.
 enum KoncluiAgentsDebug {
     static var target: KoncluiAgentRows.DebugTarget? {
@@ -257,4 +241,6 @@ enum KoncluiAgentsDebug {
     }
 
     static var previews: Bool { target?.preview ?? false }
+
+    static var removes: Bool { target?.removal ?? false }
 }

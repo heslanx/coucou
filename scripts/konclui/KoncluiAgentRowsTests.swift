@@ -54,7 +54,8 @@ enum KoncluiAgentRowsTests {
             [Rows.Kind.hooks, .plugin, .toggle].flatMap { kind in
                 [Rows.status(kind, installed: installed), Rows.status(kind, installed: installed, outdated: true, needsPermission: true)].map(\.key)
             }
-        }).union(["konclui.agents.row.hint", "konclui.agents.door.hooks %@", "konclui.agents.door.plugin %@", "konclui.agents.door.hint %@"])
+        }).union(["konclui.agents.row.hint", "konclui.agents.door.hooks %@", "konclui.agents.door.plugin %@", "konclui.agents.door.hint %@",
+                  Rows.checking.key])
         for key in keys.sorted() {
             check("\(key)", languagesOf(key) == Set(languages))
         }
@@ -112,12 +113,14 @@ enum KoncluiAgentRowsTests {
         check("an agent id", Rows.debugTarget("codex") == .init(id: "codex", preview: false))
         check("with the preview", Rows.debugTarget("codex:preview") == .init(id: "codex", preview: true))
         check("any other suffix is no preview", Rows.debugTarget("codex:write") == .init(id: "codex", preview: false))
+        check("with the removal preview", Rows.debugTarget("codex:remove") == .init(id: "codex", preview: false, removal: true))
+        check("a row says it is checking until the first read ends", Rows.checking.key == "konclui.agents.checking" && Rows.checking.tone == .todo)
         check("nothing, or an empty value, is no target", Rows.debugTarget(nil) == nil && Rows.debugTarget("") == nil && Rows.debugTarget(":preview") == nil)
         let view = read("NotchBuddy/Sources/App/KoncluiAgentRow.swift")
         check("the flag is read in DEBUG builds only", view.contains("#if DEBUG\n        KoncluiAgentRows.debugTarget"))
 
         print("No block is left as a GroupBox (a merge from upstream brings them back)")
-        let hooks = read("NotchBuddy/Sources/App/KoncluiAgentHooks.swift")
+        let hooks = read("NotchBuddy/Sources/App/KoncluiKlaudeRow.swift")
         let desktop = read("NotchBuddy/Sources/App/ClaudeDesktopChatWatcher.swift")
         for block in Block.allCases where block != .claudeDesktop {
             check("\(block.rawValue) is a row in SettingsView", settings.contains("koncluiAgentRow(.\(block.rawValue),"))

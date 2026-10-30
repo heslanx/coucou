@@ -8,29 +8,46 @@ struct HubHomePage: View {
     @ObservedObject private var store = FlowStore.shared
     @ObservedObject private var flow = FlowDictation.shared
     @State private var query = ""
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
 
     private var greeting: String {
         if let name = resolveUserFirstName() { return String(format: String(localized: "hub.hello %@"), name) }
         return String(localized: "hub.hello")
     }
 
+    // Koncluí: while dictation is off or cannot paste yet, the band's one primary is the setup (the setup card and its
+    // second primary are gone, and the hold-a-key sentence shows once). Recording a call is the primary only when
+    // dictation works; the Notetaker promo below leads there in the meantime.
+    private var needsSetup: Bool { !flow.isEnabled || !flow.trusted }
+
+    private var bandSubtitle: String {
+        if !flow.isEnabled { return String(format: String(localized: "hub.setup %@"), flow.key.label) }
+        if !flow.trusted { return String(localized: "hub.setup-access-title") }
+        return String(format: String(localized: "hub.hint %@"), flow.key.label)
+    }
+
     var body: some View {
-        HubPageScaffold(title: greeting,
-                        subtitle: String(format: String(localized: "hub.hint %@"), flow.key.label)) {
-            Button {
-                router.page = .notes
-                if KoncluiNoteSpeech.engine != .needsDownload, !NoteTaker.shared.isRecording { Task { await NoteTaker.shared.start() } }   // Koncluí: Apple's speech records
-            } label: {
-                HStack(spacing: 7) {
-                    Circle().fill(HubTheme.onAccent).frame(width: 9, height: 9)
-                    Text("hub.record-call")
+        HubPageScaffold(title: greeting, subtitle: bandSubtitle) {
+            if !flow.isEnabled {
+                Button(String(localized: "hub.setup-enable")) { flow.isEnabled = true }
+                    .buttonStyle(HubButtonStyle(primary: true))
+            } else if !flow.trusted {
+                Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }
+                    .buttonStyle(HubButtonStyle(primary: true))
+            } else {
+                Button {
+                    router.page = .notes
+                    if KoncluiNoteSpeech.engine != .needsDownload, !NoteTaker.shared.isRecording { Task { await NoteTaker.shared.start() } }   // Koncluí: Apple's speech records
+                } label: {
+                    HStack(spacing: 7) {
+                        Circle().fill(.foreground).frame(width: 9, height: 9)
+                        Text("hub.record-call")
+                    }
                 }
+                .buttonStyle(HubButtonStyle(primary: true))
             }
-            .buttonStyle(HubButtonStyle(primary: true))
         } content: {
-            if !flow.isEnabled || !flow.trusted {
-                HubSetupCard()
-            }
+            KoncluiConnectAgentsHome(router: router)   // Koncluí: agents found on this Mac but not connected
             HStack(alignment: .top, spacing: 20) {
                 history
                     .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -41,6 +58,7 @@ struct HubHomePage: View {
                 .frame(width: 270)
             }
         }
+        .onAppear { flow.recheckTrust() }   // Koncluí: was the setup card's job
     }
 
     // MARK: History
@@ -81,13 +99,14 @@ struct HubHomePage: View {
                 }
                 .padding(.horizontal, 10)
                 .frame(height: 30)
-                .background(RoundedRectangle(cornerRadius: 8).fill(HubTheme.card))
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HubTheme.line))
+                .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(HubTheme.card))
+                .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).strokeBorder(KoncluiTheme.controlStroke(contrast)))
             }
             if store.history.isEmpty {
                 HubCard {
+                    // Koncluí: the hold-a-key sentence is in the band; the empty history says only that it is empty.
                     HubEmptyState(text: store.keepDays == 0 ? String(localized: "hub.history-off")
-                                  : String(format: String(localized: "hub.history-empty %@"), flow.key.label))
+                                  : String(localized: "konclui.home.empty"))
                 }
             } else if groups.isEmpty {
                 Text("hub.search-empty")
@@ -142,7 +161,7 @@ private struct HubEntryRow: View {
                 if let app = entry.app, !app.isEmpty {
                     Text(app)
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#A4A9B1"))
+                        .foregroundColor(KoncluiTheme.textBody)
                         .lineLimit(1)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
@@ -200,11 +219,9 @@ private struct HubTotalsCard: View {
     private func big(_ value: String, _ label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(value)
-                .font(.system(size: 30, weight: .bold))
-                .tracking(-0.8)
-                .monospacedDigit()
+                .koncluiType(.metric)
             Text(label)
-                .font(.system(size: 14))
+                .koncluiType(.body)
                 .foregroundColor(HubTheme.secondary)
         }
     }
@@ -221,7 +238,7 @@ private struct HubNotesPromo: View {
             Text("hub.notes-promo")
                 .font(.system(size: 13))
                 .lineSpacing(2)
-                .foregroundColor(Color(hex: "#A4A9B1"))
+                .foregroundColor(KoncluiTheme.textBody)
                 .fixedSize(horizontal: false, vertical: true)
             Button { router.page = .notes } label: {
                 Text("hub.notes-promo-open")
@@ -229,6 +246,7 @@ private struct HubNotesPromo: View {
                     .foregroundColor(HubTheme.accent)
             }
             .buttonStyle(.plain)
+            .koncluiPointer()   // Koncluí
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -261,7 +279,7 @@ struct HubSetupCard: View {
                 Text(flow.isEnabled ? String(localized: "flow.accessibility")
                      : String(format: String(localized: "hub.setup %@"), flow.key.label))
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#C7CAD0"))
+                    .foregroundColor(KoncluiTheme.textBody)
                     .fixedSize(horizontal: false, vertical: true)
                 if flow.isEnabled {
                     Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }

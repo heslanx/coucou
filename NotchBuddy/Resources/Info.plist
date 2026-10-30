@@ -40,14 +40,14 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>Pour lire le titre de la fenêtre active et l'attacher comme contexte.</string>
+	<string>Koncluí needs Accessibility to paste what you dictate, to hear the Esc key, and to read the title of the window you attach.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Pour sauter au terminal, envoyer des mails et piloter Musique et Spotify.</string>
+	<string>Koncluí controls other apps only when you ask: it brings a terminal forward, prepares or sends an email, plays Music and Spotify, and reads the address of the browser tab you attach.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>Koncluí records what your Mac plays only while you note a call, to write down what the other people say.</string>
 	<key>NSContactsUsageDescription</key>
@@ -57,9 +57,9 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Koncluí uses the microphone when you dictate, and to note your calls when you ask it to.</string>
+	<string>Koncluí uses the microphone when you dictate, say “OK Koru”, or ask it to note a call.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Koncluí turns your voice into the text of a chat message.</string>
+	<string>Koncluí turns your voice into text when you dictate, say “OK Koru”, or note a call. Your Mac does the recognition, on the device when it can.</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 </dict>

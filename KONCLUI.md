@@ -80,6 +80,31 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   `gemini`, `antigravity`, `codex`, `copilot`, `muse`, `opencode`, `amp`, `hermes`, `plan` or `klaude`) opens that popover and
   shows the row even without the agent on this Mac (on Active pills it opens the door of that agent when its hint shows);
   `<id>:preview` also builds the install preview in it. The flag reads and previews only: it never writes a hook file.
+  The klaude block, `KlaudeHooksSection` (`KoncluiAgentHooks.swift`), was deleted: `KoncluiKlaudeHooksSection`
+  (`KoncluiKlaudeRow.swift`) replaces it.
+- **One design system for the hub window.** `App/KoncluiTheme.swift` (tokens, type roles, the hub's buttons, GroupBox, Toggle, status,
+  key cap and field) and `App/KoncluiThemeCore.swift` (the numbers, tested by `scripts/konclui/test-theme.sh`): one gutter of 28 pt so
+  every page lines up with its header card (the Notetaker's "Gravar uma chamada" included), text that passes 4.5:1, one primary look
+  (ink on orange, 8.5:1), a disabled button that never looks enabled, switches in one column, a status drawn one way, Reduce
+  Motion, Increase Contrast and Reduce Transparency honoured. The notch pages' header is the compact band pinned over the scroll
+  view with macOS 26's soft scroll edge (the window's only glass; macOS 15 to 25 get a fade). Only the Ditado band has particles;
+  the others are a still colour wash. The rules are in UX.md section 11.
+- Every word on screen follows `docs/konclui/UX.md` section 5 in the 14 languages: no dashes as punctuation, one name per
+  concept (notch, aba, Ajustes do ditado, Ajustes do Sistema, gateway), paths written with "›", macOS permission prompts that
+  say what the app does with the permission and are localized (`NotchBuddy/Resources/InfoPlist.xcstrings`).
+- **The notch pages behave.** Every agent's popover (Settings → Agents, the "Hooks not installed" door of Active pills, klaude)
+  is one component, `KoncluiHookControls`: the state in a sentence, the one primary that state needs (Install when nothing is
+  installed, Update when outdated, none when fine), Uninstall as the quiet button once there is something to take back, and a
+  review before anything is written that shows only the lines Koncluí adds or removes ("Koncluí will add its entries (13) to
+  ~/.claude/settings.json. The other 2 stay as they are."), the whole file behind "Ver o arquivo inteiro". The path is a detail
+  (Details: Show in Finder, Copy path). Claude Code's removal is previewed and confirmed like its install (it wrote at once).
+  What Koncluí wrote is read once, off the main thread (`KoncluiHookStatus`), not from the agents' files at every redraw.
+  Active pills: a switch blocked by the 4-tab limit says so and offers "Desligar" for the tabs that can free a place; the colour
+  dot is a door (ring, pointing hand, tooltip, VoiceOver). "Adicionar…" sits at the page's outer edge on all four lists.
+  Geral: the demo is first only while nothing is connected, then a quiet button at the end; the open/close hotkey has one
+  switch (Atalhos); the updater is behind a flag that ships off; a card "Conecte seus agentes" names the agents found and
+  not connected; "Remover integrações…" previews and removes every file Koncluí wrote. Reminders is a page of the window.
+  Orca has its own row; its approvals ship on (see Functional ties, "Orca approvals").
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -100,6 +125,12 @@ All brand text comes from one re-runnable script, `scripts/konclui/rebrand.py`. 
    languages, with per-language grammar for Koru (articles, pronouns, agreement in en, es, fr,
    pt-BR, de, ru).
 6. `whats-new.json`: the item texts (the coffee item removed).
+7. The copy rules (`scripts/konclui/rebrand_copy.py`, data in `rebrand_copy_data.py`), run by `rebrand.py` after the brand pass:
+   COPY, SUBS, FILL, DASHES and PATHS over `Localizable.xcstrings` (one rewritten entry keeps its style; nothing else in the file
+   moves), the Info.plist usage descriptions (project.yml English through FIXED, 14 languages in `InfoPlist.xcstrings`, which
+   rebrand.py keeps equal to the table and adds to the Mac target's resources), and FIXED edits for hard-coded English literals of
+   upstream views. A rule whose upstream English changed is reported STALE and not applied. `python3 scripts/konclui/test-copy.py`
+   checks the result (glossary, dashes, format arguments, prompts).
 
 It is idempotent: a second run reports `0 files changed`. `--check` changes nothing and exits 1
 when a run would change something. A rule whose old and new text are both gone is reported as
@@ -138,7 +169,7 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 |---|---|---|---|
 | Bundle id | project.yml, `AppState` fallback | changed: `com.konclui.mac` | separate product; also gives Koncluí its own UserDefaults domain, TCC entries and notifications |
 | Product / executable name | project.yml `PRODUCT_NAME` | changed: `Konclui` (`Konclui.app`) | ASCII file name, no clash with `Coucou.app` |
-| Display name, usage descriptions | project.yml → Info.plist | changed: Koncluí | users see them |
+| Display name, usage descriptions | project.yml → Info.plist; `InfoPlist.xcstrings` | changed: Koncluí; the seven prompts say what the app does, in 14 languages | users see them; people decide on trust from these lines |
 | Application Support folder | `HookServer.supportDir`, `RecapStore`, `SoundEngine`, GOWA dir, Reminders MCP path | changed: `~/Library/Application Support/Konclui` | holds the hook socket, hook scripts, notes, models, sounds: shared, the two apps would fight over the socket |
 | Hook socket | `<support>/nb.sock`, nb-hook.py, `coucou-mcp.py` | changed (follows the folder) | Coucou binds its own |
 | Logs folder | `AppLog`, `InstructionRunner` | changed: `~/Library/Logs/Konclui` | the two apps would write the same logs |
@@ -170,13 +201,20 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Orca pill | `HookServer.processEvent`, `processPermissionRequest`, `processQuestionRequest` (`isOrcaSession`, first branch of the routing); `ClaudeHost.isOrca` / `orcaPillId` / `termPrograms["orca"]` | added: `TERM_PROGRAM=Orca` or bundle id `com.stablyai.orca` → `agent_orca`, for every agent kind that runs in the terminal, before the Codex / `coucou_agent` / Cursor / VS Code / terminal routes (those are unchanged for every other client) | one pill for what runs in Orca; approvals and questions of those sessions use the same pill so the queue still matches their events |
 | Orca terminal in the hook payload | nb-hook.py `add_orca_context` (GitHub and App Store scripts) | added: `orca_terminal` (`ORCA_TERMINAL_HANDLE`) and `orca_worktree` (`ORCA_WORKTREE_ID`), when set | the click needs the handle; no other `ORCA_*` value is read, the hook token never leaves the terminal |
 | Orca click | `TerminalTarget.activate` (`TerminalTarget+AppKit.swift`, one `if` for Orca's bundle id), `ClaudeHost.switchOrcaTerminal`, `OrcaTerminals` (`KoncluiOrca.swift`) | added: runs `<Orca.app>/Contents/Resources/bin/orca terminal switch --terminal <handle>` off the main thread (bare environment `HOME`/`PATH`, killed after 5 s), then activates Orca; no handle, or no CLI: only activates Orca | covers the pill click, the finished/error "Open terminal" buttons and ⌃⌥T; the handle is the one of the session that owns the pill's card (same owner rule as its name) |
-| klaude hooks | `HookServer.previewClaudeHooks(at:install:)`, `writeClaudeHooks(at:)`, `uninstallClaudeHooks(at:)` (the `~/.claude` installer, now parameterized by settings path), `KoncluiAgentHooks.swift` (`KlaudeHooks`, `KlaudeHooksSection`) | added: the same 12 Claude Code hooks plus the AskUserQuestion one, installed into `~/.klaude/settings.json`; dated backup, merge, JSON preview, written only after the user confirms; Uninstall previews and removes only Koncluí's entries | klaude starts Claude Code with `CLAUDE_CONFIG_DIR=~/.klaude`, which never reads `~/.claude/settings.json` |
+| klaude hooks | `HookServer.previewClaudeHooks(at:install:)`, `writeClaudeHooks(at:)`, `uninstallClaudeHooks(at:)` (the `~/.claude` installer, now parameterized by settings path), `KoncluiAgentHooks.swift` (`KlaudeHooks`), `KoncluiKlaudeRow.swift` (`KoncluiKlaudeHooksSection`; the old `KlaudeHooksSection` was deleted) | added: the same 12 Claude Code hooks plus the AskUserQuestion one, installed into `~/.klaude/settings.json`; dated backup, merge, JSON preview, written only after the user confirms; Uninstall previews and removes only Koncluí's entries | klaude starts Claude Code with `CLAUDE_CONFIG_DIR=~/.klaude`, which never reads `~/.claude/settings.json` |
 | "Is this Claude hook ours?" | `HookServer.buildHooksData(at:)`, `hooksDataWithoutKoncluiEntries(at:)` | changed: `KoncluiHook.owns` (command runs `konclui/nb-hook`) instead of "contains Konclui/konclui" | a foreign hook whose path only mentions konclui (for example under `~/Developments/konclui-project/…`) was replaced at install and deleted at uninstall |
 | Claude opt-in | UserDefaults `voiceClaudeBrain` (`VoiceSettings.claudeBrainEnabled`) | now read by `ClaudeVoiceBrain.isActive` and set by Settings → Voice; off by default | the words leave the Mac only after the person turns it on |
 | klaude key for the voice | Keychain generic password, service `klaude-api-key` | read with `KoncluiProxyAccess.readKey()` when a voice call starts, kept in a local variable, never stored, logged or shown; server error text is wiped of it; the logs hold the HTTP status only | same rule as the notch chat (K10) |
 | Brain order | `KoncluiVoiceBrain.brain` | Claude (opt-in, subscription before key) > Apple Intelligence > phrase commands | owner decision D13: the lightest way is the default |
 | Apple speech language files | `AssetInventory`, `SpeechTranscriber.installedLocales` (system-managed, outside Koncluí's folders) | installed on the first recording when missing; nothing is written to Koncluí's Application Support; `AssetInventory.status` answers "supported" for an installed language, so the installed list is asked instead | the Mac's own files, small, shared with other apps |
 | Parakeet models | `Application Support/Konclui/Models` | untouched; the choice reads `Parakeet.shared.isReady` | installed models keep winning |
+| Hub title inset | `HubHero` (`FlowHubMochis.swift`); audit items A2 (26 pt) and A1-06 (18 pt) | 18 pt, the card's own content inset | one inner edge for the title and the card's text |
+| Canvas rate when the window is not the front one | `KoncluiMotion.rate`; audit items A2-09 (30 Hz) and A3-18 (pause) | 30 Hz | the window can sit beside another one, and a frozen Koru reads as a bug |
+| "Gravar uma chamada" while dictation needs setup | `FlowHubHome.swift`; audit items A1-22 (secondary button while the setup card shows) and A2-08 (no setup card) | A2-08: the setup card is no longer drawn, the band's one primary is the setup | one primary per region; recording a call is the primary only when dictation works |
+| Orca approvals | `KoncluiOrcaCards.showsInNotch(isOrca:otherTerminalsOn:)` (`KoncluiPageRules.swift`), UserDefaults `konclui.orcaCards`, used by `HookServer.processPermissionRequest` and `processQuestionRequest` | added: on by default for Orca sessions only (Koncluí's own key; the switch is in Agents → Orca); every other terminal keeps `terminalCardsEnabled`, off by default | the owner runs many agents in Orca, and their permission requests and questions wait in the notch for up to 2 minutes (answering in the terminal still works); every Warp or iTerm session would otherwise wait on the notch |
+| Updater | `AppDelegate` (`MacUpdater.shared.start()`), the "Atualizações" block (`UpdateSettingsSection`), flag `block_updates` | ships off; the code and its fail-closed signature check are untouched | `MacUpdate` asks the releases of `heslanx/coucou` and `MacUpdater` verifies every download against Louis's team `256AUJ9555`, so no download can pass until Koncluí has a Developer ID and a release channel (A3-13) |
+| Remove integrations | `KoncluiRemoveIntegrations` (end of Geral) | goes through the installers' own removal steps (preview, the same fingerprint check and dated backup, only Koncluí's entries), one file at a time, and says what happened to each file | UX.md 1.5 and CLAUDE.md: another app's settings file is never written without a preview and a confirmation |
+| Key `hub.notch.reminders` | `Localizable.xcstrings`, `HubPage.reminders` | added with the owner's own key name (from the owner's main checkout), the one new key outside the `konclui.` namespace | the later merge of that checkout is a no-op; its catalog line has the key itself as the English text: replace it with this one |
 
 ## Feature flags
 
@@ -191,12 +229,19 @@ the feature is deleted for good (below). No network: nothing is fetched, nothing
   have no resource bundle for it, a compiled-in table cannot be missing or malformed at run time, and the swiftc test
   reads it with no bundle. `KoncluiFeatures.isOn(_:)`, `set(_:_:)`, `reset(_:)`, `resetAll()`.
 - **Ships off**: `integration_crypto`, `integration_calcom`, `integration_stripe`, `integration_github`,
-  `integration_vercel`, `integration_n8n`, `integration_resend`, `integration_notion`, `integration_portfolio`.
-  Everything else ships on.
+  `integration_vercel`, `integration_n8n`, `integration_resend`, `integration_notion`, `integration_portfolio`,
+  `block_updates`. Everything else ships on.
+- **Why `block_updates` ships off**: it is the Settings block "Atualizações" (`UpdateSettingsSection`). `MacUpdate` asks the
+  releases of `heslanx/coucou` and `MacUpdater` verifies every download against Louis's team `256AUJ9555`, so a download can
+  never pass the signature check: the block promised signed updates the app cannot install. The code stays (the fail-closed
+  check is untouched); turn the flag on together with a Developer ID for Koncluí and a release channel (A3-13).
+  `AppDelegate.swift` (`MacUpdater.shared.start()`) follows the flag too (hook table below).
 - **Always on**: `integration_claude` (the main workspace pill until the user picks another). `KoncluiFeatures.required`.
 - **Ids**: a pill is its PillCatalog id (`agent_orca` included); a page is `page_<HubPage case>` (`page_notes`,
   `page_voice`…); a Settings block is `block_iphone`, `block_recap` (Weekly recap), `block_vitals` (Koru and your
-  Mac) or `block_reminders`. A service of Integrations follows its pill's id (`integration_notion`,
+  Mac) or `block_updates` (Atualizações). `block_reminders` is the flag of the "Lembretes" page (`HubPage.reminders`,
+  returned by `HubPage.featureId`); it is no longer listed twice, as a block and as a page, and was dropped from
+  `KoncluiFeatureRegistry.blocks`. A service of Integrations follows its pill's id (`integration_notion`,
   `integration_portfolio`, `integration_whatsapp`…); Voice and the Notetaker are the pages `page_voice` and
   `page_notes`. The registry is `App/KoncluiFeatureRegistry.swift`: pills come from `PillCatalog.all`, pages from
   `HubPage.allCases`, blocks from `KoncluiFeatureRegistry.blocks`.
@@ -239,7 +284,7 @@ block or row and keeps it (`konclui.added`, entries `<screen>:<id>`). The rules 
 | Screen | Listed when |
 |---|---|
 | Active pills | the pill is on (main or active), or its tool is on this Mac (CLI on `$PATH` or in the usual install folders, app in `/Applications` or `~/Applications`; a config folder alone does not count, it outlives an uninstall), or its service has a key in the Keychain, or its chat provider has a key or a connected server, or Spotify is installed. Apple Music, Mail and Crypto carry no signal (built in, or keyless): only when on |
-| Agents | its tool is on this Mac or its hooks, plugin or switch are already on. Claude and Codex plan gauges follow Claude Code or Codex. `KlaudeHooksSection` (K11) is always first |
+| Agents | its tool is on this Mac or its hooks, plugin or switch are already on. Claude and Codex plan gauges follow Claude Code or Codex. `KoncluiKlaudeHooksSection` (K11) is always first |
 | Chat | `KoncluiChatSubscriptionsSection` (K10) is always first. Anthropic API and the key-based providers: a key is saved. Ollama and LM Studio: a server is connected, or `ChatAccess` says one answers |
 | Integrations | a token, key or URL is saved, or the pill is on (Crypto, Portfolio, WhatsApp, Notion…) |
 
@@ -261,14 +306,14 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `HubSidebar`: ⌥-click on the wordmark, the Features item, `selected` | the unlock gesture and the item |
 | | `HubRouter.init()` (`#if DEBUG` only) | `-konclui.debug.page <HubPage rawValue>` opens the window on that page, for screenshots |
 | `App/SettingsView.swift` | `.koncluiShown(...)` after a block or row (General: Koru and your Mac, Weekly recap, iPhone; the standalone sidebar's rows; Agents' blocks; Chat's; Integrations') | a block shows only while its flag is on and it was recognized or added |
-| | `activePillsSection`, `agentsSection`, `chatSection`, `integrationsSection` | recognized-only lists and the "Add…" menu; `KlaudeHooksSection()` and `KoncluiChatSubscriptionsSection()` at the top of Agents and Chat |
+| | `activePillsSection`, `agentsSection`, `chatSection`, `integrationsSection` | recognized-only lists and the "Add…" menu; `KoncluiKlaudeHooksSection()` and `KoncluiChatSubscriptionsSection()` at the top of Agents and Chat |
 | | `extension SettingsView` at the end | the signals the screens feed `KoncluiRecognition` |
 | | `KoncluiWhatsAppSection()` in place of `WhatsAppSettingsSection()` in `integrationsSection`, shown also when `KoncluiWhatsAppDebug.forcesBlock` | the new WhatsApp block (one line, popover, notch preview). `WhatsAppViews.swift` is untouched and still holds the old block, the notch card and the rows the preview reuses (`WhatsAppRow`, `WhatsAppStatus`); the new block repeats the old one's Advanced fields and save logic, and the preview repeats `WhatsAppCardView`'s header and status layout: after an upstream merge, mirror changes to those two places. DEBUG only, for screenshots: `-konclui.debug.whatsappState` with `fresh`, `installing`, `qr`, `connected`, `stopped`, `unauthorized`, `failed`, `connecting`, `off` or `noroom` draws that state (no setting, Keychain item or gateway is read or written), and `-konclui.debug.whatsappPopover` with `options`, `ignored` or `advanced` opens the popover |
 | | `agentsSection`: each block's `GroupBox(String(localized: "hooks.<agent>.title")) {` line (Claude Code, Gemini, Antigravity, Codex, Copilot, Muse, OpenCode, Amp, Hermes, Plan usage: 10 lines, each marked `// Koncluí: row + popover`) is `koncluiAgentRow(.<block>, .<kind>, installed: …) {`; the content closures, the `@State` and the install methods are untouched | every agent is a row with a popover (`KoncluiAgentRow`); a merge that brings a `GroupBox` back is caught by `test-agent-rows.sh` |
 | | `pillRow`: the three-line `Text(h)…` hint became `koncluiHint(h, for: def)`; the hint computation above it is untouched | "Hooks not installed" and "Plugin not installed" are doors for the seven agent pills that have one (`KoncluiAgentRows.door(forPill:)`) |
 | | `body`: `&& !koncluiPopoverOpen` on the bottom message; `onAppear` calls `koncluiDebugPreview()`; two `@State` (`koncluiOpenAgent`, `koncluiDoorPill`) | the open popover shows the message itself; the DEBUG `:preview` flag; which popover is open |
 | | `extension SettingsView` (Agents part): `koncluiAgentRow`, `koncluiPopoverBinding`, `koncluiPopoverOpen`, `koncluiHint`, `koncluiDoor`, `koncluiDoorPopover`, `KoncluiHookWiring` / `koncluiHookWiring` (each agent's preview, confirm and cancel by block), `koncluiDebugPreview`; `koncluiAgentShown` also true for the DEBUG flag's agent | the row helper and the door; no logic of the old blocks is copied |
-| `App/ClaudeDesktopChatWatcher.swift` | `ClaudeDesktopChatSettingsSection`: its `GroupBox(String(localized: "claude-desktop.chat.title")) {` line is `KoncluiAgentRow(id: "claudeDesktop", …) {` | the only upstream line outside `SettingsView` for the rows; `KlaudeHooksSection` is Koncluí's own file and builds its row the same way |
+| `App/ClaudeDesktopChatWatcher.swift` | `ClaudeDesktopChatSettingsSection`: its `GroupBox(String(localized: "claude-desktop.chat.title")) {` line is `KoncluiAgentRow(id: "claudeDesktop", …) {` | the only upstream line outside `SettingsView` for the rows; `KoncluiKlaudeHooksSection` is Koncluí's own file and builds its row the same way |
 | | `FlowHubView.body`: `.disclosureGroupStyle(KoncluiDisclosureStyle())` | every disclosure in the window opens from its whole label (`App/KoncluiDisclosureStyle.swift`) |
 | `App/IslandViewContent.swift` | `AgentPill.displayName` and `MusicPill`'s title go through `KoncluiTabLabel.short` | a tab's name fits in 11 characters: "Claude Desk" (`App/KoncluiTabLabel.swift`, `scripts/konclui/test-tab-label.sh`) |
 | `App/Voice/ClaudeVoiceBrain.swift` | `isActive` returns `KoncluiVoiceBrainLive.shared.currentBrain().claudeSource != nil`; `respond` calls `turnEnded(failed:)` at both exits | Claude is the brain only when the person turned it on and a source exists (not "a key is saved"); the outcome of each turn feeds the failure notice in Settings → Voice |
@@ -281,20 +326,79 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `process`: `apple`, `asr: AsrManager?`, `diarize` closure; `words(in:asr:)` takes an optional and starts with `guard let asr else { return try await KoncluiNoteSpeech.words(in: url) }` | Apple's words, no Parakeet load, no diarizer (turns are empty, so `NoteBuilder` keeps the others as one speaker); with Parakeet the lines are the old ones |
 | `App/FlowHubNotes.swift` | `HubNotesPage`: setup card only when `engine == .needsDownload`; `HubNotesList`: `KoncluiNoteSpeechRow()`; `HubRecordButton`: `.disabled(KoncluiNoteSpeech.engine == .needsDownload && !taker.isRecording)`; `HubLiveNote`: `KoncluiNoteSpeechProgress()` | the Record button is on; the engine in use and the Parakeet upgrade sit in one row with a popover; the language install shows under the live call |
 | `App/FlowHubHome.swift` | Home's "Record a call": `KoncluiNoteSpeech.engine != .needsDownload` instead of `Parakeet.shared.isReady` | same gate |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills |
+| `App/FlowHub.swift` | `HubTheme.muted` is `KoncluiTheme.textTertiary` | the muted grey passes 4.5:1 (was 3.5:1 on a card) |
+| | `FlowHubView.body`: `.koncluiTheme()` and `.environment(\.koncluiMotion, …)`, `@Environment(\.accessibilityReduceMotion)` | the hub's GroupBox, Toggle and button styles at the root; the canvases' rate (window front, behind, hidden, Reduce Motion) |
+| | `hubPage`: the notch pages are `KoncluiSettingsPage(page:section:)` | the compact header pinned over `SettingsView`'s scroll (`App/KoncluiSettingsPage.swift`); `SettingsView` is untouched |
+| | `HubSidebar.status` is `KoncluiDictationStatus` | the sidebar status is a door with a popover (`App/KoncluiDictationDoor.swift`) |
+| | `HubSidebarHeader`, `HubSidebarItem`, `HubPageScaffold`, `HubCard`, `HubLabel`, `HubRow`, `HubDivider`, `HubIconButton` | tokens (gutter, label role, hairline with Increase Contrast), the pointing hand |
+| | `HubButtonStyle.makeBody` is `KoncluiButtonLook`; `HubField` is `KoncluiField` (+ `label`, `hint`) | one button look with a disabled state; a field with an edge, a focus ring, a label and a hint |
+| `App/FlowHubMochis.swift` | `HubWindowState`: `key` and the two key notifications | the window being the front one |
+| | `HubMochiScene` and `HubHeroBackdrop` read `koncluiMotion`; `HubHeroBackdrop(live:)` | still under Reduce Motion or when hidden, 30 Hz behind; particles only where `KoncluiMotion.liveBandPages` says |
+| | `HubHero`: title 30 pt and inset 18 on every page, `minHeight` instead of a fixed height, a material behind the pinned band | the title no longer jumps between pages; a long subtitle grows the band |
+| `App/FlowHubNotes.swift` | list column `.padding(.leading, KoncluiSpace.gutter)`, detail panes `KoncluiSpace.gutter`, `startError` is `KoncluiStatus` | the list column and the detail pane line up with the header card |
+| `App/FlowHubHome.swift` | `needsSetup`, `bandSubtitle`, the band's trailing button; `HubSetupCard` no longer drawn (kept in the file) | while dictation is off or cannot paste, the band's one primary is the setup; recording a call is the primary only when dictation works |
+| `App/FlowHubWords.swift` | `missing` state, `hint:` on the fields, `.disabled` removed from "Adicionar" and "Salvar", labels on the Snippets fields, `.menuIndicator(.hidden)` | a blocked add says what is missing under the field |
+| `App/FlowHubSettings.swift` | `subtitle`, `HubKeyCap` is `KoncluiKeyCap`, the installed menu label is `KoncluiStatus` | a subtitle for Ajustes; one key cap; one way to say "installed" |
+| `scripts/konclui/rebrand.py` | `HUB_STYLES` (CODE rules) | `.buttonStyle(.borderedProminent)` → `.koncluiPrimary`, `.bordered` → `.koncluiSecondary`, `.pickerStyle(.segmented)` + `.koncluiSegmented()` in `SettingsView`, `WhatsAppViews`, `RemindersSettingsSection`, `ShortcutsSettingsView`; outside the hub the three names draw upstream's own styles |
+| `App/FlowHub.swift` | `HubSidebarHeader(text: "Flow")` → `konclui.hub.section.flow` (a `rebrand.py` FIXED rule) | the first sidebar group is "Ditado e notas" |
+| `App/FlowHubWords.swift` | three `hub.add` buttons → `konclui.hub.add-word/-replacement/-snippet`; the snippet trigger → `konclui.hub.trigger-quoted %@` (FIXED rules) | three different "Adicionar"; no French guillemets in every language |
+| `App/FlowSettingsBox.swift` | `FlowHubController.shared.show()` → `show(.settings)` (FIXED rule) | "Abrir os ajustes do ditado" opens that page (it did nothing) |
+| `App/NoteTaker.swift` | the models notice's button uses `hub.open` (FIXED rule) | it opens the dictation settings; `hub.open-settings` now only labels the "go to Chat" button |
+| `App/SettingsView.swift` | recorder: `KoncluiKeyName.label(c)` for unmapped keys, `konclui.key.press`, `String(localized: "None")` (FIXED rules) | ⌃⌥] and ⌃⌥[ both read ⌃⌥· |
+| `App/ShortcutLogic.swift` | `keyCodeToString` falls back to `KoncluiKeyName`; "⌘1 – ⌘9" → "⌘1 … ⌘9" (FIXED rules) | same; no dash in a range |
+| `App/CodexPlanGauge.swift` | eight English literals → the Claude gauge's keys (`plan.5hours`, `plan.week`, `plan.just-now`, `plan.mins-ago %lld`, `plan.hours-ago %lld`) and `konclui.codex.*` (FIXED rules) | the Codex gauge in the notch speaks the person's language |
+| `NotchBuddy/project.yml` | four usage descriptions; `InfoPlist.xcstrings` in the Mac target's resources (FIXED rules) | permission prompts |
+| `App/FlowHub.swift` | `HubPage.reminders` in the enum, `notchPages`, `settingsSection`, `title`, `symbol`, `notchSubtitle` (six lines marked `// Koncluí`, the owner's own lines from the owner's main checkout) | the menu's Reminders and `HubPage.forSettings("reminders")` land on a real page that hosts `RemindersSettingsSection` |
+| `App/FlowHubMochis.swift` | `HubHeroTheme.of`: `case .reminders` (the owner's colour and cast) | the new page needs a header; the switch is exhaustive |
+| `App/SettingsView.swift` | the `@State` installed flags start from `KoncluiHookStatus.shared.snapshot` instead of `HookServer.*Installed()`; `koncluiHooks`, `koncluiLimitPill` | no file read in a `@State` initializer or a view body (A3-19) |
+| | `onAppear` calls `koncluiHooks.refresh()`; `.onChange(of: koncluiHooks.snapshot)`, `.onChange(of: koncluiInstalledFlags)` | the answer is read off the main thread and copied in; an install or removal reads again |
+| | each agent's popover content: `koncluiHookControls(.<agent>, …)` replaces the path text, the Install/Uninstall pair and the diff box (Gemini, Antigravity, Codex, Copilot, Muse, OpenCode, Amp, Hermes, Claude Code; the Hermes approvals part stays) | one component for every agent (`KoncluiHookControls`) |
+| | `installHooks` / `confirmInstall` / `uninstallHooks` (Claude Code): `claudePendingInstall`; the removal is previewed (`previewClaudeHooks(install: false)`) and confirmed | CLAUDE.md: never write `~/.claude/settings.json` without showing what changes |
+| | `terminalCardsEnabled` toggle and its paragraph in Claude Code's popover: `konclui.terminals.toggle` / `.about` | the English text is now Portuguese and says what the switch does |
+| | `KoncluiKlaudeHooksSection()` replaces `KlaudeHooksSection()`; `KoncluiOrcaRow()` after Claude Code's row | `KlaudeHooksSection` was deleted (klaude's block is now `KoncluiKlaudeHooksSection` in `KoncluiKlaudeRow.swift`); Orca's row decides its approvals |
+| | `pillRow`: `atMax` from `KoncluiTabLimit.blocks`, hints from the snapshot, `koncluiColorDot(def)`, `koncluiLimitDoor(def)` | the blocked switch says why; the colour dot is a door |
+| | `activePillsSection` and `integrationsSection`: the `KoncluiAddMenu` moved out of the card | "Add…" at the outer edge on every list |
+| | `generalSection`: `KoncluiConnectAgentsCard`, `demoBox(quiet:)` (first or last), `.koncluiShown(embeddedSection == nil)` on the Hotkey box, `UpdateSettingsSection().koncluiShown(isOn("block_updates"))`, `KoncluiRemoveIntegrations` at the end | Geral for a Mac that is set up |
+| `App/KoncluiFeatureRegistry.swift` | `HubPage.featureId` for `.reminders`; `block_updates` in `blocks` | flags |
+| `CoucouKit/KoncluiFeatures.swift` | `"block_updates"` in `shippedOff` | ships off |
+| `App/HookServer.swift` | `processPermissionRequest` and `processQuestionRequest`: `isTerminal` uses `KoncluiOrcaCards.showsInNotch(isOrca:otherTerminalsOn:)` | Orca sessions' approvals and questions show in the notch by default (switch on the Orca row); other terminals keep their own switch |
+| `App/AppDelegate.swift` | `MacUpdater.shared.start()` only when `KoncluiFeatures.isOn("block_updates")` | the updater stays off until Koncluí has its own Developer ID and release channel |
+| `App/FlowHubHome.swift` | `KoncluiConnectAgentsHome(router:)` at the top of the home content | agents found but not connected |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
 
 ## Open items
 
+- `HubSetupCard` (FlowHubHome.swift) is unused; delete it with the next Ditado change.
+- A2-34 (is the panel's 20 pt corner concentric with the macOS 26 window?): not changed. A concentric radius is the window's radius minus the
+  10 pt inset; the window's radius cannot be read from SwiftUI, and 20 is already the floor. Measure on a Mac with a ruler before touching it.
+- The note title in the Notetaker (24 pt) is the only size outside the seven type roles; kept (a document title is not a page title).
+- `KoncluiAgentRow`, `KoncluiAgentHooks`, `KoncluiHookControls`, `KoncluiPillRowParts` (K16's, in flight) still use `.borderedProminent` /
+  `.bordered`, hard-coded greys and 10 pt monospaced paths; switch them to `.koncluiPrimary` / `.koncluiSecondary` and to `KoncluiStatus` /
+  `KoncluiTheme` tokens, and add `.koncluiTheme()` to their popover content.
+- `ShortcutsSettingsView` key caps (outlined chips) become `KoncluiKeyCap` with one line once that file is touched (A2-29).
+- The stats card's note ("vs. digitar a 45/min") is written short enough for one line; the layout unit can allow two lines
+  (`.lineLimit(2)`) and the longer "comparado a digitar 45 palavras/min" can come back.
+- The Accessibility text keeps the "remove it and add it again" advice that only matters for ad hoc builds (A3-24): show it only
+  when `AXIsProcessTrusted()` is false while the entry exists (a code hook in `FlowHubSettings.swift`).
+- Turkish still says "ada" (island) for the notch: Turkish upstream chose it everywhere (about 17 strings); a Turkish speaker
+  should pick the word before it changes.
+- The six crypto-portfolio instruction strings (`portfolio.instructions.*`, `portfolio.error.coinbase-key`, `portfolio.testing`)
+  have no pt-BR (the integration ships off). Reminders now read in 13 languages (its page, Lembretes, exists since U3c).
+- Russian "voice.setting-web" and "voice.setting-web-desc" (unused in the app) still carry a dash and « » in pt-BR.
+- The public home (A3-33): `FORK` in `rebrand.py` still says `heslanx/coucou`; the weekly recap and the updater show it. Needs the
+  owner's repository before it changes.
+- SMAppService's status (`launchAtStartup`) is still read in a `@State` initializer: it is one call to the system, not a file
+  read, and moving it would make its `onChange` register or unregister the app by itself (A3-19 PARTLY).
+- Walk in the running app: the review of an install (Codex), of a removal (Claude Code, with the owner's own hooks present), the
+  removal popover on Geral (do not press "Remover" on the owner's Mac), the 4-tab limit, the connect card, Lembretes.
 - The Notetaker screen was typechecked and built, not walked in the running app (the unit may not launch Koncluí): the
   engine row, its popover, the install progress under the live call and the failed state with "Try again" still need a look,
   with Parakeet installed (nothing new may show), without it, and with the language files missing.
 - Install progress shows in the Notetaker screen only; a call started from the pill with the window closed installs
   silently, and a failed install shows on the note (failed, with the audio kept and "Retry").
-- If macOS asks for Speech Recognition permission on the first Apple transcription, `NSSpeechRecognitionUsageDescription`
-  says only "the text of a chat message". The framework call was proven in a command-line harness, not inside the signed app.
 - Apple's speech has no diarizer: "Person 2" is everyone but you. Renaming a person and moving a line (`assign`) work as before.
 - The proxy answers the model id `claude-haiku-4-5` (probed through klaude, 2026-10-30); whether it accepts the server tool
   `web_search_20250305` is not probed. The code
@@ -312,7 +416,6 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
   recognizer writes it in a spelling the list misses needs a try on a real Mac.
 - Koru's gender in ar, bn, hi, id, th, tr, zh: names are replaced, agreement was not reviewed
   (hi verbs, for instance, stay masculine).
-- `Info.plist` keeps two usage descriptions in French (Apple events, Accessibility), as upstream.
 - A Developer ID team, provisioning profile and iCloud container for Koncluí, before Release
   builds, the updater and the iPhone link can work.
 - Codex streams whole messages (its `--json` output has no token deltas), Claude Code and the proxy stream token by token.

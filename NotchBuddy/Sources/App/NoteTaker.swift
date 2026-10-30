@@ -96,7 +96,7 @@ final class NoteTaker: ObservableObject {
         guard KoncluiNoteSpeech.engine != .needsDownload else {
             FlowDictation.shared.pill.announce(
                 FlowAnnouncement(symbol: "arrow.down.circle.fill", tint: "#3B9EFF", text: String(localized: "notes.error.models"),
-                                 action: String(localized: "hub.open-settings"))) {
+                                 action: String(localized: "hub.open"))) {
                 FlowHubController.shared.show(.settings)
             }
             return

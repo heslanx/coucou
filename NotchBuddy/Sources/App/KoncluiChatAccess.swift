@@ -164,7 +164,7 @@ struct KoncluiChatSubscriptionsSection: View {
 
                 Divider()
                 Button(String(localized: "Check again")) { check() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.koncluiSecondary)
                     .disabled(checking)
             }
             .padding(6)
@@ -189,7 +189,7 @@ struct KoncluiChatSubscriptionsSection: View {
                     Text(String(localized: "In use")).font(.system(size: 11)).foregroundColor(.secondary)
                 } else {
                     Button(String(localized: "Use for chat")) { state.chatProvider = provider }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                 }
             }
         }

@@ -8,16 +8,18 @@ struct HubDictionaryPage: View {
     @State private var newWord = ""
     @State private var from = ""
     @State private var to = ""
+    /// Koncluí: what a click on "Adicionar" found missing. The button stays enabled and says so under the field (UX.md 1.1).
+    @State private var missing: KoncluiMissing?
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.dictionary"),
                         subtitle: String(localized: "hub.dictionary-sub")) {
             HubCard {
-                HStack(spacing: 8) {
-                    HubField(placeholder: String(localized: "hub.word-placeholder"), text: $newWord, onSubmit: addWord)
-                    Button(String(localized: "hub.add"), action: addWord)
+                HStack(alignment: .top, spacing: 8) {
+                    HubField(placeholder: String(localized: "hub.word-placeholder"), text: $newWord, onSubmit: addWord,
+                             hint: missing == .word ? String(localized: "konclui.hint.word") : nil)
+                    Button(String(localized: "konclui.hub.add-word"), action: addWord)
                         .buttonStyle(HubButtonStyle(primary: true))
-                        .disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 if store.words.isEmpty {
                     HubEmptyState(text: String(localized: "hub.words-empty"), state: .idle, color: "#A78BFA")
@@ -36,14 +38,16 @@ struct HubDictionaryPage: View {
                     .font(.system(size: 13))
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 8) {
-                    HubField(placeholder: String(localized: "hub.heard-placeholder"), text: $from, onSubmit: addReplacement)
+                HStack(alignment: .top, spacing: 8) {
+                    HubField(placeholder: String(localized: "hub.heard-placeholder"), text: $from, onSubmit: addReplacement,
+                             hint: missing == .heard ? String(localized: "konclui.hint.heard") : nil)
                     Image(systemName: "arrow.right")
                         .foregroundColor(HubTheme.muted)
-                    HubField(placeholder: String(localized: "hub.written-placeholder"), text: $to, onSubmit: addReplacement)
-                    Button(String(localized: "hub.add"), action: addReplacement)
+                        .frame(height: 34)
+                    HubField(placeholder: String(localized: "hub.written-placeholder"), text: $to, onSubmit: addReplacement,
+                             hint: missing == .written ? String(localized: "konclui.hint.written") : nil)
+                    Button(String(localized: "konclui.hub.add-replacement"), action: addReplacement)
                         .buttonStyle(HubButtonStyle(primary: true))
-                        .disabled(from.trimmingCharacters(in: .whitespaces).isEmpty || to.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ForEach(store.replacements) { replacement in
                     HubDivider()
@@ -65,25 +69,38 @@ struct HubDictionaryPage: View {
                 }
             }
         }
+        // Koncluí: the line under a field goes away as soon as the person starts to fix it.
+        .onChange(of: newWord) { _, _ in if missing == .word { missing = nil } }
+        .onChange(of: from) { _, _ in if missing == .heard { missing = nil } }
+        .onChange(of: to) { _, _ in if missing == .written { missing = nil } }
     }
 
     private func addWord() {
+        guard !newWord.trimmingCharacters(in: .whitespaces).isEmpty else { missing = .word; return }
+        missing = nil
         store.addWord(newWord)
         newWord = ""
     }
 
     private func addReplacement() {
+        if from.trimmingCharacters(in: .whitespaces).isEmpty { missing = .heard; return }
+        if to.trimmingCharacters(in: .whitespaces).isEmpty { missing = .written; return }
+        missing = nil
         store.addReplacement(from: from, to: to)
         from = ""
         to = ""
     }
 }
 
+/// Koncluí: the field a blocked "Adicionar" or "Salvar" is waiting for.
+private enum KoncluiMissing { case word, heard, written, trigger, text }
+
 /// A word of the dictionary, with its × to remove it.
 private struct HubChip: View {
     let text: String
     let remove: () -> Void
     @State private var hover = false
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
 
     var body: some View {
         HStack(spacing: 6) {
@@ -94,13 +111,14 @@ private struct HubChip: View {
                     .foregroundColor(hover ? HubTheme.text : HubTheme.muted)
             }
             .buttonStyle(.plain)
+            .koncluiPointer()   // Koncluí
             .accessibilityLabel(String(localized: "hub.delete"))
         }
         .padding(.leading, 11)
         .padding(.trailing, 9)
         .frame(height: 30)
-        .background(RoundedRectangle(cornerRadius: 8).fill(HubTheme.field))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.white.opacity(0.08)))
+        .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(HubTheme.field))
+        .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).strokeBorder(KoncluiTheme.controlStroke(contrast)))
         .onHover { hover = $0 }
     }
 }
@@ -113,6 +131,7 @@ struct HubSnippetsPage: View {
     @State private var trigger = ""
     @State private var text = ""
     @State private var editing: UUID?
+    @State private var missing: KoncluiMissing?   // Koncluí: see the Dictionary
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.snippets"),
@@ -120,28 +139,34 @@ struct HubSnippetsPage: View {
             HubCard {
                 Text(editing == nil ? String(localized: "hub.snippet-new") : String(localized: "hub.snippet-edit"))
                     .font(.system(size: 14, weight: .bold))
-                HubField(placeholder: String(localized: "hub.trigger-placeholder"), text: $trigger)
-                TextEditor(text: $text)
-                    .font(.system(size: 13))
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
-                    .frame(height: 90)
-                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(HubTheme.field))
-                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.white.opacity(0.1)))
-                    .overlay(alignment: .topLeading) {
-                        if text.isEmpty {
-                            Text("hub.snippet-text-placeholder")
-                                .font(.system(size: 13))
-                                .foregroundColor(HubTheme.muted)
-                                .padding(.horizontal, 13)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
+                // Koncluí: both fields keep a label above once typing starts (a placeholder vanishes), and a blocked Add says why.
+                HubField(placeholder: String(localized: "hub.trigger-placeholder"), text: $trigger,
+                         label: String(localized: "hub.you-say"),
+                         hint: missing == .trigger ? String(localized: "konclui.hint.trigger") : nil)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("konclui.snippets.pastes").koncluiType(.label).foregroundColor(KoncluiTheme.textTertiary)
+                    TextEditor(text: $text)
+                        .font(.system(size: 13))
+                        .scrollContentBackground(.hidden)
+                        .padding(8)
+                        .frame(height: 90)
+                        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(HubTheme.field))
+                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.white.opacity(0.16)))
+                        .overlay(alignment: .topLeading) {
+                            if text.isEmpty {
+                                Text("hub.snippet-text-placeholder")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(HubTheme.muted)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .allowsHitTesting(false)
+                            }
                         }
-                    }
+                    if missing == .text { KoncluiHint(text: String(localized: "konclui.hint.snippet-text")) }
+                }
                 HStack(spacing: 8) {
-                    Button(editing == nil ? String(localized: "hub.add") : String(localized: "hub.save"), action: save)
+                    Button(editing == nil ? String(localized: "konclui.hub.add-snippet") : String(localized: "hub.save"), action: save)
                         .buttonStyle(HubButtonStyle(primary: true))
-                        .disabled(trigger.trimmingCharacters(in: .whitespaces).isEmpty || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if editing != nil {
                         Button(String(localized: "hub.cancel")) { reset() }
                             .buttonStyle(HubButtonStyle())
@@ -157,7 +182,7 @@ struct HubSnippetsPage: View {
                         Text("hub.you-say")
                             .font(.system(size: 12))
                             .foregroundColor(HubTheme.secondary)
-                        Text("« \(snippet.trigger) »")
+                        Text(String(format: String(localized: "konclui.hub.trigger-quoted %@"), snippet.trigger))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Color(hex: "#FDBA74"))
                             .padding(.horizontal, 9)
@@ -177,18 +202,22 @@ struct HubSnippetsPage: View {
                     Text(snippet.text)
                         .font(.system(size: 13))
                         .lineSpacing(2)
-                        .foregroundColor(Color(hex: "#D5D7DB"))
+                        .foregroundColor(KoncluiTheme.textBody)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
+        .onChange(of: trigger) { _, _ in if missing == .trigger { missing = nil } }   // Koncluí
+        .onChange(of: text) { _, _ in if missing == .text { missing = nil } }
     }
 
     private func save() {
         let t = trigger.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty, !body.isEmpty else { return }
+        guard !t.isEmpty else { missing = .trigger; return }   // Koncluí: the button is enabled; a click says what is missing
+        guard !body.isEmpty else { missing = .text; return }
+        missing = nil
         if let editing, let index = store.snippets.firstIndex(where: { $0.id == editing }) {
             store.snippets[index].trigger = t
             store.snippets[index].text = body
@@ -228,7 +257,7 @@ struct HubStylesPage: View {
                             .foregroundColor(HubTheme.accent)
                         Text("hub.cleanup-key")
                             .font(.system(size: 12.5))
-                            .foregroundColor(Color(hex: "#C7CAD0"))
+                            .foregroundColor(KoncluiTheme.textBody)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         Button(String(localized: "hub.open-settings")) {
@@ -258,6 +287,7 @@ struct HubStylesPage: View {
                     Label(String(localized: "hub.style-add"), systemImage: "plus")
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)   // Koncluí: the "+" already says it opens; the text then ends on the card's edge
                 .fixedSize()
             }
             HubCard {

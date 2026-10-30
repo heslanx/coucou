@@ -886,7 +886,8 @@ final class HookServer: @unchecked Sendable {
         // Terminal sessions: only when turned on in Settings, else the terminal asks itself.
         let terminalHost = isCursorEditor || isVSCodeEditor ? nil
             : ClaudeHost.terminal(termProgram: termProgram, bundleId: bundleId)
-        let isTerminal = terminalHost != nil && ClaudeHost.terminalCardsEnabled
+        // Koncluí: Orca sessions show in the notch unless turned off (KoncluiOrcaCards, KoncluiPageRules.swift).
+        let isTerminal = terminalHost != nil && KoncluiOrcaCards.showsInNotch(isOrca: isOrcaSession, otherTerminalsOn: ClaudeHost.terminalCardsEnabled)
         guard isCodexRequest || isCopilotRequest || isMuseRequest || isHermesRequest || isCursorEditor || isVSCodeEditor || isTerminal else {
             Task.detached { [weak self] in
                 self?.sendLine(fd: fd, text: #"{"permissionDecision":"ask"}"#)
@@ -1067,7 +1068,8 @@ final class HookServer: @unchecked Sendable {
         // Terminal sessions: only when turned on in Settings, else the terminal asks itself.
         let terminalHost = isCursorEditor || isVSCodeEditor ? nil
             : ClaudeHost.terminal(termProgram: termProgram, bundleId: bundleId)
-        let isTerminal = terminalHost != nil && ClaudeHost.terminalCardsEnabled
+        // Koncluí: Orca sessions show in the notch unless turned off (KoncluiOrcaCards, KoncluiPageRules.swift).
+        let isTerminal = terminalHost != nil && KoncluiOrcaCards.showsInNotch(isOrca: isOrcaSession, otherTerminalsOn: ClaudeHost.terminalCardsEnabled)
         guard isCodexRequest || isCursorEditor || isVSCodeEditor || isTerminal else {
             Task.detached { [weak self] in
                 self?.sendLine(fd: fd, text: #"{"permissionDecision":"ask"}"#)

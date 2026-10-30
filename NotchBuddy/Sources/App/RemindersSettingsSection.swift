@@ -121,7 +121,7 @@ struct RemindersSettingsSection: View {
                     Button(editingReminderID == nil ? "Create reminder" : "Save changes",
                            systemImage: editingReminderID == nil ? "bell.badge.fill" : "checkmark",
                            action: saveReminder)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.koncluiPrimary)
                         .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if editingReminderID != nil {
                         Button("Cancel", action: resetForm)

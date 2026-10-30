@@ -15,6 +15,8 @@ enum KoncluiFeatures {
     static let shippedOff: Set<String> = [
         "integration_crypto", "integration_calcom", "integration_stripe", "integration_github",
         "integration_vercel", "integration_n8n", "integration_resend", "integration_notion", "integration_portfolio",
+        // The updater checks Coucou's releases and verifies Louis's signing team: it cannot install Koncluí (KONCLUI.md).
+        "block_updates",
     ]
 
     /// Features that cannot be turned off: the app needs them (the main workspace pill is VS Code until the user

@@ -51,11 +51,11 @@ struct KoncluiWhatsAppSection: View {
     @State private var simulatedMute = true
     @State private var simulatedIgnored = KoncluiWhatsAppDebug.sampleIgnored
 
-    private static let amber = Color(hex: "#F5B83D")
-    private static let red = Color(hex: "#F4505E")
-    private static let muted = Color(hex: "#8E939C")
-    private static let ink = Color(hex: "#F5F6F8")
-    private static let body = Color(hex: "#C7CBD2")
+    private static let amber = KoncluiTheme.attention
+    private static let red = KoncluiTheme.error
+    private static let muted = KoncluiTheme.textSecondary
+    private static let ink = KoncluiTheme.textPrimary
+    private static let body = KoncluiTheme.textBody
 
     /// What "Undo" does for the last change, for ten seconds (UX.md, 1.5).
     private struct UndoNotice: Identifiable {
@@ -187,7 +187,7 @@ struct KoncluiWhatsAppSection: View {
                 Text("konclui.whatsapp.experimental")
                 Image(systemName: "info.circle").font(.system(size: 9))
             }
-            .font(.system(size: 10.5, weight: .semibold))
+            .font(.system(size: 11, weight: .semibold))
             .foregroundColor(Self.amber)
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background(Self.amber.opacity(0.08), in: Capsule())
@@ -261,10 +261,10 @@ struct KoncluiWhatsAppSection: View {
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
             }
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.koncluiSecondary)
         .controlSize(.regular)
         .fixedSize()
-        .popover(isPresented: $optionsOpen, arrowEdge: .bottom) { optionsPopover }
+        .popover(isPresented: $optionsOpen, arrowEdge: .bottom) { optionsPopover.koncluiTheme() }   // a popover is its own window: it asks for the hub styles
         .accessibilityHint(Text("konclui.whatsapp.options.hint"))
     }
 
@@ -272,7 +272,7 @@ struct KoncluiWhatsAppSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("konclui.whatsapp.notifications")
                 .font(.system(size: 11.5, weight: .semibold))
-                .foregroundColor(Color(hex: "#A4A9B2"))
+                .foregroundColor(KoncluiTheme.textBody)
                 .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: 9) {
@@ -394,7 +394,7 @@ struct KoncluiWhatsAppSection: View {
                     Label("konclui.whatsapp.install-again", systemImage: "arrow.clockwise")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.koncluiPrimary)
             .controlSize(.large)
         }
     }
@@ -405,11 +405,11 @@ struct KoncluiWhatsAppSection: View {
                 HStack(spacing: 9) {
                     Group {
                         if step < current {
-                            Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(Color(hex: "#22C55E"))
+                            Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(KoncluiTheme.ok)
                         } else if step == current {
                             ProgressView().controlSize(.small).scaleEffect(0.7)
                         } else {
-                            Circle().strokeBorder(Color(hex: "#6B7079"), lineWidth: 1.5).frame(width: 8, height: 8)
+                            Circle().strokeBorder(KoncluiTheme.textTertiary, lineWidth: 1.5).frame(width: 8, height: 8)
                         }
                     }
                     .frame(width: 16, height: 16)
@@ -496,13 +496,13 @@ struct KoncluiWhatsAppSection: View {
                     } label: {
                         Label("konclui.whatsapp.reconnect", systemImage: "arrow.clockwise")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.koncluiPrimary)
                     .controlSize(.small)
                     Button("konclui.whatsapp.open-advanced") {
                         showAdvanced = true
                         optionsOpen = true
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.koncluiSecondary)
                     .controlSize(.small)
                 }
             }
@@ -536,7 +536,7 @@ struct KoncluiWhatsAppSection: View {
             Text("whatsapp.warning").fixedSize(horizontal: false, vertical: true)
         }
         .font(.system(size: 11.5))
-        .foregroundColor(Color(hex: "#F2C15C"))
+        .foregroundColor(KoncluiTheme.attention)
         .padding(.horizontal, 10).padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Self.amber.opacity(0.09), in: RoundedRectangle(cornerRadius: 8))
@@ -575,7 +575,7 @@ struct KoncluiWhatsAppSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
                     Button("konclui.whatsapp.update-gateway") { install(turnOn: false) }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                         .controlSize(.small)
                 }
                 if case .failed(let why) = installer.step {
@@ -583,7 +583,7 @@ struct KoncluiWhatsAppSection: View {
                         Text(verbatim: why)
                         Text("konclui.whatsapp.update-failed.impact").foregroundColor(Color(hex: "#C9A0A5"))
                     }
-                    .font(.system(size: 10))
+                    .font(.system(size: 11))
                     .foregroundColor(Self.red)
                     .fixedSize(horizontal: false, vertical: true)
                 }
@@ -638,7 +638,7 @@ struct KoncluiWhatsAppSection: View {
                         Text(verbatim: kind.name).tag(kind)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented).koncluiSegmented()
 
                 TextField(gateway.defaultURL, text: $url)
                     .textFieldStyle(.roundedBorder)
@@ -660,7 +660,7 @@ struct KoncluiWhatsAppSection: View {
                 HStack(spacing: 8) {
                     // One primary action per region: in the setup card that is Install, so Save is plain there.
                     Button("whatsapp.save") { save() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.koncluiPrimary)
                         .tint(optionsOpen ? nil : .gray)
                     Button {
                         testConnection()
@@ -668,13 +668,13 @@ struct KoncluiWhatsAppSection: View {
                         // While it runs, the button says so: no silent disabled control.
                         Text(testing ? LocalizedStringKey("konclui.whatsapp.testing") : LocalizedStringKey("whatsapp.test"))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.koncluiSecondary)
                     .disabled(testing)
                     if testing { ProgressView().controlSize(.small) }
                 }
                 if let testResult {
                     Text(verbatim: testResult)
-                        .font(.system(size: 10))
+                        .font(.system(size: 11))
                         .foregroundColor(Self.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -715,16 +715,16 @@ struct KoncluiWhatsAppSection: View {
 
     /// A hint from the catalog. Named apart from `hint(_:)` so a string literal never lands on the verbatim one.
     private func hintKey(_ key: LocalizedStringKey) -> some View {
-        Text(key).font(.system(size: 10)).foregroundColor(Self.muted).fixedSize(horizontal: false, vertical: true)
+        Text(key).font(.system(size: 11)).foregroundColor(Self.muted).fixedSize(horizontal: false, vertical: true)
     }
 
     private func hint(_ text: String) -> some View {
-        Text(verbatim: text).font(.system(size: 10)).foregroundColor(Self.muted).fixedSize(horizontal: false, vertical: true)
+        Text(verbatim: text).font(.system(size: 11)).foregroundColor(Self.muted).fixedSize(horizontal: false, vertical: true)
     }
 
     private func notice(_ text: String, color: Color) -> some View {
         Text(verbatim: text)
-            .font(.system(size: 10))
+            .font(.system(size: 11))
             .foregroundColor(color)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 2)
@@ -736,7 +736,7 @@ struct KoncluiWhatsAppSection: View {
             Image(systemName: "exclamationmark.triangle").font(.system(size: 9)).padding(.top, 1)
             Text(verbatim: text).fixedSize(horizontal: false, vertical: true)
         }
-        .font(.system(size: 10))
+        .font(.system(size: 11))
         .foregroundColor(Self.amber)
         .accessibilityElement(children: .combine)
     }
@@ -750,7 +750,7 @@ struct KoncluiWhatsAppSection: View {
                 notice.undo()
                 undoNotice = nil
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.koncluiSecondary)
             .controlSize(.small)
         }
         .font(.system(size: 11))
@@ -762,10 +762,10 @@ struct KoncluiWhatsAppSection: View {
 
     private func color(_ dot: KoncluiWADot) -> Color {
         switch dot {
-        case .green: return Color(hex: "#22C55E")
+        case .green: return KoncluiTheme.ok
         case .amber: return Self.amber
         case .red:   return Self.red
-        case .gray:  return Color(hex: "#8E939C")
+        case .gray:  return KoncluiTheme.textSecondary
         }
     }
 
@@ -982,7 +982,7 @@ struct KoncluiWhatsAppDoor: View {
         }
         .buttonStyle(.plain)
         .pointerStyle(.link)
-        .popover(isPresented: $open, arrowEdge: .bottom) { actions }
+        .popover(isPresented: $open, arrowEdge: .bottom) { actions.koncluiTheme() }
         .accessibilityLabel(Text(verbatim: display))
         .accessibilityHint(Text("konclui.whatsapp.number.hint"))
         .onChange(of: open) { _, _ in message = nil }
@@ -1003,8 +1003,8 @@ struct KoncluiWhatsAppDoor: View {
             }
             if let message {
                 Text(verbatim: message)
-                    .font(.system(size: 10.5))
-                    .foregroundColor(Color(hex: "#F5B83D"))
+                    .font(.system(size: 11))
+                    .foregroundColor(KoncluiTheme.attention)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }

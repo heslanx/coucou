@@ -39,7 +39,8 @@ enum KoncluiFeaturesTests {
         let shipped = ids(PillCatalog.available)
         print("  available: \(shipped.joined(separator: " "))")
         check("the hidden pills are not offered", hiddenByDefault.allSatisfy { !shipped.contains($0) })
-        check("shippedOff is exactly the hidden ones", KoncluiFeatures.shippedOff == Set(hiddenByDefault))
+        check("shippedOff is the hidden pills and the updater", KoncluiFeatures.shippedOff == Set(hiddenByDefault + ["block_updates"]))
+        check("the updater block ships off, reminders ships on", !KoncluiFeatures.isOn("block_updates") && KoncluiFeatures.isOn("block_reminders"))
         let others = PillCatalog.all.map(\.id).filter { !hiddenByDefault.contains($0) }
         check("every other pill is offered, in catalog order", shipped == others)
         check("Orca is offered", shipped.contains("agent_orca"))

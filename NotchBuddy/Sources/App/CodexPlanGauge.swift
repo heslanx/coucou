@@ -160,9 +160,9 @@ struct CodexPlanCardView: View {
             // Gauge rows
             VStack(alignment: .leading, spacing: 5) {
                 if usage?.fiveHour != nil {
-                    GaugeRowView(label: "5 hours", window: usage?.fiveHour, now: now)
+                    GaugeRowView(label: String(localized: "plan.5hours"), window: usage?.fiveHour, now: now)
                 }
-                GaugeRowView(label: "Week", window: usage?.sevenDay, now: now, weekly: true)
+                GaugeRowView(label: String(localized: "plan.week"), window: usage?.sevenDay, now: now, weekly: true)
                 HStack(spacing: 5) {
                     Text("Resets")
                         .font(.system(size: 11))
@@ -190,20 +190,20 @@ struct CodexPlanCardView: View {
     }
 
     private var subtitleText: String {
-        guard let usage else { return "Asking Codex…" }
+        guard let usage else { return String(localized: "konclui.codex.asking") }
         let plan = usage.planType.map { "\($0) · " } ?? ""
         let diff = now.timeIntervalSince(usage.updatedAt)
-        if diff < 60 { return plan + "just now" }
+        if diff < 60 { return plan + String(localized: "plan.just-now") }
         let mins = Int(diff / 60)
-        if mins < 60 { return plan + "\(mins) min ago" }
-        return plan + "\(mins / 60) h ago"
+        if mins < 60 { return plan + String(format: String(localized: "plan.mins-ago %lld"), Int64(mins)) }
+        return plan + String(format: String(localized: "plan.hours-ago %lld"), Int64(mins / 60))
     }
 
     private var resetsText: String {
         guard let count = usage?.resetCredits else { return "—" }
-        var text = "\(count) available"
+        var text = String(format: String(localized: "konclui.codex.available %lld"), Int64(count))
         if count > 0, let exp = usage?.resetCreditExpiresAt {
-            text += " · until \(resetExpiryFormatter.string(from: exp))"
+            text += String(format: String(localized: "konclui.codex.until %@"), resetExpiryFormatter.string(from: exp))
         }
         return text
     }

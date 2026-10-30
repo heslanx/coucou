@@ -36,6 +36,7 @@ struct HubInsightsPage: View {
                 ForEach(Period.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
+            .koncluiSegmented()   // Koncluí
             .labelsHidden()
             .fixedSize()
         } content: {

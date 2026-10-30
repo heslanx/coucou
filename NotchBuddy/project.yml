@@ -131,6 +131,10 @@ targets:
         type: folder
       - path: Resources/Localizable.xcstrings
         buildPhase: resources
+      # Koncluí: the permission prompts in the 14 languages (Info.plist keeps the English), copy table in
+      # scripts/konclui/rebrand_copy_data.py
+      - path: Resources/InfoPlist.xcstrings
+        buildPhase: resources
       # What's new after an update, once in the notch (WhatsNewViews.swift; GitHub build)
       - path: Resources/whats-new.json
         buildPhase: resources
@@ -148,11 +152,11 @@ targets:
         LSUIElement: YES
         NSHighResolutionCapable: YES
         NSSupportsAutomaticGraphicsSwitching: YES
-        NSAppleEventsUsageDescription: "Pour sauter au terminal, envoyer des mails et piloter Musique et Spotify."
-        NSMicrophoneUsageDescription: "Koncluí uses the microphone when you dictate, and to note your calls when you ask it to."
+        NSAppleEventsUsageDescription: "Koncluí controls other apps only when you ask: it brings a terminal forward, prepares or sends an email, plays Music and Spotify, and reads the address of the browser tab you attach."
+        NSMicrophoneUsageDescription: "Koncluí uses the microphone when you dictate, say “OK Koru”, or ask it to note a call."
         NSAudioCaptureUsageDescription: "Koncluí records what your Mac plays only while you note a call, to write down what the other people say."
-        NSSpeechRecognitionUsageDescription: "Koncluí turns your voice into the text of a chat message."
-        NSAccessibilityUsageDescription: "Pour lire le titre de la fenêtre active et l'attacher comme contexte."
+        NSSpeechRecognitionUsageDescription: "Koncluí turns your voice into text when you dictate, say “OK Koru”, or note a call. Your Mac does the recognition, on the device when it can."
+        NSAccessibilityUsageDescription: "Koncluí needs Accessibility to paste what you dictate, to hear the Esc key, and to read the title of the window you attach."
         NSContactsUsageDescription: "Koncluí looks up an email address when you ask it, by voice, to prepare an email."
         NSFocusStatusUsageDescription: "Koncluí stays quiet about new WhatsApp messages while a Focus is on."
         NSAppTransportSecurity:
