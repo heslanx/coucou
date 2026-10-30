@@ -218,6 +218,9 @@ Day to day: `./scripts/konclui/dev-install.sh` builds Debug and installs `/Appli
 
 ## Upstream workflow
 
+Branches, remotes, pull requests and releases: [ADR-001](docs/konclui/decisions/ADR-001-branches-and-flow.md). Upstream
+comes in on a `sync/upstream-<date>` branch from `main` of `konclui/konclui-notch`:
+
 ```
 git fetch upstream
 git merge upstream/main
