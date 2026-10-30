@@ -31,28 +31,31 @@ const mix=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
 
 /* ---------------- KORU ---------------- */
 // Palette and geometry, in units of R (R = 0.3 × canvas width × the Bot's frame, as for Mochi), from the body centre.
-const K={eyeIn:hexRgb('#FEA638'),eyeEdge:hexRgb('#F6962C'),ink:'#164149'};
+const K={eyeIn:hexRgb('#F8FAFA'),eyeEdge:hexRgb('#DAE2E4'),ink:'#164149'};   // white eye discs (owner's choice), dark ink pupils
 // The colours a feature may swap as a whole through bot.palette (mini Korus take their agent's colour this way):
 // body = the key-light gradient from the lit dome to the shaded base, belly = top to bottom, wing = upper edge to tip.
-const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['#3FAAB2','#268C98','rgba(38,140,152,.6)'],wing:['#124F5C','#09343E']};
+const PALETTE={body:['#6CCAD5','#3EA5B1','#2A94A2','#167E8A','#0E6470'],belly:['#3FAAB2','#268C98','rgba(38,140,152,.6)'],wing:['#124F5C','#09343E'],
+  face:['#40B2BF','#4EBBC3','#2E9FAB'],glow:[80,200,218],lid:['#3FAFBA','#2E9DA9']};   // face: the facial disc and tufts, top to bottom;
+  // glow: the light on the tufts; lid: the eyelids, top to edge
 const G={rx:1.21,ryTop:1.04,ryBot:1.02,cy:.088,nTop:2.0,nBot:3.5,
   eyeSp:.518,eyeY:-.117,ring:.558,disc:.386,pupil:.152,face:.27};
 
-// hy, ear, tilt, tint and go are targets, eased every frame (a tween on one of them wins while it runs).
+// hy, ear, tilt, tint and go are targets, eased every frame (a tween on one of them wins while it runs). sound: what
+// BotEngine.swift's state table plays when the state starts (emotes carry theirs too).
 const STATES={
   idle:{label:'Parada',col:'#1EAAC8',tint:.2,eye:'pill',badge:null,go:.6},
-  working:{label:'Trabalhando',col:'#1796E5',hy:.054,sq:.955,dy:.03,tint:.85,eye:'pill',badge:['dots',['#3D8CFF','#2F6CF5']],bo:[-.083,-.11],fold:1,look:[.05,-1.6],converge:1,pupil:1.12,go:1},
-  thinking:{label:'Pensando',col:'#8C50FF',hy:.022,sq:.932,dy:.03,tint:.85,eye:'pill',badge:['dots',['#9A4DFF','#7C3AED']],bo:[.125,.058],bsc:.9,brot:-.09,dot:'#F0D8FF',fold:1,look:[1.25,.95],go:1},
-  searching:{label:'Procurando',col:'#4A80F2',hy:0,sq:.967,dy:.03,tint:.85,eye:'pill',badge:['dots',['#4F5BFF','#3A3DF0']],bo:[-.05,.058],scan:1,go:1},
-  approval:{label:'Aprovação',col:'#FFAA1E',hy:.076,sq:.935,dy:.03,tint:.95,eye:'wide',badge:['bang',['#FFC23A','#F07F00']],bo:[0,.11],fold:1,look:[.75,-.05],bounce:1,go:.75},
-  question:{label:'Pergunta',col:'#28C8FF',hy:-.04,dy:.03,tint:.9,eye:'pill',badge:['q',['#22D0FF','#0A9CF0']],bo:[-.05,-.015],tilt:.26,look:[1.1,.85],go:.5},
-  error:{label:'Erro',col:'#FF3C46',hy:.05,dy:.03,tint:.95,eye:'flat',badge:['dot',['#FF5A5A','#E8303C']],bo:[-.058,-.067],ear:1.4,go:.5},
-  finished:{label:'Terminou',col:'#2EE6C0',hy:.06,dy:.03,tint:.85,eye:'happy',badge:['ring',['#22F79E','#18D888']],bo:[.17,-.04],aura:'spark',go:.5},
-  sleeping:{label:'Dormindo',col:'#1EAAC8',hy:.06,dy:.03,tint:.1,eye:'closed',badge:null,breathe:1,zz:1,ear:.45,go:.32},
-  dizzy:{label:'Tonta',col:'#FF5AAA',hy:.01,dy:.03,tint:.95,eye:'spiral',badge:null,aura:'wobble',tilt:.17,go:1},
-  ratelimit:{label:'Limite',col:'#FB923C',tint:.85,eye:'tired',badge:['dot',['#FFA552','#F07C1E']],sweat:1,go:.9}
+  working:{label:'Trabalhando',col:'#1796E5',hy:.054,sq:.955,dy:.03,tint:.85,eye:'pill',badge:['dots',['#3D8CFF','#2F6CF5']],bo:[-.083,-.11],fold:1,look:[.05,-1.6],converge:1,pupil:1.12,go:1,sound:'work'},
+  thinking:{label:'Pensando',col:'#8C50FF',hy:.022,sq:.932,dy:.03,tint:.85,eye:'pill',badge:['dots',['#9A4DFF','#7C3AED']],bo:[.125,.058],bsc:.9,brot:-.09,dot:'#F0D8FF',fold:1,look:[1.25,.95],go:1,sound:'think'},
+  searching:{label:'Procurando',col:'#4A80F2',hy:0,sq:.967,dy:.03,tint:.85,eye:'pill',badge:['dots',['#4F5BFF','#3A3DF0']],bo:[-.05,.058],scan:1,go:1,sound:'search'},
+  approval:{label:'Aprovação',col:'#FFAA1E',hy:.076,sq:.935,dy:.03,tint:.95,eye:'wide',badge:['bang',['#FFC23A','#F07F00']],bo:[0,.11],fold:1,look:[.75,-.05],bounce:1,go:.75,sound:'approval'},
+  question:{label:'Pergunta',col:'#28C8FF',hy:-.04,dy:.03,tint:.9,eye:'pill',badge:['q',['#22D0FF','#0A9CF0']],bo:[-.05,-.015],tilt:.26,look:[1.1,.85],go:.5,sound:'question'},
+  error:{label:'Erro',col:'#FF3C46',hy:.05,dy:.03,tint:.95,eye:'flat',badge:['dot',['#FF5A5A','#E8303C']],bo:[-.058,-.067],ear:1.4,go:.5,sound:'error'},
+  finished:{label:'Terminou',col:'#2EE6C0',hy:.06,dy:.03,tint:.85,eye:'happy',badge:['ring',['#22F79E','#18D888']],bo:[.17,-.04],aura:'spark',go:.5,sound:'finish'},
+  sleeping:{label:'Dormindo',col:'#1EAAC8',hy:.06,dy:.03,tint:.1,eye:'closed',badge:null,breathe:1,zz:1,ear:.45,go:.32,sound:'sleep'},
+  dizzy:{label:'Tonta',col:'#FF5AAA',hy:.01,dy:.03,tint:.95,eye:'spiral',badge:null,aura:'wobble',tilt:.17,go:1,sound:'dizzy'},
+  ratelimit:{label:'Limite',col:'#FB923C',tint:.85,eye:'tired',badge:['dot',['#FFA552','#F07C1E']],sweat:1,go:.9,sound:'rate'}
 };
-const EMOTES={love:{label:'Amor',eye:'heart',c:'#FF4D6D'},surprised:{label:'Surpresa',eye:'dot',c:'#FFFFFF'},proud:{label:'Orgulho',eye:'star',c:'#F7B32B'},wink:{label:'Piscadinha',eye:'wink',c:'#A78BFA'},yawn:{label:'Bocejo',eye:'tired',c:'#94A3B8'},happy:{eye:'happy'},annoyed:{eye:'line',ms:800}};
+const EMOTES={love:{label:'Amor',eye:'heart',c:'#FF4D6D',sound:'love'},surprised:{label:'Surpresa',eye:'dot',c:'#FFFFFF'},proud:{label:'Orgulho',eye:'star',c:'#F7B32B',sound:'proud'},wink:{label:'Piscadinha',eye:'wink',c:'#A78BFA',sound:'wink'},yawn:{label:'Bocejo',eye:'tired',c:'#94A3B8',sound:'yawn'},happy:{eye:'happy'},annoyed:{eye:'line',ms:800,sound:'annoyed'}};
 
 function rr(x,X,Y,W,H,R){R=Math.max(0,Math.min(R,W/2,H/2));x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath()}
 function heart(x,s){x.beginPath();x.moveTo(0,s*.38);x.bezierCurveTo(-s*1.05,-s*.15,-s*.5,-s*.95,0,-s*.38);x.bezierCurveTo(s*.5,-s*.95,s*1.05,-s*.15,0,s*.38);x.closePath()}
@@ -153,9 +156,10 @@ function grainStamp(x,path,s,alpha,box){ const u0=Math.max(s.x0,Math.floor(box?b
     u1=Math.min(s.x0+s.c.width,Math.ceil(box?box[2]:1e9)), v1=Math.min(s.y0+s.c.height,Math.ceil(box?box[3]:1e9)); if(u1<=u0||v1<=v0) return;
   x.save(); x.clip(path); x.globalCompositeOperation='soft-light'; x.globalAlpha*=alpha; x.drawImage(s.c,u0-s.x0,v0-s.y0,u1-u0,v1-v0,u0,v0,u1-u0,v1-v0); x.restore() }
 // Eyelid (inside an eye disc of radius dr, 0..1 closed): its edge bows down in the middle like a real lid.
-function lidEdge(x,dr,lid){ const y=-dr+2*dr*lid, bow=dr*.28*Math.sin(Math.PI*lid); x.moveTo(-dr,y-bow*.6); x.quadraticCurveTo(0,y+bow,dr,y-bow*.6) }
-function lidPath(x,dr,lid){ x.beginPath(); x.moveTo(-dr,-dr); x.lineTo(dr,-dr); const y=-dr+2*dr*lid, bow=dr*.28*Math.sin(Math.PI*lid);
-  x.lineTo(dr,y-bow*.6); x.quadraticCurveTo(0,y+bow,-dr,y-bow*.6); x.closePath() }
+// lidCurve: the height of the edge's ends and of its control point; lidEdge strokes the edge, lidPath fills the lid down to it.
+function lidCurve(dr,lid){ const y=-dr+2*dr*lid, bow=dr*.28*Math.sin(Math.PI*lid); return [y-bow*.6,y+bow] }
+function lidEdge(x,dr,lid){ const [ye,yc]=lidCurve(dr,lid); x.moveTo(-dr,ye); x.quadraticCurveTo(0,yc,dr,ye) }
+function lidPath(x,dr,lid){ const [ye,yc]=lidCurve(dr,lid); x.beginPath(); x.moveTo(-dr,-dr); x.lineTo(dr,-dr); x.lineTo(dr,ye); x.quadraticCurveTo(0,yc,-dr,ye); x.closePath() }
 // Badge glyphs as paths, so they look the same on every platform and port to SwiftUI unchanged.
 function glyph(x,kind,R){ x.fillStyle=x.strokeStyle='#fff'; x.lineCap='round'; x.lineJoin='round';
   if(kind==='bang'){ x.lineWidth=R*.075; x.beginPath(); x.moveTo(0,-R*.115); x.lineTo(0,R*.02); x.stroke(); x.beginPath(); x.arc(0,R*.1,R*.042,0,Math.PI*2); x.fill() }
@@ -210,7 +214,7 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //   layers:{floor,behind,body,wings,headBack,face,headFront,headTop,front}(bot,d)   draw hooks, see draw(); wings runs after
 //                                 the wings are drawn, in the body's space, with d.wings their outline (to recolour them)
 //   beak(bot,d)                   return true when it drew the beak itself; the first one that does wins (script order)
-//   onState(bot,prev,next)  onClick(bot) (return true when handled)
+//   onState(bot,prev,next)  onClick(bot) (return true when handled)  onSound(bot,name) (a sound event)
 //   capture(bot,params)           captures set the feature up from the URL (?shot, ?film and ?grid on a virtual clock; ?bench live)
 //   controls(ui,bots)             live page controls
 //   soak(bot,bad)                 after ?soak's random actions and rest: push a string to bad for anything still not at rest
@@ -220,9 +224,10 @@ const wingCache=new Map(), wingPath=R=>{ if(!wingCache.has(R)) wingCache.set(R,b
 //   eyes     bot.override(eye,ms), bot.clearOverride(), bot.eyeOv (read: the eye shown over the state's), bot.blink(), bot.blinkIn(ms)
 //   wing     bot.raise(owner,ms,pose) ('wave' or 'cup'), bot.lower(owner,ms) (only the owner that raised it lowers it), bot.handSide (read)
 //   actions  bot.setState(name), bot.emote(name,ms), bot.greet(), bot.interruptGreet() (a greeting in progress lets go), bot.click(),
-//            bot.squash(), bot.roll(ms,turns), bot.emit(type,n) (returns the new particles), bot.zz(n) (sleepy z beside the head)
+//            bot.squash(), bot.roll(ms,turns), bot.emit(type,n) (returns the new particles), bot.zz(n) (sleepy z beside the head),
+//            bot.sound(name) (a sound event)
 //   other    bot.look {x,y}, bot.mini, bot.state and bot.cfg (its STATES entry, read), bot.palette (PALETTE's shape: recolours body,
-//            belly and wings), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
+//            belly, wings, facial disc, tufts and eyelids), bot.physDx/physDy and physVx/physVy (the lag spring for things hanging off the head, -1..1);
 //            page options a capture() may set: bot.bg (dark backdrop), bot.mini
 // Also on Koru: G (geometry), K (eye and ink colours), STATES, EMOTES, Clock, params, NOW, rand, the easing and colour helpers;
 // drawing helpers drop/inner (soft shadow and inner light), grainOn (velvet grain), sheet/stamp (cache shading that depends only on
@@ -233,7 +238,7 @@ const features=[], eyeShapes={}, particles={}, actions={};
 // A sleepy z (a feature may draw its own in its place).
 particles.z=(x,sz)=>{ const w=sz*.5; x.strokeStyle='rgb(206,236,246)'; x.shadowColor='rgba(120,215,240,.8)'; x.shadowBlur=sz*.6; x.lineWidth=sz*.28; x.lineCap=x.lineJoin='round';
   x.beginPath(); x.moveTo(-w,-w); x.lineTo(w,-w); x.lineTo(-w,w); x.lineTo(w,w); x.stroke() };
-const MODS=()=>({ox:0,oy:0,sx:1,sy:1,rot:0,headY:0,headTilt:0,es:1,eye:null,lookX:0,lookY:0,flap:0});   // flap: resting wings swing out (radians)
+const MODS=()=>({ox:0,oy:0,sx:1,sy:1,rot:0,headY:0,headTilt:0,es:1,eye:null,lookX:0,lookY:0,flap:0,tuftL:0,tuftR:0,flapL:0,flapR:0,lidL:0,lidR:0});   // flap: resting wings swing out (radians); per side (L: viewer-left) tuft* adds to ear, flap* to flap, lid* closes that eye at least that far
 function register(f){ features.push(f); for(const b of Bot.all) f.init&&f.init(b); for(const k in f.actions||{}) actions[k]=f.actions[k]; return f }
 const each=(name,...a)=>{ for(const f of features) if(f[name]) f[name](...a) };
 
@@ -265,6 +270,7 @@ class Bot{
     else if(n==='question'){ this.blink() }
     else if(n==='ratelimit'){ this.emit('sweat',1) }
     else if(prev!=='idle'||n!=='idle') this.blink();
+    if(c.sound) this.sound(c.sound);
     each('onState',this,prev,n);
   }
   setBadge(b){ const key=b?b[0]+b[1].join():'none'; if(key===this._bk)return; this._bk=key; const tok=++this._bt;
@@ -277,6 +283,8 @@ class Bot{
   clearOverride(){ this.cancel('yawn'); this.eyeOv=null }
   blink(){ if(this.lock.open)return; this.anim('open',[[.06,70,E.inOut],[1,130,E.out]]) }   // BotEngine.swift:374-380
   blinkIn(ms){ this.nextBlink=NOW()+ms }
+  // A sound event (a file name of Koncluí's set); the sounds feature plays it, captures stay silent.
+  sound(name){ each('onSound',this,name) }
   // BotEngine.swift doRoll() 526-533: Koru turns over whole (turns, eased in and out) and squashes on landing.
   roll(ms,turns){ this.set('roll',this.s.roll%1); this.anim('roll',[[this.s.roll+turns,ms,E.inOut]],()=>{ this.set('roll',0); this.squash() }) }   // a roll during a roll goes on forward
   squash(){ this.physVy+=.6; this.anim('sy',[[.78,70,E.out],[1.1,130,E.out],[1,170,E.inOut]]); this.anim('sx',[[1.16,70,E.out],[.95,130,E.out],[1,170,E.inOut]]) }   // BotEngine.swift:382-394
@@ -290,7 +298,7 @@ class Bot{
   lower(owner,ms=200){ if(this.handOwner!==owner) return false; this.handOwner=null; this.anim('hands',[[0,ms,E.inOut]]); return true }
   // The greeting of BotEngine.swift greet() 567-623: happy eyes for 2 s and a hop; at 0.25 s the near wing rises with a small
   // squash, waves from 0.45 to 1.55 s while the head sways (1001-1005), blinks at 0.55 and 1.5 s, and folds at 1.55 s.
-  greet(){ const tok=++this.greetTok, now=NOW(), at=(ms,fn)=>this.after('greet'+ms,ms,()=>{ if(tok===this.greetTok) fn() });
+  greet(){ const tok=++this.greetTok, now=NOW(), at=(ms,fn)=>this.after('greet'+ms,ms,()=>{ if(tok===this.greetTok) fn() }); this.sound('greet');
     if(now>=this.waveStart&&now<this.waveUntil) this.waveUntil=now+1550;   // already waving: the wave goes on, longer
     else { this.waveStart=now+450; this.waveUntil=now+1550 } this.physVx+=.2;
     this.override('happy',2050); this.anim('oy',[[-.06,220,E.out],[0,220,E.back]]);
@@ -302,7 +310,7 @@ class Bot{
   // An update waiting: a blue arrow badge while idle or asleep (BotEngine.swift setUpdateHint()).
   setUpdateHint(on){ if(on===!!this.updateHint) return; this.updateHint=on; this.setBadge(this.badgeFor(this.state)); if(on) this.blink() }
   badgeFor(n){ return this.updateHint&&(n==='idle'||n==='sleeping')?['arrow',['#5B9BFF','#3B82F6']]:STATES[n].badge }
-  emote(n,d){ const em=EMOTES[n]; if(!em)return; d=d??em.ms??1800; const hold=k=>Math.max(0,d-k); this.override(em.eye,d);
+  emote(n,d){ const em=EMOTES[n]; if(!em)return; d=d??em.ms??1800; const hold=k=>Math.max(0,d-k); this.override(em.eye,d); if(em.sound) this.sound(em.sound);
     if(n==='love'){ this.anim('blush',[[1,300,E.out],[1,hold(600),E.lin],[0,300,E.inOut]]); this.emit('heart',4); this.anim('oy',[[-.1,160,E.out],[0,300,E.back]]) }
     if(n==='surprised'){ this.anim('oy',[[-.3,140,E.out],[0,380,E.back]]); this.anim('es',[[1.25,120,E.out],[1,500,E.inOut]]); this.anim('ear',[[-.35,120,E.out],[0,500,E.inOut]]) }
     if(n==='proud'){ this.squash(); this.emit('star',5); this.anim('tilt',[[-.14,220,E.out],[-.14,hold(500),E.lin],[0,280,E.inOut]]); this.anim('blush',[[.7,250,E.out],[.7,hold(500),E.lin],[0,300,E.inOut]]) }   // BotEngine.swift:813-826
@@ -389,11 +397,11 @@ class Bot{
     const wings=[], now=NOW(), wt=(now-this.waveStart)/1000, side=this.handSide, wingLine=d.wings=new Path2D();
     // BotEngine.swift:1235-1257: the wave eases in over 0.18 s from its start (and out over its last 0.15 s here)
     const wave=now>=this.waveStart&&now<this.waveUntil?Math.min(E.out(Math.min(1,wt/.18)),clamp((this.waveUntil-now)/150,0,1)):0;
-    for(const sd of[-1,1]){ const far=clamp(sd*yawN,0,1); let lift=sd===side?s.hands:0; if(sd===side&&wave) lift+=Math.sin(wt*13)*.17*wave*Math.min(1,s.hands); wings.push({sd,far,lift,base:sd===side?s.hands:0,cup:sd===side&&this.handPose==='cup',sway:sd!==side&&wave?Math.sin(6*wt)*.07*wave:0}) }   // the other wing sways (BotEngine.swift:1261-1263)
+    for(const sd of[-1,1]){ const far=clamp(sd*yawN,0,1); let lift=sd===side?s.hands:0; if(sd===side&&wave) lift+=Math.sin(wt*13)*.17*wave*Math.min(1,s.hands); wings.push({sd,far,lift,base:sd===side?s.hands:0,cup:sd===side&&this.handPose==='cup',sway:sd!==side&&wave?Math.sin(6*wt)*.07*wave:0,flap:sd<0?m.flapL:m.flapR}) }   // the other wing sways (BotEngine.swift:1261-1263)
     // The wing's transform in the body's space; shapes are drawn for the left side.
-    const wingM=({sd,far,lift,cup,sway},over)=>{ const D=180/Math.PI;
+    const wingM=({sd,far,lift,cup,sway,flap},over)=>{ const D=180/Math.PI;
       let M=new DOMMatrix().scale(-sd,1).translate(0,R*.15*far).translate(-R*1.42,0).scale(1-.25*far,1).translate(R*1.42,0);
-      if(m.flap||sway) M=M.translate(-R*1.05,-R*.05).rotate((m.flap+sway)*D).translate(R*1.05,R*.05);
+      if(m.flap||flap||sway) M=M.translate(-R*1.05,-R*.05).rotate((m.flap+flap+sway)*D).translate(R*1.05,R*.05);
       const L=Math.min(clamp(lift,0,1.3),1);
       if(cup) return M.translate(-R*1.1,-R*.05).translate(R*.07*L,-R*.47*L).rotate(-.2*L*D).scale(1,1+.12*L).translate(R*1.1,R*.05);   // up beside the head, its top flaring out
       // Raising: the wing swings up from its root and turns over (over: 1 before, -1 after); it never goes edge-on. Raised high
@@ -470,18 +478,18 @@ class Bot{
       face.addPath(toPath(ringPts(sd*ex+f,G.eyeY,G.ring,1-.16*far+.07*near,sd,.05,.15+.1*far),R));   // a light pull keeps the rings round under the beak
       face.addPath(outline(mirror(browSegs(-f*sd,far),-sd),R));          // left-side shapes, mirrored for sd = 1
       face.addPath(toPath([[f+sd*.002,-.247],[f+sd*.05,-.272],[f+sd*.035,-.205],[f,-.215]],R));   // closes the sliver under the V tip, between brow and rings
-      const tp=mirror(tuftPts(-f*sd*.15,s.ear+(sd<0?.55*badgeFold:0),far),-sd), tf=blob(tp,R); tufts.addPath(tf); face.addPath(tf);
+      const tp=mirror(tuftPts(-f*sd*.15,s.ear+(sd<0?m.tuftL+.55*badgeFold:m.tuftR),far),-sd), tf=blob(tp,R); tufts.addPath(tf); face.addPath(tf);
       tuftBoxes.push({tf,box:[Math.min(...tp.map(q=>q[0]))*R,Math.min(...tp.map(q=>q[1]))*R,Math.max(...tp.map(q=>q[0]))*R,Math.max(...tp.map(q=>q[1]))*R]}) }
     d.face=face; d.tufts=tufts;
     if(full) drop(x,tufts,'rgba(2,40,46,.35)',R*.05,0,R*.035);
-    const dg=x.createLinearGradient(0,-R*1.15,0,ey+R*G.ring); dg.addColorStop(0,'#40B2BF'); dg.addColorStop(.35,'#4EBBC3'); dg.addColorStop(1,'#2E9FAB');
+    const dg=x.createLinearGradient(0,-R*1.15,0,ey+R*G.ring); dg.addColorStop(0,P.face[0]); dg.addColorStop(.35,P.face[1]); dg.addColorStop(1,P.face[2]);
     x.fillStyle=dg; x.fill(face);
     if(full){ x.save(); x.clip(face);                                  // light from the right, a soft clay tuft
       const lr=x.createLinearGradient(-R*1.2,0,R*1.2,0); lr.addColorStop(0,'rgba(255,255,255,0)'); lr.addColorStop(1,'rgba(200,245,250,.1)'); x.fillStyle=lr; x.fillRect(-R*1.5,-R*1.5,R*3,R*2.5);
       x.restore();
       x.save(); x.clip(tufts);
-      for(const sd of[-1,1]){ const tx=-sd*1.08*R+fx*.15, tg=x.createRadialGradient(tx,-R*1.1,0,tx,-R*1.1,R*.32); tg.addColorStop(0,'rgba(80,200,218,.4)'); tg.addColorStop(1,'rgba(80,200,218,0)'); x.fillStyle=tg; x.fillRect(tx-R*.4,-R*1.45,R*.8,R*.7);
-        const lx=-sd*1.12*R+fx*.15, lg=x.createRadialGradient(lx,-R*.72,0,lx,-R*.72,R*.22); lg.addColorStop(0,'rgba(80,200,218,.3)'); lg.addColorStop(1,'rgba(80,200,218,0)'); x.fillStyle=lg; x.fillRect(lx-R*.3,-R*1.0,R*.6,R*.6) }
+      for(const sd of[-1,1]){ const tx=-sd*1.08*R+fx*.15, tg=x.createRadialGradient(tx,-R*1.1,0,tx,-R*1.1,R*.32); tg.addColorStop(0,rgba(P.glow,.4)); tg.addColorStop(1,rgba(P.glow,0)); x.fillStyle=tg; x.fillRect(tx-R*.4,-R*1.45,R*.8,R*.7);
+        const lx=-sd*1.12*R+fx*.15, lg=x.createRadialGradient(lx,-R*.72,0,lx,-R*.72,R*.22); lg.addColorStop(0,rgba(P.glow,.3)); lg.addColorStop(1,rgba(P.glow,0)); x.fillStyle=lg; x.fillRect(lx-R*.3,-R*1.0,R*.6,R*.6) }
       const ts=grainSheet('tufts'+R,[-R*1.45,-R*1.4,R*1.45,-R*.35],-R*1.2,-R*.5,R*.65,R*.92); for(const {tf,box} of tuftBoxes) grainStamp(x,tf,ts,.45,box);
       inner(x,face,'rgba(175,238,246,.8)',R*.03,0,R*.022,FB); inner(x,face,'rgba(4,50,58,.35)',R*.04,0,-R*.025,FB); x.restore() }
     if(s.blush>.01&&shape!=='happy'){ x.save(); x.clip(face);         // love and proud: a blush on each ring (happy eyes carry their own lines)
@@ -496,11 +504,11 @@ class Bot{
       const eg=x.createLinearGradient(0,-dr,0,dr); eg.addColorStop(0,rgba(K.eyeIn,1)); eg.addColorStop(1,rgba(K.eyeEdge,1));
       x.fillStyle=eg; x.fill(disc);
       if(full){ const d0=R*G.disc, k=dr/d0; x.save(); x.scale(k,k);   // shading drawn for the resting disc, scaled with it
-        stamp(x,sheet('disc'+R,[-d0-2,-d0-2,d0+2,d0+2],g=>{ const p=new Path2D(); p.arc(0,0,d0,0,Math.PI*2); inner(g,p,'rgba(170,80,10,.22)',R*.035,0,R*.012,[-d0,-d0,d0,d0]) },R*.1)); x.restore() }
+        stamp(x,sheet('disc'+R,[-d0-2,-d0-2,d0+2,d0+2],g=>{ const p=new Path2D(); p.arc(0,0,d0,0,Math.PI*2); inner(g,p,'rgba(30,70,80,.16)',R*.035,0,R*.012,[-d0,-d0,d0,d0]) },R*.1)); x.restore() }
       const dc=new Path2D(), dl=dr+R*.005; dc.arc(0,0,dl,0,Math.PI*2); x.save(); x.clip(dc);   // a hair wider than the disc, so a lid covers its antialiased rim
       this.eye(shape,dr,e.sd,yawN,pitN,t,e.far);
-      const lid=1-s.open; if(lid>.01){ lidPath(x,dl,lid);   // the lid comes down with a rounded edge and a thin lash line
-        const lg=x.createLinearGradient(0,-dr,0,dr*(2*lid-1)); lg.addColorStop(0,'#3FAFBA'); lg.addColorStop(1,'#2E9DA9'); x.fillStyle=lg; x.fill();
+      const lid=Math.max(1-s.open,e.sd<0?m.lidL:m.lidR); if(lid>.01){ lidPath(x,dl,lid);   // the lid comes down with a rounded edge and a thin lash line
+        const lg=x.createLinearGradient(0,-dr,0,dr*(2*lid-1)); lg.addColorStop(0,P.lid[0]); lg.addColorStop(1,P.lid[1]); x.fillStyle=lg; x.fill();
         if(lid<.98){ x.strokeStyle='rgba(22,65,73,.55)'; x.lineWidth=R*.016; x.beginPath(); lidEdge(x,dr,lid); x.stroke() } }
       x.restore(); x.restore() }
     // beak: a matte teardrop lit from the right
@@ -580,7 +588,7 @@ class Bot{
       case 'flat': { const w=R*.38,h=R*.11; rr(x,-w/2-sd*R*.07,-h/2+py*.2,w,h,h/2); x.fill(); break }
       case 'line': x.save(); x.rotate(-sd*.25); rr(x,-dr*.5,-R*.05,dr,R*.1,R*.05); x.fill(); x.restore(); break;
       case 'happy': happy();
-        x.strokeStyle='rgba(200,100,30,.9)'; x.lineWidth=R*.018; for(let i=0;i<3;i++){ const yy=dr*(.42+i*.12), xo=sd*dr*(.5+i*.05); x.beginPath(); x.moveTo(xo,yy); x.quadraticCurveTo(xo+sd*dr*.12,yy-dr*.02,xo+sd*dr*.2,yy-dr*.1); x.stroke() } break;
+        x.strokeStyle='rgba(232,112,104,.85)'; x.lineWidth=R*.018; for(let i=0;i<3;i++){ const yy=dr*(.42+i*.12), xo=sd*dr*(.5+i*.05); x.beginPath(); x.moveTo(xo,yy); x.quadraticCurveTo(xo+sd*dr*.12,yy-dr*.02,xo+sd*dr*.2,yy-dr*.1); x.stroke() } break;
       case 'closed': x.save(); x.lineWidth=R*.095; x.beginPath(); x.arc(0,-dr*.18,dr*.58,Math.PI*.2,Math.PI*.8); x.stroke(); x.restore(); break;
       case 'spiral': { x.lineWidth=R*.07; x.beginPath(); let qx=0,qy=0,aa=0; for(let a=0;a<=4*Math.PI;a+=.12){ const r=R*.03+a/(4*Math.PI)*R*.22; aa=a+t*6*sd; qx=Math.cos(aa)*r; qy=Math.sin(aa)*r; a?x.lineTo(qx,qy):x.moveTo(qx,qy) }
         x.lineTo(qx+Math.cos(aa+1.2)*R*.06,qy+Math.sin(aa+1.2)*R*.06); x.stroke(); break }

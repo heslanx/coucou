@@ -13,7 +13,12 @@ final class HookServer: @unchecked Sendable {
 
     // Support directory paths
     static var supportDir: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        #if DEBUG && !APPSTORE
+        if let path = ProcessInfo.processInfo.environment["COUCOU_SUPPORT_DIR"], !path.isEmpty {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        #endif
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Konclui")
     }
     static var socketPath: String {

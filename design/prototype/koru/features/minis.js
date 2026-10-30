@@ -4,12 +4,14 @@
 // 765-786 (the emote's eyes stay, wink excepted; the first behaviour 0.8-2.5 s later), the idle pulse of update() 1015-1018,
 // the wandering look of update() 937-946 (a new random look every 0.5-2 s, never the pointer),
 // and notch-buddy.html Bot bodyColor 609-616 (light = colour + 35 % white, dark = colour + 18 % black, edges shaded).
-// Koru keeps her face, eyes and beak; the body, belly and wings take the agent colour (PillCatalog.swift).
+// Koru keeps her eyes and beak; the body, belly, wings, facial disc, tufts and eyelids take the agent colour (PillCatalog.swift). A neutral
+// colour (Claude's white) keeps Koru's teal, the official colour, as the Mac app does (KoruEngine.swift, Koru.tints).
 (()=>{
 const {register,E,NOW,rand,hexRgb,rgba,mix,EMOTES}=Koru;
 const WHITE=[255,255,255], BLACK=[0,0,0];
 const deep=(c,k)=>c.map(v=>v*v/255*k);                    // a darker, more saturated shade (the colour multiplied by itself)
-const AGENTS={claude:'#F5F6F8',codex:'#2DD4BF'};             // PillCatalog.swift: integration_claude, agent_codex
+// PillCatalog.swift: integration_claude, agent_codex, integration_resend, integration_n8n, integration_vercel, integration_github.
+const AGENTS={claude:'#F5F6F8',codex:'#2DD4BF',resend:'#22C55E',n8n:'#F29B38',vercel:'#7C5CFF',github:'#F4505E'};
 const rnd=(a,b)=>a+(b-a)*rand();
 
 /* ---------------- PERMANENT EMOTE ---------------- */
@@ -37,12 +39,15 @@ function setPerm(b,e,first=800+rand()*1700){ b.perm=LOOP[e]?e:null; b.permEye=b.
 /* ---------------- AGENT COLOUR ---------------- */
 // bot.palette (core.js PALETTE) from the agent colour: the prototype's ramp under core's key light, from the lit dome
 // (+80 % white) to a shaded base that keeps its saturation (core's teal bounce lights would grey a plain darker shade),
-// a paler belly, wings in a deeper, more saturated shade.
+// a paler belly, wings in a deeper, more saturated shade, a facial disc, tufts and eyelids lighter than the body (KoruShapes.swift agent()).
 // Not expressible, so left out: the soft (blurred) belly edge and the shade at the wing root; core keeps the state light.
 const palette=c=>({body:[mix(c,WHITE,.8),mix(c,WHITE,.6),mix(c,WHITE,.32),mix(c,WHITE,.08),mix(mix(c,deep(c,1),.3),BLACK,.16)].map(v=>rgba(v,1)),
   belly:[rgba(mix(c,WHITE,.3),1),rgba(mix(c,WHITE,.18),1),rgba(mix(c,WHITE,.12),.75)],
-  wing:[rgba(mix(deep(c,.78),WHITE,.15),1),rgba(deep(c,.5),1)]});
-function paint(b,hex){ b.palette=hex?palette(hexRgb(hex)):null }
+  wing:[rgba(mix(deep(c,.78),WHITE,.15),1),rgba(deep(c,.5),1)],
+  face:[mix(c,WHITE,.42),mix(c,WHITE,.5),mix(c,WHITE,.28)].map(v=>rgba(v,1)), glow:mix(c,WHITE,.55),
+  lid:[mix(c,WHITE,.42),mix(c,WHITE,.28)].map(v=>rgba(v,1))});
+const tints=c=>{ const hi=Math.max(...c), lo=Math.min(...c); return hi>0&&(hi-lo)/hi>.25 };   // saturated enough to colour Koru
+function paint(b,hex){ const c=hex&&hexRgb(hex); b.palette=c&&tints(c)?palette(c):null }
 
 /* ---------------- WANDERING LOOK ---------------- */
 // Not while the state has its own look or scan, sleeps (a mood-asleep mini too) or is dizzy; captures with &lx keep their look.
@@ -64,9 +69,11 @@ register({name:'minis',
   capture(b,p){ if(p.get('mini')==='1') b.mini=true; if(p.get('notch')==='1'){ b.notch=true; b.bg=false } if(p.has('lx')){ b.look.x=+p.get('lx'); b.wander=null }
     const col=p.get('color')||AGENTS[p.get('agent')]; if(col) paint(b,col);
     if(p.has('perm')) setPerm(b,p.get('perm'),p.has('act')?Math.max(0,2200-(+p.get('act'))):null) },
-  // Live: the two notch minis are a Claude Code and a Codex session; the buttons pick their permanent emote.
-  controls(ui,{mini,mini2}){ paint(mini,AGENTS.claude); paint(mini2,AGENTS.codex); ui.group('Minis: emote fixo');
-    const btns=[], pick=(e,btn)=>{ for(const b of [mini,mini2]) setPerm(b,e); for(const q of btns) q.classList.toggle('on',q===btn) };
+  // Live: the two notch minis are a Claude Code and a Codex session, the strip one mini per agent colour (canvas data-agent);
+  // the buttons pick the permanent emote of them all.
+  controls(ui,{mini,mini2,strip=[]}){ paint(mini,AGENTS.claude); paint(mini2,AGENTS.codex); for(const b of strip) paint(b,AGENTS[b.c.dataset.agent]);
+    ui.group('Minis: emote fixo');
+    const btns=[], pick=(e,btn)=>{ for(const b of [mini,mini2,...strip]) setPerm(b,e); for(const q of btns) q.classList.toggle('on',q===btn) };
     for(const [e,label,c] of [['happy','Feliz','#F7B32B'],['annoyed','Irritada','#FF5A5A'],['wink','Piscadinha','#A78BFA'],['love','Amor','#FF4D6D'],[null,'Sem emote','#9A9FA8']]){
       const btn=ui.button(label,c,()=>pick(e,btn)); btn.title='Emote fixo dos minis'; btns.push(btn) }
     btns[btns.length-1].classList.add('on') }

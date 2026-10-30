@@ -146,7 +146,7 @@ private struct ReminderAlertView: View {
                     if reminder.snoozeMinutes != nil || !reminder.buttons.isEmpty {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
                             if let minutes = reminder.snoozeMinutes {
-                                Button("Snooze · \(minutes) min") {
+                                Button(String(format: String(localized: "Snooze · %lld min"), Int64(minutes))) {
                                     ReminderManager.shared.perform(.snooze, for: reminder.id)
                                 }
                                 .buttonStyle(.bordered)

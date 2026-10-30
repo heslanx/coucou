@@ -27,7 +27,7 @@ eyeShapes.voice=(b,{x,dr,px,py,pr,pupil})=>{ pupil(pr*1.08); const q=Math.min(1,
   const k=Math.min(1,Math.max(0,(q-.6)/.3)); if(k<.01) return;
   x.strokeStyle=`rgba(196,96,24,${.2*k})`; x.lineWidth=dr*.03; x.lineCap='round'; x.beginPath(); x.arc(px*q,top+r,r,Math.PI*1.27,Math.PI*1.73); x.stroke() };
 
-function enterListening(b){ const V=b.voice; if(V.listen) return; V.listen=true; V.words=false;
+function enterListening(b){ const V=b.voice; if(V.listen) return; V.listen=true; V.words=false; b.sound('blip');   // FlowDictation.swift:313
   b.interruptGreet(); b.clearOverride();                   // the wide eyes replace a running emote, as Swift's permanent emote does
   b.anim('oy',[[-.2,130,E.out],[0,280,E.back]]); b.squash();
   V.wing=b.raise('voice',280,'cup');                       // the near wing rises to the head (listenHandRaise, 280 ms)

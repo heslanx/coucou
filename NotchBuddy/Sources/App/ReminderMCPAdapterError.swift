@@ -5,7 +5,7 @@ enum ReminderMCPAdapterError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .imageTooLarge: "MCP reminder images must be 700 KB or smaller."
+        case .imageTooLarge: String(localized: "MCP reminder images must be 700 KB or smaller.")
         }
     }
 }
