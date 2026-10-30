@@ -2,8 +2,8 @@
 
 ## Status
 
-Proposed. Accepting it takes two steps only the owner can do on GitHub: bring `main` of `konclui/konclui-notch` up to date
-(today a fast-forward to `heslanx/konclui`) and protect it.
+Accepted on 2026-10-30: the owner chose one primary branch, `main` of `konclui/konclui-notch`, with everything on it.
+`main` took all of the work that day (pull request #1). Still the owner's, on GitHub: protecting `main`.
 
 ## Date
 
