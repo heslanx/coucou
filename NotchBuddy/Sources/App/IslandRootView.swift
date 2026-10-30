@@ -99,8 +99,9 @@ struct IslandContainer: View {
                 // Keep idle animations inside the resting strip. Expanded views
                 // retain the panel's full height for particles and hands.
                 .mask(alignment: .topLeading) {
+                    // Koncluí: an island taller than 320 pt (a long question) keeps the Koru whole at its middle
                     Rectangle().frame(width: islandWidth,
-                                      height: state.mode == .expanded ? 320 : islandHeight)
+                                      height: state.mode == .expanded ? max(320, islandHeight) : islandHeight)
                 }
                 .opacity(uploadActive || greetingActive ? 0 : 1)
                 .animation(.easeInOut(duration: 0.25), value: uploadActive || greetingActive)

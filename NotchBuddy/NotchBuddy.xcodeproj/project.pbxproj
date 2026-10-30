@@ -425,6 +425,7 @@
 		ADB4EF797FBD6CC90F8D25D3 /* MochiActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323F242B14A61A7C071EC115 /* MochiActivityAttributes.swift */; };
 		ADBB9C15DDA4044625B325BE /* MochiOutfitDrawing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84E5D91129352E8A1D32AA4 /* MochiOutfitDrawing.swift */; };
 		ADD13E38D116CF5D632095B7 /* RemindersSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFC111EA7B0993B1A4E2A26 /* RemindersSettingsSection.swift */; };
+		AEFA981DE53312095CDBBE39 /* KoncluiTextRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9AE2551C017B82085235BC /* KoncluiTextRepair.swift */; };
 		AEFD9957EEAC5337160823CC /* KoncluiRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */; };
 		AFB0ABCC42B84B24C31DC15A /* KoncluiVoicePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16EBA9D5C7555961314D0F1E /* KoncluiVoicePrompts.swift */; };
 		AFCA04C905C4E92BC480E4A2 /* VoiceQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654AF6918593586EFF1989C6 /* VoiceQuery.swift */; };
@@ -521,6 +522,7 @@
 		CF89B87E2E6E6D838ECE9B8F /* MachineVitals.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D4076443F9849FF25CCCFB /* MachineVitals.swift */; };
 		CFE2202ACA8E26A5A37CE30F /* KoncluiAgentRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0390B9285F1FD3297D0661 /* KoncluiAgentRow.swift */; };
 		D00A95A24714141AB82621BE /* FlowStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7124E98A85D75D3378F0AC8 /* FlowStore.swift */; };
+		D053CC97CC12815817FE3F37 /* KoncluiTextRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9AE2551C017B82085235BC /* KoncluiTextRepair.swift */; };
 		D092D0D597D1CBCE6B775B5E /* ServicePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0C229BD085D76EB3DD94DF /* ServicePublisher.swift */; };
 		D19FA3394EE99B34184684ED /* MochiWardrobe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A7807ADD0963FF260D1FAD /* MochiWardrobe.swift */; };
 		D1C243401794E8BB087D8B10 /* FlowText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324FEF6CF23F9D4A95799431 /* FlowText.swift */; };
@@ -915,6 +917,7 @@
 		D8212018F09EA1E96FBD63CD /* IslandStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandStateMachine.swift; sourceTree = "<group>"; };
 		D849B1A27AD17AEE1C7FFD1A /* DenyApprovalIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DenyApprovalIntent.swift; sourceTree = "<group>"; };
 		D8C1BB0DF7770A6B263995E6 /* TeamConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamConfiguration.swift; sourceTree = "<group>"; };
+		DA9AE2551C017B82085235BC /* KoncluiTextRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiTextRepair.swift; sourceTree = "<group>"; };
 		DBDF98EC69B563E23E64D4AA /* KoncluiOrcaRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiOrcaRow.swift; sourceTree = "<group>"; };
 		DD426E81DF79CA79888059D9 /* ApprovalRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalRelay.swift; sourceTree = "<group>"; };
 		DDB831F5623E699A2506698E /* NotificationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationViewController.swift; sourceTree = "<group>"; };
@@ -1102,6 +1105,7 @@
 				3E4A578360D820D8D49793DB /* KoncluiSettingsPage.swift */,
 				CDA4987348EA5E1F85A25BCE /* KoncluiStatDoor.swift */,
 				A5016CA216FEB6795F2A25F6 /* KoncluiTabLabel.swift */,
+				DA9AE2551C017B82085235BC /* KoncluiTextRepair.swift */,
 				6A8B688DA073C4373668064D /* KoncluiTheme.swift */,
 				FE73DF1B7327D30EA8CEDCE6 /* KoncluiThemeCore.swift */,
 				D7E19B64AF71E6F337588E55 /* KoncluiUndo.swift */,
@@ -1713,6 +1717,7 @@
 				73FCBE8DAFCF980198E81158 /* KoncluiSettingsPage.swift in Sources */,
 				DC8C431D838C03E691A51123 /* KoncluiStatDoor.swift in Sources */,
 				629DA8065540E83E8F24D567 /* KoncluiTabLabel.swift in Sources */,
+				AEFA981DE53312095CDBBE39 /* KoncluiTextRepair.swift in Sources */,
 				A559B770C16C215DE429F206 /* KoncluiTheme.swift in Sources */,
 				E20DBB394841F67E01343CF3 /* KoncluiThemeCore.swift in Sources */,
 				81264C3AE46C4931E2772D61 /* KoncluiUndo.swift in Sources */,
@@ -2065,6 +2070,7 @@
 				83893A0F4F9D8AE31D14F241 /* KoncluiSettingsPage.swift in Sources */,
 				4B70AA20571DD32EFD3BF6BA /* KoncluiStatDoor.swift in Sources */,
 				CCF229F2365BFD08C26355BC /* KoncluiTabLabel.swift in Sources */,
+				D053CC97CC12815817FE3F37 /* KoncluiTextRepair.swift in Sources */,
 				4E97AD3AF5BD922C200DE4EC /* KoncluiTheme.swift in Sources */,
 				D3AD2719E506D09FB08A0AA0 /* KoncluiThemeCore.swift in Sources */,
 				4B26FE173C1B8CE29EFE1F04 /* KoncluiUndo.swift in Sources */,
