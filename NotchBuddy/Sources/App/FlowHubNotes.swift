@@ -25,7 +25,8 @@ struct HubNotesPage: View {
                 .frame(width: 280)
                 .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1) }
             Group {
-                if !parakeet.isReady && taker.notes.isEmpty && taker.recording == nil {
+                // Koncluí: the setup card only when Record is blocked; with Apple's speech the engine row says it.
+                if !parakeet.isReady && taker.notes.isEmpty && taker.recording == nil && KoncluiNoteSpeech.engine == .needsDownload {
                     HubNotesSetup()
                 } else if let note = shown {
                     if note.id == taker.recording?.id {
@@ -56,6 +57,7 @@ private struct HubNotesList: View {
                 selected = nil
             }
             .padding(.top, 16)
+            KoncluiNoteSpeechRow()   // Koncluí: the engine in use, Parakeet as the optional upgrade
             if let error = taker.startError {
                 Text(error)
                     .font(.system(size: 12))
@@ -144,7 +146,7 @@ struct HubRecordButton: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(HubButtonStyle(primary: true))
-        .disabled(!parakeet.isReady && !taker.isRecording)
+        .disabled(KoncluiNoteSpeech.engine == .needsDownload && !taker.isRecording)   // Koncluí: Apple's speech records
     }
 }
 
@@ -262,6 +264,7 @@ private struct HubLiveNote: View {
                 HubLevel(label: String(localized: "notes.me"), level: taker.micLevel, color: HubTheme.speaker(0))
                 HubLevel(label: String(localized: "notes.others"), level: taker.systemLevel, color: HubTheme.speaker(1))
             }
+            KoncluiNoteSpeechProgress()   // Koncluí: Apple's language files installing, or the install that failed
             HubLabel(String(localized: "notes.live"))
             ScrollViewReader { proxy in
                 ScrollView {

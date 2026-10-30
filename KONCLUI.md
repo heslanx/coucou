@@ -55,6 +55,16 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   Voice says who understands you now and what that means for privacy, and says why "Enable voice command" is greyed out.
   The routing is `App/KoncluiVoiceBrain.swift` (pure, `scripts/konclui/test-voice-brain.sh`); the live inputs and the proxy
   call are `App/KoncluiVoiceBrainLive.swift`; the Settings view is `App/KoncluiVoiceBrainSection.swift`.
+- The Notetaker records a call without any download. On macOS 26 it transcribes with Apple's on-device
+  `SpeechAnalyzer` + `SpeechTranscriber` (the Mac's language, English when the Mac's is not supported); if the language
+  files are missing, `AssetInventory` installs them while the call is recorded, with progress in the Notetaker screen
+  (the live lines start when they are there, the audio is kept and the transcript is written at Stop). Parakeet and the
+  diarizer stay an optional upgrade ("more accurate, and tells each person on the call apart", about 650 MB): when they are
+  installed the Notetaker works exactly as in Coucou. Without them the other people of a call are one speaker
+  ("Person 2"); the Notetaker screen says so where Parakeet is offered. On macOS before 26 or an Intel Mac with no
+  Parakeet, Record is blocked as before, with the reason beside it. Files: `App/KoncluiNoteSpeechChoice.swift` (the choice
+  and the words, pure, `scripts/konclui/test-note-speech.sh`), `KoncluiNoteSpeech.swift` (the Speech framework),
+  `KoncluiNoteSpeechState.swift` (the glue), `KoncluiNoteSpeechCard.swift` (the engine row under Record and its popover).
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -150,6 +160,8 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Claude opt-in | UserDefaults `voiceClaudeBrain` (`VoiceSettings.claudeBrainEnabled`) | now read by `ClaudeVoiceBrain.isActive` and set by Settings → Voice; off by default | the words leave the Mac only after the person turns it on |
 | klaude key for the voice | Keychain generic password, service `klaude-api-key` | read with `KoncluiProxyAccess.readKey()` when a voice call starts, kept in a local variable, never stored, logged or shown; server error text is wiped of it; the logs hold the HTTP status only | same rule as the notch chat (K10) |
 | Brain order | `KoncluiVoiceBrain.brain` | Claude (opt-in, subscription before key) > Apple Intelligence > phrase commands | owner decision D13: the lightest way is the default |
+| Apple speech language files | `AssetInventory`, `SpeechTranscriber.installedLocales` (system-managed, outside Koncluí's folders) | installed on the first recording when missing; nothing is written to Koncluí's Application Support; `AssetInventory.status` answers "supported" for an installed language, so the installed list is asked instead | the Mac's own files, small, shared with other apps |
+| Parakeet models | `Application Support/Konclui/Models` | untouched; the choice reads `Parakeet.shared.isReady` | installed models keep winning |
 
 ## Feature flags
 
@@ -243,10 +255,27 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/ClaudeService.swift` | `voiceTurn` and `voiceAnswer`: an early branch when `claudeSource() == .proxy`; `voiceAnswer` no longer needs a key in that case | the same Messages body goes through the Koncluí Proxy (non-streamed, bearer token read per call); if the proxy refuses the server tool `web_search_20250305` the call is repeated once without it and later turns leave it out |
 | `App/Voice/VoiceDataSources.swift` | `LiveVoiceInfo.hasWebKey` | the subscription counts as a way to reach Claude, so the web answer path works without a key |
 | `App/SettingsView.swift` | `voiceSection`: the orange "add your Anthropic key" row is replaced by `KoncluiVoiceBrainSection(permissionsGranted:voiceOn:)` | the reason the checkbox is greyed out, who understands you now, the Claude opt-in. The `webKeySaved` state stays declared (unused now) to keep the diff small |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused) |
+| `App/NoteTaker.swift` | `toggleFromPill`, `start`, `load` gates: `guard KoncluiNoteSpeech.engine != .needsDownload` (were `Parakeet.shared.isReady`) | Record never waits for a download when Apple's speech is on the Mac |
+| | `start`: `KoncluiNoteSpeech.shared.prepare()` before `startLiveLoop()` | installs Apple's language files while the call is recorded (does nothing when Parakeet is the engine) |
+| | `startLiveLoop`: `KoncluiNoteSpeech.canTranscribeLive` before `takeChunk()`, `KoncluiNoteSpeech.text(of:)` instead of `Parakeet.shared.transcribe` | the live lines; the stretch waits in the recorder while the language installs; with Parakeet it is the same call |
+| | `process`: `apple`, `asr: AsrManager?`, `diarize` closure; `words(in:asr:)` takes an optional and starts with `guard let asr else { return try await KoncluiNoteSpeech.words(in: url) }` | Apple's words, no Parakeet load, no diarizer (turns are empty, so `NoteBuilder` keeps the others as one speaker); with Parakeet the lines are the old ones |
+| `App/FlowHubNotes.swift` | `HubNotesPage`: setup card only when `engine == .needsDownload`; `HubNotesList`: `KoncluiNoteSpeechRow()`; `HubRecordButton`: `.disabled(KoncluiNoteSpeech.engine == .needsDownload && !taker.isRecording)`; `HubLiveNote`: `KoncluiNoteSpeechProgress()` | the Record button is on; the engine in use and the Parakeet upgrade sit in one row with a popover; the language install shows under the live call |
+| `App/FlowHubHome.swift` | Home's "Record a call": `KoncluiNoteSpeech.engine != .needsDownload` instead of `Parakeet.shared.isReady` | same gate |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages |
+
+`scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
+`NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
 
 ## Open items
 
+- The Notetaker screen was typechecked and built, not walked in the running app (the unit may not launch Koncluí): the
+  engine row, its popover, the install progress under the live call and the failed state with "Try again" still need a look,
+  with Parakeet installed (nothing new may show), without it, and with the language files missing.
+- Install progress shows in the Notetaker screen only; a call started from the pill with the window closed installs
+  silently, and a failed install shows on the note (failed, with the audio kept and "Retry").
+- If macOS asks for Speech Recognition permission on the first Apple transcription, `NSSpeechRecognitionUsageDescription`
+  says only "the text of a chat message". The framework call was proven in a command-line harness, not inside the signed app.
+- Apple's speech has no diarizer: "Person 2" is everyone but you. Renaming a person and moving a line (`assign`) work as before.
 - The proxy answers the model id `claude-haiku-4-5` (probed through klaude, 2026-10-30); whether it accepts the server tool
   `web_search_20250305` is not probed. The code
   handles both refusals (retry without the tool; then the model chosen for the chat), so the first Claude turn after turning

@@ -92,7 +92,8 @@ final class NoteTaker: ObservableObject {
     /// The pill's record button: starts or stops, and says what is missing.
     func toggleFromPill() {
         if isRecording { stop(); return }
-        guard Parakeet.shared.isReady else {
+        // Koncluí: Apple's on-device speech needs no download (KoncluiNoteSpeech.swift).
+        guard KoncluiNoteSpeech.engine != .needsDownload else {
             FlowDictation.shared.pill.announce(
                 FlowAnnouncement(symbol: "arrow.down.circle.fill", tint: "#3B9EFF", text: String(localized: "notes.error.models"),
                                  action: String(localized: "hub.open-settings"))) {
@@ -115,7 +116,8 @@ final class NoteTaker: ObservableObject {
         starting = true
         defer { starting = false }
         startError = nil
-        guard Parakeet.shared.isReady else {
+        // Koncluí: same gate as the pill's button.
+        guard KoncluiNoteSpeech.engine != .needsDownload else {
             startError = String(localized: "notes.error.models")
             return
         }
@@ -164,6 +166,7 @@ final class NoteTaker: ObservableObject {
         save(note)
         FlowDictation.shared.pill.setNote(note.start)
         SoundEngine.shared.play("blip")
+        KoncluiNoteSpeech.shared.prepare()   // Koncluí: Apple's language files install while the call is recorded
         startLiveLoop()
     }
 
@@ -217,8 +220,9 @@ final class NoteTaker: ObservableObject {
                 self.micLevel = self.micChannel?.level ?? 0
                 self.systemLevel = self.systemChannel?.level ?? 0
                 for (channel, speaker) in [(self.micChannel, NoteBuilder.meID), (self.systemChannel, "others")] {
-                    guard let channel, let chunk = channel.takeChunk() else { continue }
-                    guard let text = try? await Parakeet.shared.transcribe(chunk.samples),
+                    // Koncluí: while Apple's language files install, the stretch waits in the recorder.
+                    guard let channel, KoncluiNoteSpeech.canTranscribeLive, let chunk = channel.takeChunk() else { continue }
+                    guard let text = try? await KoncluiNoteSpeech.text(of: chunk.samples),
                           !text.trimmingCharacters(in: .whitespaces).isEmpty,
                           var note = self.recording else { continue }
                     let end = chunk.start + Double(chunk.samples.count) / ChannelRecorder.sampleRate
@@ -245,7 +249,11 @@ final class NoteTaker: ObservableObject {
             guard FileManager.default.fileExists(atPath: micURL.path) else {
                 throw NSError(domain: "Notetaker", code: 1, userInfo: [NSLocalizedDescriptionKey: String(localized: "notes.error.no-audio")])
             }
-            let asr = try await Parakeet.shared.manager()
+            // Koncluí: Parakeet when it is installed, exactly as before; otherwise Apple's on-device speech, and no
+            // diarizer (it ships with Parakeet's models), so the others stay one voice.
+            let apple = KoncluiNoteSpeech.engine == .apple
+            let asr: AsrManager? = apple ? nil : try await Parakeet.shared.manager()
+            let diarize: (URL) async throws -> [SpeakerTurn] = apple ? { _ in [] } : { try await Self.diarize($0) }
             var mine = try await Self.words(in: micURL, asr: asr)
             var theirs: [TimedWord] = []
             if FileManager.default.fileExists(atPath: systemURL.path) {
@@ -261,11 +269,11 @@ final class NoteTaker: ObservableObject {
                     return NoteBuilder.removingEchoWords(byEar.words, others: others)
                 }.value
                 appendAppLog("nb.log", "[Notetaker] echo: \(heard.count - mine.count) of \(heard.count) microphone words were the others")
-                let turns = NoteBuilder.mergingFragments(try await Self.diarize(systemURL))
+                let turns = NoteBuilder.mergingFragments(try await diarize(systemURL))
                 built = NoteBuilder.build(mine: mine, others: theirs, turns: turns, meName: me, personName: Self.personName)
             } else if mine.count >= 20 {
                 // People around the Mac: one recording, the voices told apart.
-                let turns = NoteBuilder.mergingFragments(try await Self.diarize(micURL))
+                let turns = NoteBuilder.mergingFragments(try await diarize(micURL))
                 if Set(turns.map(\.speaker)).count > 1 {
                     built = NoteBuilder.buildRoom(words: mine, turns: turns, personName: Self.personName)
                 } else {
@@ -318,7 +326,8 @@ final class NoteTaker: ObservableObject {
         FileManager.default.fileExists(atPath: Self.folder(for: id).appendingPathComponent("mic.wav").path)
     }
 
-    nonisolated private static func words(in url: URL, asr: AsrManager) async throws -> [TimedWord] {
+    nonisolated private static func words(in url: URL, asr: AsrManager?) async throws -> [TimedWord] {
+        guard let asr else { return try await KoncluiNoteSpeech.words(in: url) }   // Koncluí: Apple's speech
         var decoder = TdtDecoderState.make(decoderLayers: await asr.decoderLayerCount)
         let result: ASRResult
         do {
@@ -671,7 +680,8 @@ final class NoteTaker: ObservableObject {
         notes = loaded.sorted { $0.start > $1.start }
         let pending = notes.filter { $0.status == .processing }.map(\.id)
         guard !pending.isEmpty else { return }
-        guard Parakeet.shared.isReady else {
+        // Koncluí: same gate as the pill's button.
+        guard KoncluiNoteSpeech.engine != .needsDownload else {
             // No models any more: shown as failed, with Retry once they are back.
             for id in pending {
                 guard var note = self.note(id) else { continue }
