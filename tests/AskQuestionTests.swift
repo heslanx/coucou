@@ -125,6 +125,16 @@ enum AskQuestionTests {
         checkTrue("short question keeps the 160 pt floor", AskQuestion(questions: [shortQ]).estimatedIslandHeight == 160)
         let tall = AskQuestion(questions: [shortQ, longQ]).estimatedIslandHeight
         checkTrue("tallest question wins, within cap",     tall > 160 && tall <= 560)
+        let paragraphs = Array(repeating: "Short line.", count: 8)
+        func asked(_ text: String) -> AskQuestion {
+            AskQuestion(questions: [AskQuestionItem(question: text, header: "", options: shortQ.options, multiSelect: false)])
+        }
+        checkTrue("each paragraph counts as a line",
+                  asked(paragraphs.joined(separator: "\n")).estimatedIslandHeight
+                      > asked(paragraphs.joined(separator: " ")).estimatedIslandHeight)
+        let huge = AskQuestion(questions: [AskQuestionItem(question: String(repeating: "Stakes and a recommendation.\n", count: 30),
+                                                           header: "", options: longQ.options, multiSelect: false)])
+        checkTrue("a huge question stops at the cap",      huge.estimatedIslandHeight == 560)
 
         // ── finish ─────────────────────────────────────────────────────────────
         if failures == 0 {

@@ -593,6 +593,7 @@ struct QuestionView: View {
                 .padding(.trailing, 16)
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .koncluiScrollsWhenTall()   // Koncluí: a question taller than the island scrolls instead of spilling past both edges
             }
         }
         .onAppear { resetQuestionState() }

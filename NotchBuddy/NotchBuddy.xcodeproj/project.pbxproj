@@ -404,6 +404,7 @@
 		A559B770C16C215DE429F206 /* KoncluiTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A8B688DA073C4373668064D /* KoncluiTheme.swift */; };
 		A5AC7A40E65A47174367DBC9 /* NoteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74146BD3F4B9884F6A43936F /* NoteModels.swift */; };
 		A6812FF3480E8B9010B9FDD7 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C71C1697FF12A9C595F365FA /* InfoPlist.xcstrings */; };
+		A6AAD4AE1818048CD334DB19 /* KoncluiOverflowScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DAF8C0D49AC4794295B4F0 /* KoncluiOverflowScroll.swift */; };
 		A7733EE60694EA3E2A86C37A /* IslandTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0365DDE3C554F5E8570055F4 /* IslandTypes.swift */; };
 		A7B04680036A2443AC6162CD /* NoteTaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A666A5E3F809301028F0DF8 /* NoteTaker.swift */; };
 		A7C167D40D148ED7DA07342A /* KoncluiConnectAgentsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DEE3CB7363EE582F5F42BC /* KoncluiConnectAgentsCard.swift */; };
@@ -629,6 +630,7 @@
 		FD4B5673A5427128DE1910F3 /* DictationTranscript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56A2317343D062ACCAF4E5BD /* DictationTranscript.swift */; };
 		FDF87CF7C5F703EDD9A7CC14 /* CloudProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28323DC20034A281F6829884 /* CloudProbe.swift */; };
 		FEFEF1EBAB0E6CA74A33C10B /* SafeWebURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FDED98F7F6C755A72C97A3 /* SafeWebURL.swift */; };
+		FF28EF0A14B11323028EEFB1 /* KoncluiOverflowScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DAF8C0D49AC4794295B4F0 /* KoncluiOverflowScroll.swift */; };
 		FF8CEDBF43600E4AF5089A98 /* NoteEcho.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA29FF3215B8371EEB91D0E2 /* NoteEcho.swift */; };
 		FFDC36385FC667BCDB78E272 /* KoncluiFlowUndo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD5F76143806D6AA31A0D40 /* KoncluiFlowUndo.swift */; };
 /* End PBXBuildFile section */
@@ -743,6 +745,7 @@
 		3D3C36DE7C1DC055250C811D /* MacUpdateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdateViews.swift; sourceTree = "<group>"; };
 		3E4A578360D820D8D49793DB /* KoncluiSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiSettingsPage.swift; sourceTree = "<group>"; };
 		3E5A8CA07E1AD8AFD3F9DD79 /* KoncluiAgentHooks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiAgentHooks.swift; sourceTree = "<group>"; };
+		42DAF8C0D49AC4794295B4F0 /* KoncluiOverflowScroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiOverflowScroll.swift; sourceTree = "<group>"; };
 		444604C7E2C530B664849EF9 /* ClaudeResponseText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeResponseText.swift; sourceTree = "<group>"; };
 		460E91BCD3D91CAD0B8AD359 /* KoncluiClaudeLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiClaudeLive.swift; sourceTree = "<group>"; };
 		486AC1436C89F554D57AB0B0 /* KoncluiChatAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiChatAccess.swift; sourceTree = "<group>"; };
@@ -1084,6 +1087,7 @@
 				54B368C81AE087D17E5CAF72 /* KoncluiNoteSpeechState.swift */,
 				FA934C1F728B5D0810000857 /* KoncluiOrca.swift */,
 				DBDF98EC69B563E23E64D4AA /* KoncluiOrcaRow.swift */,
+				42DAF8C0D49AC4794295B4F0 /* KoncluiOverflowScroll.swift */,
 				7C48B5C6D890B4C7A62609C0 /* KoncluiPageRules.swift */,
 				A1C6BE1E97F9505D8DA218BC /* KoncluiPillRowParts.swift */,
 				030BB9681A2FC81C0B9AE066 /* KoncluiPointer.swift */,
@@ -1694,6 +1698,7 @@
 				DDFFA15A75AFAF92BC20AE0C /* KoncluiNoteSpeechState.swift in Sources */,
 				B18539A047478290941B880F /* KoncluiOrca.swift in Sources */,
 				8B820DEE2BBB131C844E9C11 /* KoncluiOrcaRow.swift in Sources */,
+				A6AAD4AE1818048CD334DB19 /* KoncluiOverflowScroll.swift in Sources */,
 				E2E81BE207BE885CD2748DC3 /* KoncluiPageRules.swift in Sources */,
 				7B99A765560460A7E6A638BF /* KoncluiPillRowParts.swift in Sources */,
 				77521A28E762A89F33BFDC4B /* KoncluiPointer.swift in Sources */,
@@ -2045,6 +2050,7 @@
 				3CD46898C135858E278511CC /* KoncluiNoteSpeechState.swift in Sources */,
 				72CAB105F08CF39670BF4BA4 /* KoncluiOrca.swift in Sources */,
 				95F6C4B6CC010D26F106FC98 /* KoncluiOrcaRow.swift in Sources */,
+				FF28EF0A14B11323028EEFB1 /* KoncluiOverflowScroll.swift in Sources */,
 				22ED2950862A2B8BDBC64149 /* KoncluiPageRules.swift in Sources */,
 				0F4B4F6DBCC975D970CCD5B2 /* KoncluiPillRowParts.swift in Sources */,
 				BA10104736065C5621717880 /* KoncluiPointer.swift in Sources */,
