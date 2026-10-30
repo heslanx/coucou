@@ -9,8 +9,8 @@ import SwiftUI
 //
 // The card is drawn at a readable scale, not the screen's: on a 1728 pt screen a 480 pt card is a quarter of the width,
 // and so it stays here, but its words keep a size that can be read (the real alert's fonts do not grow with the card
-// either). The layout repeats ReminderWindowController's ReminderAlertView (symbol or image, title, message, the snooze
-// button first, Escape line); keep them in step when that view changes.
+// either). The layout repeats KoncluiReminderAlertView ("Despertador com a Koru": the Koru on top, the time, the primary
+// the whole width, the snooze lengths); keep them in step when that view changes.
 //
 // Cost: the loop is one task, alive only while the editor is on screen and Reduce Motion is off; editing a field puts the
 // card back on the screen and holds it. Reduce Motion: the card stays, no spring, no press.
@@ -43,6 +43,8 @@ struct KoncluiReminderPreview: View {
     @State private var restarts = 0
     @State private var onScreen = false
     @State private var dragStart: (x: Double, y: Double)?
+    /// The card's own height, measured: it follows what it says, like the alert.
+    @State private var cardHeight: CGFloat = 120
 
     private enum Phase { case waiting, shown, pressed, gone }
 
@@ -161,14 +163,12 @@ struct KoncluiReminderPreview: View {
 
     // MARK: - After the press
 
-    /// The button the loop presses: the first of the person's own, else "Adiar" (the snooze button comes first on the alert).
-    private var pressedID: Int? { draft.buttons.isEmpty ? (draft.snoozeOn ? -1 : nil) : 0 }
+    /// The alert's buttons as KoncluiReminderAlert orders them; the loop presses the first (the primary).
+    private var alertButtons: [ReminderButton] { KoncluiReminderAlertRules.ordered(draft.buttons, message: draft.message) }
 
-    /// What that press does, said on the screen while the reminder is away: back in 5 minutes, its next turn, or done.
+    /// What the primary does, said on the screen while the reminder is away: its next turn, done, or stopped.
     private var outcome: String? {
-        guard let pressedID else { return nil }
-        guard pressedID >= 0 else { return String(localized: "konclui.reminders.preview.back \(draft.snoozeMinutes)") }
-        let action = draft.buttons[pressedID].action
+        let action = alertButtons.first?.action ?? .dismiss
         if action == .stop { return String(localized: "konclui.reminders.preview.stopped") }
         if action == .snooze { return String(localized: "konclui.reminders.preview.back \(draft.snoozeMinutes)") }
         if let next = KoncluiReminderRules.following(draft.dueAt, repeats: draft.repeats) {
@@ -192,10 +192,10 @@ struct KoncluiReminderPreview: View {
 
     // MARK: - The card
 
+    /// The card is as tall as what it says, as the alert is; its width is the size chosen.
     private var cardSize: CGSize {
-        let k = scale * Self.legibility
-        return CGSize(width: min(width - 2 * Self.inset, draft.width * k),
-                      height: min(height - menuBar - 2 * Self.inset, draft.height * k))
+        CGSize(width: min(width - 2 * Self.inset, draft.width * scale * Self.legibility),
+               height: min(height - menuBar - 2 * Self.inset, cardHeight + Self.perch))
     }
 
     /// The room the card's top-left corner can move in.
@@ -204,14 +204,20 @@ struct KoncluiReminderPreview: View {
                height: max(0, height - menuBar - 2 * Self.inset - cardSize.height))
     }
 
+    private static let perch: CGFloat = 14
+
     private var card: some View {
-        let size = cardSize
-        return alertBody(compact: true)
-            .frame(width: size.width, height: size.height, alignment: .top)
-            .background(material(radius: 9))
+        alertColumn(big: false)
+            .padding(.horizontal, 8).padding(.top, 15).padding(.bottom, 7)
+            .frame(width: cardSize.width)
+            .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color(hex: "#0B0B0D")))
+            .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.white.opacity(0.12)))
+            .overlay(alignment: .top) { koru(26).offset(y: -Self.perch) }
+            .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
             .scaleEffect(phase == .pressed ? 0.985 : 1)
             .offset(x: Self.inset + draft.positionX * room.width,
-                    y: menuBar + Self.inset + draft.positionY * room.height)
+                    y: menuBar + Self.inset + Self.perch + draft.positionY * room.height)
             .transition(.scale(scale: 0.9, anchor: .top).combined(with: .opacity))
             .gesture(drag)
             .pointerStyle(dragStart == nil ? .grabIdle : .grabActive)
@@ -235,101 +241,102 @@ struct KoncluiReminderPreview: View {
             }
     }
 
+    /// As the alert: the blurred desktop over the whole screen, the Koru, then the same column, larger.
     private var fullScreenAlert: some View {
-        let k = scale * Self.legibility
-        // As the alert: the card covers the screen (32 pt from its edges), the words keep a column in its middle.
-        let edge = max(5, 32 * scale)
-        return ZStack {
-            Color.black.opacity(0.88)
-            alertBody(compact: false)
-                .frame(width: min(width - 2 * edge - 16, draft.width * k), alignment: .top)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(material(radius: 10))
-                .padding(edge)
-                .scaleEffect(phase == .pressed ? 0.99 : 1)
+        ZStack {
+            wallpaper.blur(radius: 7)
+            Color.black.opacity(0.5)
+            VStack(spacing: 0) {
+                koru(40)
+                alertColumn(big: true).padding(.top, 4)
+            }
+            .frame(width: min(width - 40, 230))
+            .scaleEffect(phase == .pressed ? 0.99 : 1)
         }
         .frame(width: width, height: height)
+        .clipped()
         .allowsHitTesting(false)
     }
 
-    private func material(radius: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(Color(hex: "#2A2B30").opacity(0.94))
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.white.opacity(0.14)))
-            .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
+    private func koru(_ size: CGFloat) -> some View {
+        MochiStill(showBadge: false)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 
-    /// ReminderAlertView's content, at the preview's sizes.
-    private func alertBody(compact: Bool) -> some View {
-        VStack(spacing: compact ? 4 : 6) {
-            if let data = draft.imageData, let image = NSImage(data: data) {
-                Image(nsImage: image).resizable().scaledToFit()
-                    .frame(maxHeight: cardSize.height * 0.3)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-            } else if let symbol = draft.symbol, !symbol.isEmpty {
-                Image(systemName: symbol)
-                    .font(.system(size: compact ? 14 : 18, weight: .medium))
-                    .foregroundColor(.orange)
-            }
+    /// KoncluiReminderAlertView's column, at the preview's sizes.
+    private func alertColumn(big: Bool) -> some View {
+        VStack(spacing: 0) {
+            Text(verbatim: draft.dueAt.formatted(date: .omitted, time: .shortened))
+                .font(.system(size: big ? 36 : 25, weight: .ultraLight).monospacedDigit())
+                .foregroundColor(.white)
+                .lineLimit(1)
+            (Text("konclui.reminders.alert.now").foregroundColor(.orange).bold()
+             + Text(verbatim: " · " + String(localized: String.LocalizationValue(KoncluiReminderRules.repeatKey(draft.repeats))))
+                .foregroundColor(.white.opacity(0.55)))
+                .font(.system(size: big ? 7.5 : 6.5, weight: .medium))
+                .padding(.top, 2)
             Text(verbatim: draft.title.isEmpty ? String(localized: "konclui.reminders.title.placeholder") : draft.title)
-                .font(.system(size: compact ? 10.5 : 13, weight: .bold, design: .rounded))
+                .font(.system(size: big ? 12.5 : 10, weight: .semibold))
                 .foregroundColor(.white.opacity(draft.title.isEmpty ? 0.45 : 0.95))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
+                .padding(.top, big ? 7 : 5)
             if !draft.message.isEmpty {
                 Text(verbatim: draft.message)
-                    .font(.system(size: compact ? 8 : 9.5))
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: big ? 8.5 : 7.5))
+                    .foregroundColor(.white.opacity(0.55))
                     .multilineTextAlignment(.center)
-                    .lineLimit(compact ? 2 : 4)
+                    .lineLimit(2)
+                    .padding(.top, 2)
             }
-            buttons(compact: compact)
-            Text("Press Escape to close this alert.")
-                .font(.system(size: 6))
-                .foregroundColor(.white.opacity(0.4))
-                .lineLimit(1)
-        }
-        .padding(compact ? 8 : 12)
-    }
-
-    private struct Shown: Identifiable {
-        let id: Int
-        let title: String
-        let tinted: Bool
-    }
-
-    private var shownButtons: [Shown] {
-        var list: [Shown] = []
-        if draft.snoozeOn {
-            list.append(Shown(id: -1, title: String(localized: "Snooze · \(draft.snoozeMinutes) min"), tinted: false))
-        }
-        for (index, button) in draft.buttons.enumerated() {
-            let title = button.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            list.append(Shown(id: index, title: title.isEmpty ? "…" : title, tinted: button.action == .complete))
-        }
-        return list
-    }
-
-    @ViewBuilder private func buttons(compact: Bool) -> some View {
-        let list = shownButtons
-        if !list.isEmpty {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: compact ? 52 : 60), spacing: 3)], spacing: 3) {
-                ForEach(list) { item in
-                    let pressed = phase == .pressed && item.id == pressedID
-                    Text(verbatim: item.title)
-                        .font(.system(size: compact ? 7.5 : 8.5, weight: .medium))
+            VStack(spacing: 3) {
+                ForEach(Array(previewButtons.enumerated()), id: \.offset) { index, title in
+                    let primary = index == 0
+                    let pressed = primary && phase == .pressed
+                    Text(verbatim: title)
+                        .font(.system(size: big ? 8 : 7, weight: .semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                        .foregroundColor(item.tinted ? .orange : .white.opacity(0.85))
-                        .padding(.horizontal, 4)
-                        .frame(maxWidth: .infinity, minHeight: compact ? 13 : 16)
-                        .background(RoundedRectangle(cornerRadius: 3.5)
-                            .fill(pressed ? Color.orange.opacity(0.45)
-                                  : (item.tinted ? Color.orange.opacity(0.18) : Color.white.opacity(0.12))))
-                        .scaleEffect(pressed ? 0.94 : 1)
+                        .foregroundColor(primary ? Color(hex: "#170C04") : .white.opacity(0.9))
+                        .frame(maxWidth: .infinity, minHeight: big ? 17 : 15)
+                        .background(Capsule().fill(primary ? Color.orange.opacity(pressed ? 0.75 : 1) : Color.white.opacity(0.1)))
+                        .scaleEffect(pressed ? 0.95 : 1)
                 }
             }
+            .padding(.top, big ? 9 : 7)
+            if draft.snoozeOn {
+                HStack(spacing: 2.5) {
+                    ForEach(KoncluiReminderAlertRules.snoozeChips(own: draft.snoozeMinutes).shown, id: \.self) { minutes in
+                        chip(KoncluiReminderAlertView.duration(Double(minutes * 60)), big: big)
+                    }
+                    chip("⋯", big: big)
+                }
+                .padding(.top, big ? 6 : 5)
+            }
         }
+    }
+
+    /// The buttons' words as the alert shows them: the primary first, a meeting link as "Entrar na reunião".
+    private var previewButtons: [String] {
+        let buttons = alertButtons
+        guard !buttons.isEmpty else { return [String(localized: "konclui.reminders.action.dismiss")] }
+        return buttons.map { button in
+            if button.action == .openURL && KoncluiReminderAlertRules.isMeeting(button.httpsURL) {
+                return String(localized: "konclui.reminders.alert.join")
+            }
+            let title = button.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return title.isEmpty ? "…" : title
+        }
+    }
+
+    private func chip(_ title: String, big: Bool) -> some View {
+        Text(verbatim: title)
+            .font(.system(size: big ? 6.5 : 6, weight: .semibold))
+            .foregroundColor(.white.opacity(0.75))
+            .padding(.horizontal, 4)
+            .frame(height: big ? 11 : 10)
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.2)))
     }
 }
 #endif

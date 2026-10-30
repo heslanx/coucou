@@ -31,7 +31,8 @@ final class ReminderWindowController {
         panel.isReleasedWhenClosed = false
         panel.reminderID = reminder.id
         panel.screenIndex = reminder.screenIndex
-        panel.contentView = NSHostingView(rootView: ReminderAlertView(reminder: reminder))
+        // Koncluí: the alert is "Despertador com a Koru" (KoncluiReminderAlert.swift); the App Store build keeps this one.
+        panel.contentView = KoncluiReminderAlert.hostingView(for: reminder) ?? NSHostingView(rootView: ReminderAlertView(reminder: reminder))
         panels[reminder.id] = panel
         panelOrder.append(reminder.id)
         panel.orderFrontRegardless()
@@ -52,7 +53,7 @@ final class ReminderWindowController {
     private func cardFrame(for reminder: Reminder, on screen: NSScreen) -> NSRect {
         let visible = screen.visibleFrame
         let size = NSSize(width: min(reminder.width, visible.width - 32),
-                          height: min(reminder.height, visible.height - 32))
+                          height: min(KoncluiReminderAlert.cardHeight(for: reminder), visible.height - 32))   // Koncluí: as tall as it says
         let x = visible.minX + reminder.positionX * max(0, visible.width - size.width)
         let y = visible.minY + (1 - reminder.positionY) * max(0, visible.height - size.height)
         return NSRect(origin: NSPoint(x: x, y: y), size: size)

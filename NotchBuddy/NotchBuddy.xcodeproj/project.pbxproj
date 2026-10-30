@@ -127,6 +127,7 @@
 		30BE5354F50D7D6A98FF4466 /* KoncluiVoiceBrainSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66DEEE42F77737AE6ACEBA4 /* KoncluiVoiceBrainSection.swift */; };
 		326971DDA23F331116E5A628 /* VoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C563E55884A7750B40EC9A01 /* VoiceBrain.swift */; };
 		3451DB0668FAEEF09503D808 /* WakePhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12EC8F605BBC37F8223D7AA /* WakePhrase.swift */; };
+		34E8B7BFE2DA7B6EA82E40D8 /* KoncluiReminderAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BEEFB143411757063D58C1 /* KoncluiReminderAlert.swift */; };
 		3505DF81198D7107108BFA09 /* KoncluiClaudeLines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDC0AD697648DEF3E540EB9 /* KoncluiClaudeLines.swift */; };
 		352CD4E146AE486013366EC9 /* VoiceQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654AF6918593586EFF1989C6 /* VoiceQuery.swift */; };
 		363778A4ECB48866BD11408C /* KoncluiReminderEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E46CA06E83DEAE2B527F3A2 /* KoncluiReminderEditor.swift */; };
@@ -591,6 +592,7 @@
 		EF584BA65AA62FCABD6FB6B2 /* FlowKeyLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4983B1317913482E61EB344D /* FlowKeyLogic.swift */; };
 		EF9E6418C3F39F6FE88FD812 /* CoucouPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9CEB5655FCA197D6B10A91 /* CoucouPhoneApp.swift */; };
 		EFAA9936D5C9DE635CFBA2AB /* SharedSessions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1064AD8471C51AFF4F12258 /* SharedSessions.swift */; };
+		EFD12A7D94F7C8E8F07C31A0 /* KoncluiReminderAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BEEFB143411757063D58C1 /* KoncluiReminderAlert.swift */; };
 		F032CA1CBF8253D9E3981A90 /* NoteAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E5A3ADB1304C23C4AEDD48 /* NoteAudio.swift */; };
 		F06EE0A97CB77096A337AA8B /* sounds in Resources */ = {isa = PBXBuildFile; fileRef = C066E2B991AA4F56B2724263 /* sounds */; };
 		F0B7062107F8A91394707706 /* ClaudeVoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFE8C8C843B4B30C547FF64A /* ClaudeVoiceBrain.swift */; };
@@ -725,6 +727,7 @@
 		323F242B14A61A7C071EC115 /* MochiActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MochiActivityAttributes.swift; sourceTree = "<group>"; };
 		324FEF6CF23F9D4A95799431 /* FlowText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowText.swift; sourceTree = "<group>"; };
 		32BF3E795B27A4AAC1AB3C07 /* KoncluiNoteSpeechChoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiNoteSpeechChoice.swift; sourceTree = "<group>"; };
+		35BEEFB143411757063D58C1 /* KoncluiReminderAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiReminderAlert.swift; sourceTree = "<group>"; };
 		35CE2B25C51E1F2186416192 /* FlowHubInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHubInsights.swift; sourceTree = "<group>"; };
 		369F5AFDE37A03A1C25EB262 /* Decisions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Decisions.swift; sourceTree = "<group>"; };
 		37147F42613183DBA8896835 /* finish.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = finish.wav; sourceTree = "<group>"; };
@@ -1085,6 +1088,7 @@
 				A1C6BE1E97F9505D8DA218BC /* KoncluiPillRowParts.swift */,
 				030BB9681A2FC81C0B9AE066 /* KoncluiPointer.swift */,
 				0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */,
+				35BEEFB143411757063D58C1 /* KoncluiReminderAlert.swift */,
 				4E46CA06E83DEAE2B527F3A2 /* KoncluiReminderEditor.swift */,
 				EBA0C770846EA5ABA8BB5EFD /* KoncluiReminderPreview.swift */,
 				EA2AF6D2203CEA29B0D92271 /* KoncluiReminderRules.swift */,
@@ -1694,6 +1698,7 @@
 				7B99A765560460A7E6A638BF /* KoncluiPillRowParts.swift in Sources */,
 				77521A28E762A89F33BFDC4B /* KoncluiPointer.swift in Sources */,
 				AEFD9957EEAC5337160823CC /* KoncluiRecognition.swift in Sources */,
+				34E8B7BFE2DA7B6EA82E40D8 /* KoncluiReminderAlert.swift in Sources */,
 				921E84FA811AB8A5243071FC /* KoncluiReminderEditor.swift in Sources */,
 				7F8E8335B7C72ACF23914E44 /* KoncluiReminderPreview.swift in Sources */,
 				C50D1BFEB90FA8C464D1DB03 /* KoncluiReminderRules.swift in Sources */,
@@ -2044,6 +2049,7 @@
 				0F4B4F6DBCC975D970CCD5B2 /* KoncluiPillRowParts.swift in Sources */,
 				BA10104736065C5621717880 /* KoncluiPointer.swift in Sources */,
 				B26E115D058E28C1279AED8C /* KoncluiRecognition.swift in Sources */,
+				EFD12A7D94F7C8E8F07C31A0 /* KoncluiReminderAlert.swift in Sources */,
 				363778A4ECB48866BD11408C /* KoncluiReminderEditor.swift in Sources */,
 				725C236F0DAC280880233C0C /* KoncluiReminderPreview.swift in Sources */,
 				EB5AEE6358BD72E64CBF900E /* KoncluiReminderRules.swift in Sources */,

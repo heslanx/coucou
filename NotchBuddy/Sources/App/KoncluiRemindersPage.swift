@@ -56,6 +56,7 @@ struct KoncluiRemindersPage: View {
             switch KoncluiRemindersDebug.editor {
             case "new"?: open(.new)
             case "edit"?: if let first = reminders.first { open(.edit(first.id)) }
+            case let kind? where kind.hasPrefix("alert"): KoncluiRemindersDebug.showAlert(kind)
             default: break
             }
         }
@@ -407,7 +408,8 @@ enum KoncluiRemindersMCP {
 
 // MARK: - Screenshots (DEBUG builds only)
 
-/// `-konclui.debug.reminderEditor new` opens the editor on a new reminder when the page shows; `edit` on the first row.
+/// `-konclui.debug.reminderEditor new` opens the editor on a new reminder when the page shows; `edit` on the first row;
+/// `alert-card`, `alert-full` or `alert-meeting` shows a test alert (nothing saved; esc closes it).
 /// `-konclui.debug.reminderSamples YES` adds three sample rows that are never saved (saving one fails: it is not stored).
 enum KoncluiRemindersDebug {
     /// The flag opens the editor once, not each time the page appears.
@@ -418,6 +420,18 @@ enum KoncluiRemindersDebug {
         UserDefaults.standard.string(forKey: "konclui.debug.reminderEditor")
         #else
         nil
+        #endif
+    }
+
+    @MainActor static func showAlert(_ kind: String) {
+        #if DEBUG
+        var draft = KoncluiReminderDraft.blank(now: Date(), doneTitle: String(localized: "konclui.reminders.button.done"))
+        draft.dueAt = Date().addingTimeInterval(kind == "alert-meeting" ? 115 : 0)
+        draft.title = kind == "alert-meeting" ? "Daily com o time" : "Beber água"
+        draft.message = kind == "alert-meeting" ? "Google Meet · https://meet.google.com/abc-defg-hij" : "Um copo agora. Já faz duas horas."
+        draft.repeats = kind == "alert-meeting" ? .weekdays : .daily
+        draft.presentation = kind == "alert-full" ? .fullScreen : .card
+        KoncluiReminderTrial.show(draft.reminder())
         #endif
     }
 

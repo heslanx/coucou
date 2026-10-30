@@ -171,6 +171,65 @@ enum KoncluiReminderRules {
     }
 }
 
+// MARK: - The alert (KoncluiReminderAlert.swift)
+
+/// What the alert shows besides the reminder's own words: its one primary button, the meeting it opens, the snooze
+/// lengths offered, and how far the time is.
+enum KoncluiReminderAlertRules {
+    /// The hosts of a video call: a link to one of them is "Entrar na reunião".
+    static let meetingHosts = ["meet.google.com", "zoom.us", "zoom.com", "teams.microsoft.com", "teams.live.com", "webex.com",
+                               "whereby.com", "meet.jit.si", "facetime.apple.com", "around.co", "app.gather.town", "discord.gg"]
+
+    static func isMeeting(_ url: URL?) -> Bool {
+        guard let host = url?.host?.lowercased(), url?.scheme?.lowercased() == "https" else { return false }
+        return meetingHosts.contains { host == $0 || host.hasSuffix("." + $0) }
+    }
+
+    /// The first video-call link in a reminder's message (an agent often writes it there), https only.
+    static func meetingLink(in message: String) -> URL? {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return nil }
+        let range = NSRange(message.startIndex..., in: message)
+        return detector.matches(in: message, range: range).compactMap(\.url).first(where: isMeeting)
+    }
+
+    /// The button the alert makes primary (full width, ⏎): a meeting link first, else the first "Concluir", else the first
+    /// button. Nil when there is none (the alert then offers "Fechar").
+    static func primaryIndex(_ buttons: [ReminderButton]) -> Int? {
+        if let meeting = buttons.firstIndex(where: { $0.action == .openURL && isMeeting($0.httpsURL) }) { return meeting }
+        if let done = buttons.firstIndex(where: { $0.action == .complete }) { return done }
+        return buttons.isEmpty ? nil : 0
+    }
+
+    /// The alert's buttons in order, the primary first: a meeting link found in the message becomes a button when no
+    /// button opens one. Empty when the reminder has no button (the alert then offers "Fechar").
+    static func ordered(_ buttons: [ReminderButton], message: String) -> [ReminderButton] {
+        var all = buttons
+        if !all.contains(where: { $0.action == .openURL && isMeeting($0.httpsURL) }), let link = meetingLink(in: message) {
+            all.insert(ReminderButton(title: "", action: .openURL, url: link.absoluteString), at: 0)
+        }
+        guard let primary = primaryIndex(all) else { return [] }
+        return [all[primary]] + all.indices.filter { $0 != primary }.map { all[$0] }
+    }
+
+    /// The snooze lengths on the alert, then behind "⋯". The reminder's own length is always one of the first.
+    static func snoozeChips(own: Int) -> (shown: [Int], more: [Int]) {
+        var shown = [1, 5, 10]
+        if !shown.contains(own) { shown = (own < 5 ? [1, own, 10] : [1, 5, own]).sorted() }
+        return (shown, [15, 30, 60, 120].filter { !shown.contains($0) })
+    }
+
+    enum When: Equatable { case now, ahead(TimeInterval), late(TimeInterval) }
+
+    /// How the time compares with now: within a minute is "agora"; a test or an early show counts down; a reminder the
+    /// Mac was asleep for says how late it is.
+    static func when(_ due: Date, now: Date) -> When {
+        let delta = due.timeIntervalSince(now)
+        if delta >= 1 { return .ahead(delta.rounded(.up)) }
+        if -delta < 60 { return .now }
+        return .late(-delta)
+    }
+}
+
 // MARK: - The editor's draft
 
 /// What the editor edits. It outlives the sheet (UX.md 1.3, "never lose work"): Cancel or a click outside keeps it, and the

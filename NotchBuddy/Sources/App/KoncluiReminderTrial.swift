@@ -14,6 +14,9 @@ enum KoncluiReminderTrial {
         ReminderWindowController.shared.show(reminder)
     }
 
+    /// The alert shows a "Teste" tag on a test.
+    static func isRunning(_ id: UUID) -> Bool { running.contains(id) }
+
     /// True when `id` is a test, which this call closed; false lets the manager handle a real reminder.
     static func close(_ id: UUID, action: ReminderButtonAction, button: ReminderButton?) -> Bool {
         guard running.remove(id) != nil else { return false }

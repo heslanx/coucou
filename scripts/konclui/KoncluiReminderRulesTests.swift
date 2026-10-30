@@ -121,6 +121,35 @@ struct KoncluiReminderRulesTests {
         check(KoncluiReminderRules.status(d) == .snoozed(until: date(2026, 10, 30, 15)), "snoozed")
         check(KoncluiReminderRules.status(a) == .active, "active")
 
+        // The alert: a meeting link is the primary, then "Concluir", then the first button.
+        typealias A = KoncluiReminderAlertRules
+        check(A.isMeeting(URL(string: "https://meet.google.com/abc-defg-hij")), "Meet is a meeting")
+        check(A.isMeeting(URL(string: "https://us02web.zoom.us/j/123")), "a Zoom subdomain is a meeting")
+        check(!A.isMeeting(URL(string: "http://meet.google.com/abc")), "only https")
+        check(!A.isMeeting(URL(string: "https://notzoom.us/j/1")), "a look-alike host is not a meeting")
+        check(!A.isMeeting(URL(string: "https://github.com/pr/42")), "a PR is not a meeting")
+        check(A.meetingLink(in: "Daily no link https://meet.google.com/abc-defg-hij até 10:30")?.host == "meet.google.com",
+              "a meeting link in the message is found")
+        check(A.meetingLink(in: "Revisar https://github.com/x/pull/42") == nil, "another link in the message is not a meeting")
+        let done = ReminderButton(title: "Concluído", action: .complete, url: nil)
+        let pr = ReminderButton(title: "Abrir PR", action: .openURL, url: "https://github.com/x/pull/42")
+        let meet = ReminderButton(title: "Entrar", action: .openURL, url: "https://zoom.us/j/9")
+        let stop = ReminderButton(title: "Parar", action: .stop, url: nil)
+        check(A.primaryIndex([pr, done, meet]) == 2, "a meeting link is the primary")
+        check(A.primaryIndex([pr, stop, done]) == 2, "else the first Concluir")
+        check(A.primaryIndex([pr, stop]) == 0, "else the first button")
+        check(A.primaryIndex([]) == nil, "no button: the alert offers Fechar")
+        check(A.ordered([pr, done], message: "").map(\.title) == ["Concluído", "Abrir PR"], "the primary comes first")
+        let joined = A.ordered([done], message: "Call: https://meet.google.com/abc-defg-hij")
+        check(joined.count == 2 && joined[0].action == .openURL && A.isMeeting(joined[0].httpsURL), "a link in the message becomes the primary")
+        check(A.ordered([meet, done], message: "https://meet.google.com/abc").count == 2, "no second meeting button")
+        check(A.snoozeChips(own: 5).shown == [1, 5, 10], "the snooze lengths: 1, 5, 10")
+        check(A.snoozeChips(own: 3).shown == [1, 3, 10], "a reminder's own 3 min is one of them")
+        check(A.snoozeChips(own: 30).shown == [1, 5, 30] && !A.snoozeChips(own: 30).more.contains(30), "a long own length too")
+        check(A.when(now.addingTimeInterval(114.2), now: now) == .ahead(115), "a time ahead counts down")
+        check(A.when(now.addingTimeInterval(-20), now: now) == .now, "within a minute is now")
+        check(A.when(now.addingTimeInterval(-180), now: now) == .late(180), "a late reminder says how late")
+
         // Every key the rules name exists in the 14 languages.
         let path = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "NotchBuddy/Resources/Localizable.xcstrings"
         if let data = FileManager.default.contents(atPath: path),
