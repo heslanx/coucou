@@ -27,8 +27,8 @@ struct KoncluiTabLimitDoor: View {
                 Text("konclui.pills.limit")
                 Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold)).accessibilityHidden(true)
             }
-            .font(.system(size: 11))
-            .foregroundColor(.secondary)
+            .koncluiType(.detail)
+            .foregroundColor(KoncluiTheme.textSecondary)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -41,17 +41,17 @@ struct KoncluiTabLimitDoor: View {
     private var popover: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("konclui.pills.limit")
-                .font(.system(size: 13, weight: .semibold))
+                .koncluiType(.bodyStrong)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: String(format: String(localized: "konclui.pills.limit.about"), name))
-                .font(.system(size: 11.5))
-                .foregroundColor(.secondary)
+                .koncluiType(.detail)
+                .foregroundColor(KoncluiTheme.textBody)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(spacing: 6) {
                 ForEach(tabs) { tab in
                     HStack(spacing: 8) {
                         Circle().fill(Color(hex: tab.colorHex)).frame(width: 10, height: 10).accessibilityHidden(true)
-                        Text(verbatim: tab.name).font(.system(size: 12))
+                        Text(verbatim: tab.name).koncluiType(.detail)
                         Spacer(minLength: 8)
                         Button(String(localized: "konclui.pills.turn-off")) {
                             turnOff(tab.id)
@@ -83,7 +83,7 @@ struct KoncluiColorDot: View {
             Circle()
                 .fill(Color(hex: hex))
                 .frame(width: 10, height: 10)
-                .overlay(Circle().strokeBorder(Color.primary.opacity(hovering ? 0.8 : 0.32), lineWidth: 1).padding(-3))
+                .overlay(Circle().strokeBorder(KoncluiTheme.textPrimary.opacity(hovering ? 0.8 : 0.32), lineWidth: 1).padding(-3))
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }

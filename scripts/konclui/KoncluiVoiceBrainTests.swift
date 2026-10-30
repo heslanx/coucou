@@ -117,6 +117,19 @@ enum KoncluiVoiceBrainTests {
         check("the token is in the header only, never in the body", !(String(data: request?.httpBody ?? Data(), encoding: .utf8) ?? "").contains(fakeToken))
         check("a turn can take a while but not forever", request?.timeoutInterval == 45)
 
+        print("A voice turn through the proxy: one deadline for every try (A3-29)")
+        let start = Date(timeIntervalSince1970: 1_000)
+        let deadline = start.addingTimeInterval(KoncluiVoiceBrain.turnDeadline)
+        check("a failing proxy never holds a turn past about ten seconds", KoncluiVoiceBrain.turnDeadline <= 10)
+        check("the first try gets the whole deadline", KoncluiVoiceBrain.timeLeft(until: deadline, now: start) == KoncluiVoiceBrain.turnDeadline)
+        check("a retry gets only what is left", KoncluiVoiceBrain.timeLeft(until: deadline, now: start.addingTimeInterval(6)) == 4)
+        check("no try is worth sending with a second left", KoncluiVoiceBrain.timeLeft(until: deadline, now: start.addingTimeInterval(9)) == nil)
+        check("none after the deadline", KoncluiVoiceBrain.timeLeft(until: deadline, now: start.addingTimeInterval(12)) == nil)
+        check("a long deadline never lifts a request past its own limit",
+              KoncluiVoiceBrain.timeLeft(until: start.addingTimeInterval(300), now: start) == KoncluiVoiceBrain.requestLimit)
+        let timed = KoncluiVoiceBrain.request(base: base, token: fakeToken, body: Data("{}".utf8), timeout: 4)
+        check("the request carries the time left", timed?.timeoutInterval == 4)
+
         print("A voice turn through the proxy — the retry without the web search")
         check("the tools hold the web search", KoncluiVoiceBrain.hasWebSearch(tools))
         let plain = KoncluiVoiceBrain.withoutWebSearch(system: "You are Koncluí.", tools: tools)

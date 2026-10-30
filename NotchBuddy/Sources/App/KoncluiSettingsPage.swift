@@ -21,6 +21,7 @@ struct KoncluiSettingsPage: View {
                     .padding(.horizontal, KoncluiSpace.gutter)
                     .padding(.top, 24)
             }
+            .koncluiUndoBar()   // the Atalhos reset and the weekly recap clear offer Undo (UX.md 1.5)
     }
 }
 #endif

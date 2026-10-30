@@ -29,6 +29,8 @@ struct SettingsView: View {
     }
     @State private var launchAtStartup: Bool = (SMAppService.mainApp.status == .enabled)
     @State private var statusMessage: String = ""
+    /// Koncluí: the status the Keychain refused a key with while the integrations were saved, 0 when none (A3-28).
+    @State private var koncluiKeychainRefused: OSStatus = 0
     @State private var showDiff: Bool = false
     @State private var pendingHookJSON: String = ""
     // Koncluí: what Koncluí wrote in the agents' files comes from KoncluiHookStatus (read off the main thread), not from the files
@@ -488,7 +490,15 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Toggle(String(localized: "Hide project names in shared images"), isOn: $state.recapHideProjects)
                     .disabled(!state.recapEnabled)
-                Button(String(localized: "Clear history")) { RecapStore.shared.clearHistory() }
+                Button(String(localized: "Clear history")) {
+                    #if !APPSTORE
+                    let putBack = RecapStore.shared.snapshotForUndo()   // Koncluí: Undo (UX.md 1.5)
+                    RecapStore.shared.clearHistory()
+                    KoncluiUndoCenter.shared.offer(String(localized: "konclui.undo.recap"), undo: putBack)
+                    #else
+                    RecapStore.shared.clearHistory()
+                    #endif
+                }
             }
             .padding(6)
         }
@@ -911,8 +921,9 @@ struct SettingsView: View {
                 SecureField(String(localized: "chat.api-key.claude"), text: $apiKey)
                     .textFieldStyle(.roundedBorder)
                 Button(String(localized: "Save")) {
-                    KeychainStore.shared.set("anthropic-api-key", value: apiKey)
-                    statusMessage = String(localized: "status.key-saved")
+                    // Koncluí: the Keychain's answer, not the hope (A3-28)
+                    statusMessage = KoncluiKeychainSave.message(KeychainStore.shared.set("anthropic-api-key", value: apiKey),
+                                                                saved: String(localized: "status.key-saved"))
                 }
                 .buttonStyle(.koncluiPrimary)
 
@@ -960,8 +971,8 @@ struct SettingsView: View {
                     SecureField(String(localized: "chat.api-key.google"), text: $googleKey)
                         .textFieldStyle(.roundedBorder)
                     Button(String(localized: "Save")) {
-                        KeychainStore.shared.set("google-api-key", value: googleKey)
-                        statusMessage = String(localized: "status.google-key-saved")
+                        statusMessage = KoncluiKeychainSave.message(KeychainStore.shared.set("google-api-key", value: googleKey),   // Koncluí: A3-28
+                                                                    saved: String(localized: "status.google-key-saved"))
                     }
                     .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.google))
@@ -975,8 +986,8 @@ struct SettingsView: View {
                     SecureField(String(localized: "chat.api-key.openai"), text: $openAIKey)
                         .textFieldStyle(.roundedBorder)
                     Button(String(localized: "Save")) {
-                        KeychainStore.shared.set("openai-api-key", value: openAIKey)
-                        statusMessage = String(localized: "status.openai-key-saved")
+                        statusMessage = KoncluiKeychainSave.message(KeychainStore.shared.set("openai-api-key", value: openAIKey),   // Koncluí: A3-28
+                                                                    saved: String(localized: "status.openai-key-saved"))
                     }
                     .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.openai))
@@ -990,8 +1001,8 @@ struct SettingsView: View {
                     SecureField("API key", text: $deepseekKey)
                         .textFieldStyle(.roundedBorder)
                     Button(String(localized: "Save")) {
-                        KeychainStore.shared.set("deepseek-api-key", value: deepseekKey)
-                        statusMessage = String(localized: "status.deepseek-key-saved")
+                        statusMessage = KoncluiKeychainSave.message(KeychainStore.shared.set("deepseek-api-key", value: deepseekKey),   // Koncluí: A3-28
+                                                                    saved: String(localized: "status.deepseek-key-saved"))
                     }
                     .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.deepseek))
@@ -1005,8 +1016,8 @@ struct SettingsView: View {
                     SecureField("API key", text: $qwenKey)
                         .textFieldStyle(.roundedBorder)
                     Button(String(localized: "Save")) {
-                        KeychainStore.shared.set("qwen-api-key", value: qwenKey)
-                        statusMessage = String(localized: "status.qwen-key-saved")
+                        statusMessage = KoncluiKeychainSave.message(KeychainStore.shared.set("qwen-api-key", value: qwenKey),   // Koncluí: A3-28
+                                                                    saved: String(localized: "status.qwen-key-saved"))
                     }
                     .buttonStyle(.koncluiPrimary)
                     Divider().koncluiShown(koncluiChatShownAfter(.qwen))
@@ -1020,8 +1031,8 @@ struct SettingsView: View {
                     SecureField("API key", text: $moonshotKey)
                         .textFieldStyle(.roundedBorder)
                     Button(String(localized: "Save")) {
-                        KeychainStore.shared.set("moonshot-api-key", value: moonshotKey)
-                        statusMessage = String(localized: "status.moonshot-key-saved")
+                        statusMessage = KoncluiKeychainSave.message(KeychainStore.shared.set("moonshot-api-key", value: moonshotKey),   // Koncluí: A3-28
+                                                                    saved: String(localized: "status.moonshot-key-saved"))
                     }
                     .buttonStyle(.koncluiPrimary)
                 }
@@ -1399,12 +1410,16 @@ struct SettingsView: View {
 
         GroupBox(String(localized: "voice.tts-engine")) {
             VStack(alignment: .leading, spacing: 10) {
-                Picker(String(localized: "voice.tts-engine"), selection: $ttsEngine) {
-                    Text(String(localized: "voice.tts-system")).tag("system")
-                    Text(verbatim: "ElevenLabs").tag("elevenlabs")
+                HStack(spacing: 10) {
+                    Text(String(localized: "konclui.voice.source"))   // Koncluí: A1-49, the three rows share the Language box's label column
+                        .frame(width: 130, alignment: .leading)
+                    Picker(String(localized: "voice.tts-engine"), selection: $ttsEngine) {
+                        Text(String(localized: "voice.tts-system")).tag("system")
+                        Text(verbatim: "ElevenLabs").tag("elevenlabs")
+                    }
+                    .labelsHidden()   // the box is already titled "Voice"
+                    .frame(maxWidth: 260)
                 }
-                .labelsHidden()   // the box is already titled "Voice"
-                .frame(maxWidth: 260)
 
                 if ttsEngine == "elevenlabs" {
                     HStack(spacing: 6) {
@@ -1415,26 +1430,35 @@ struct SettingsView: View {
                             .frame(maxWidth: 220)
                         Button(String(localized: "Save")) {
                             let k = elevenKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                            var stored: OSStatus = 0   // Koncluí: the Keychain's answer (A3-28); the key still works until Koncluí quits
                             if k.isEmpty { KeychainStore.shared.remove(ElevenLabsTTS.keyName) }
-                            else { KeychainStore.shared.set(ElevenLabsTTS.keyName, value: k) }
+                            else { stored = KeychainStore.shared.set(ElevenLabsTTS.keyName, value: k) }
                             elevenKeyDraft = ""
-                            elevenKeySaved = !k.isEmpty
+                            elevenKeySaved = !k.isEmpty && KoncluiKeychainSave.isStored(stored)
+                            if !KoncluiKeychainSave.isStored(stored) { statusMessage = KoncluiKeychainSave.message(stored, saved: "") }
                             ElevenLabsTTS.shared.reset()
                         }
                     }
+                    .padding(.leading, 140)   // Koncluí: under the picker, not under the labels
                 }
 
-                Picker(String(localized: "voice.tts-gender"), selection: $elevenGender) {
-                    Text(String(localized: "voice.tts-female")).tag("female")
-                    Text(String(localized: "voice.tts-male")).tag("male")
+                HStack(spacing: 10) {
+                    Text(String(localized: "voice.tts-gender"))   // Koncluí: A1-49, in the label column
+                        .frame(width: 130, alignment: .leading)
+                    Picker(String(localized: "voice.tts-gender"), selection: $elevenGender) {
+                        Text(String(localized: "voice.tts-female")).tag("female")
+                        Text(String(localized: "voice.tts-male")).tag("male")
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented).koncluiSegmented()
+                    .frame(maxWidth: 220)
+                    .onChange(of: elevenGender) { _, _ in ElevenLabsTTS.shared.reset() }
                 }
-                .pickerStyle(.segmented).koncluiSegmented()
-                .frame(maxWidth: 220)
-                .onChange(of: elevenGender) { _, _ in ElevenLabsTTS.shared.reset() }
 
                 if ttsEngine == "system" {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Text(String(localized: "voice.tts-pitch"))
+                            .frame(width: 130, alignment: .leading)   // Koncluí: A1-49, in the label column
                         Slider(value: elevenGender == "male" ? $pitchMale : $pitchFemale,
                                in: 0.8...1.6, step: 0.05,
                                onEditingChanged: { editing in
@@ -1983,6 +2007,7 @@ struct SettingsView: View {
     #endif
 
     private func saveIntegrations() {
+        koncluiKeychainRefused = 0
         saveKey("resend-api-key",  value: resendKey)
         saveKey("resend-from",     value: resendFrom)
         saveKey("n8n-url",         value: n8nUrl)
@@ -2006,14 +2031,15 @@ struct SettingsView: View {
         saveKey("stripe-api-key",  value: stripeKey)
         saveKey("calcom-api-key",  value: calcomKey)
         saveKey("notion-api-key",  value: notionKey)
-        statusMessage = String(localized: "status.integrations-saved")
+        statusMessage = KoncluiKeychainSave.message(koncluiKeychainRefused, saved: String(localized: "status.integrations-saved"))   // Koncluí: A3-28
     }
 
     private func saveKey(_ key: String, value: String) {
         if value.isEmpty {
             KeychainStore.shared.remove(key)
         } else {
-            KeychainStore.shared.set(key, value: value)
+            let stored = KeychainStore.shared.set(key, value: value)
+            if !KoncluiKeychainSave.isStored(stored) { koncluiKeychainRefused = stored }   // Koncluí: A3-28
         }
     }
 
@@ -2300,6 +2326,9 @@ struct ShortcutRecorderButton: View {
     @Binding var flags: UInt
     @Binding var code: UInt16
     @State private var isRecording = false
+    #if !APPSTORE
+    @Environment(\.isEnabled) private var koncluiEnabled
+    #endif
 
     var body: some View {
         Button {
@@ -2318,14 +2347,21 @@ struct ShortcutRecorderButton: View {
                 return nil
             }
         } label: {
+            #if !APPSTORE
+            KoncluiKeyCap(text: isRecording ? String(localized: "konclui.key.press") : shortcutLabel, recording: isRecording)   // Koncluí: A2-29
+            #else
             Text(isRecording ? String(localized: "konclui.key.press") : shortcutLabel)
                 .font(.system(size: 11, design: .monospaced))
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(isRecording ? Color.accentColor.opacity(0.12) : Color(NSColor.controlBackgroundColor))
                 .cornerRadius(5)
                 .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+            #endif
         }
         .buttonStyle(.plain)
+        #if !APPSTORE
+        .koncluiPointer(koncluiEnabled)   // Koncluí: a plain button does not show the pointing hand by itself
+        #endif
     }
 
     private var shortcutLabel: String {

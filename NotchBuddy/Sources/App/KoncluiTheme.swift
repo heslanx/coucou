@@ -386,17 +386,20 @@ struct KoncluiStatus: View {
 /// A key drawn like a keycap: one look for Settings and Shortcuts.
 struct KoncluiKeyCap: View {
     let text: String
+    /// A shortcut waiting for its new keys: the accent with ink on it, as the region's one active thing.
+    var recording = false
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Text(text)
             .font(.system(size: 12.5, weight: .semibold).monospacedDigit())
-            .foregroundColor(KoncluiTheme.textPrimary)
+            .foregroundColor(recording ? KoncluiTheme.onAccent : KoncluiTheme.textPrimary)
             .padding(.horizontal, 10)
             .frame(height: 26)
-            .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(Color.white.opacity(0.08)))
+            .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous)
+                .fill(recording ? KoncluiTheme.accent : Color.white.opacity(0.08)))
             .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous)
-                .strokeBorder(KoncluiTheme.hairline(contrast)))
+                .strokeBorder(recording ? Color.clear : KoncluiTheme.hairline(contrast)))
     }
 }
 

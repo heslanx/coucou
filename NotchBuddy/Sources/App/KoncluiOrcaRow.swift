@@ -17,14 +17,14 @@ struct KoncluiOrcaRow: View {
                         status: KoncluiAgentRows.status(.toggle, installed: cardsOn), isOpen: $open) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("konclui.orca.about")
-                    .font(.system(size: 11.5))
-                    .foregroundColor(.secondary)
+                    .koncluiType(.detail)
+                    .foregroundColor(KoncluiTheme.textBody)
                     .fixedSize(horizontal: false, vertical: true)
                 Toggle(String(localized: "konclui.orca.toggle"), isOn: $cardsOn)
                 if !hooks.snapshot.isInstalled(.claudeCode) && hooks.loaded {
                     Text("konclui.orca.needs-hooks")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .koncluiType(.detail)
+                        .foregroundColor(KoncluiTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -33,7 +33,7 @@ struct KoncluiOrcaRow: View {
     }
 
     private var colorHex: String {
-        guard let def = PillCatalog.definition(for: ClaudeHost.orcaPillId) else { return "#8E939C" }
+        guard let def = PillCatalog.definition(for: ClaudeHost.orcaPillId) else { return KoncluiPalette.textSecondary }
         return PillColors.color(for: def.id, catalogColor: def.defaultColor, in: state.pillColors)
     }
 }

@@ -6,8 +6,14 @@ import Security
 enum Keychain {
     static let service = "com.konclui.mac"
 
-    static func save(key: String, value: String) {
-        guard let data = value.data(using: .utf8) else { return }
+    // Koncluí: answers the Keychain's status, so a screen can say when the key was not stored (KoncluiKeychainSave.swift).
+    @discardableResult
+    static func save(key: String, value: String) -> OSStatus {
+        #if DEBUG
+        // For screenshots: `-konclui.debug.keychainFail 1` makes every save answer "refused" without touching the Keychain.
+        if UserDefaults.standard.bool(forKey: "konclui.debug.keychainFail") { return errSecInteractionNotAllowed }
+        #endif
+        guard let data = value.data(using: .utf8) else { return errSecParam }
         // Delete existing item first (update pattern)
         let lookup: [String: Any] = [
             kSecClass as String:       kSecClassGenericPassword,
@@ -26,7 +32,7 @@ enum Keychain {
             kSecAttrAccessible as String:   kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecAttrSynchronizable as String: kCFBooleanFalse!,
         ]
-        SecItemAdd(item as CFDictionary, nil)
+        return SecItemAdd(item as CFDictionary, nil)
     }
 
     static func load(key: String) -> String? {
@@ -97,10 +103,12 @@ final class KeychainStore: @unchecked Sendable {
         lock.withLock { cache[key] }
     }
 
-    /// Updates cache + persists to Keychain.
-    func set(_ key: String, value: String) {
+    /// Updates cache + persists to Keychain. Koncluí: answers the Keychain's status; the cache keeps the key for this run
+    /// even when the Keychain refused it.
+    @discardableResult
+    func set(_ key: String, value: String) -> OSStatus {
         lock.withLock { cache[key] = value }
-        Keychain.save(key: key, value: value)
+        return Keychain.save(key: key, value: value)
     }
 
     /// Removes from cache + Keychain only if the key was previously set.

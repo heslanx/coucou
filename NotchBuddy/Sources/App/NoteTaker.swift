@@ -573,6 +573,17 @@ final class NoteTaker: ObservableObject {
         replace(note)
     }
 
+    /// Koncluí: the page's delete, with Undo for ten seconds (UX.md 1.5); the line comes back where it was.
+    func deleteLineWithUndo(_ id: UUID, line: UUID) {
+        guard let index = note(id)?.lines.firstIndex(where: { $0.id == line }), let removed = note(id)?.lines[index] else { return }
+        deleteLine(id, line: line)
+        KoncluiUndoCenter.shared.offer(String(localized: "konclui.undo.note-line")) { [self] in
+            guard var note = note(id) else { return }
+            note.lines = KoncluiUndoList.putBack(removed, at: index, in: note.lines) { $0.id == $1.id }
+            replace(note)
+        }
+    }
+
     /// Correct the transcript again, then the summary from it.
     func correctAgain(_ id: UUID) async {
         await correct(id)

@@ -5,7 +5,7 @@ import AppKit
 // popover pattern of the WhatsApp block). The whole row is the target: a click or the keyboard opens a subtle popover
 // that holds the agent's existing install component unchanged (path, Install, Uninstall, the preview, Confirm and write).
 // SettingsView wraps each block's content in KoncluiAgentRow in place of its GroupBox; the words, doors and DEBUG flags are
-// KoncluiAgentRows.swift (pure, tested).
+// KoncluiAgentRows.swift (pure, tested). The look is the hub's own (UX.md 11): a card, `KoncluiStatus`, the type roles.
 
 // MARK: - The row
 
@@ -20,6 +20,7 @@ struct KoncluiAgentRow<Content: View>: View {
     private let content: () -> Content
 
     @State private var ownOpen: Bool
+    @State private var hovering = false
 
     /// `isOpen` is the caller's when the same view must know about the popover (SettingsView hides its bottom message
     /// meanwhile); without it the row keeps its own.
@@ -45,28 +46,23 @@ struct KoncluiAgentRow<Content: View>: View {
             HStack(spacing: 10) {
                 Circle().fill(Color(hex: colorHex)).frame(width: 10, height: 10).accessibilityHidden(true)
                 Text(verbatim: name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .koncluiType(.bodyStrong)
+                    .foregroundColor(KoncluiTheme.textPrimary)
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                HStack(spacing: 8) {
-                    KoncluiAgentStatusLabel(words: words, tone: status.tone, size: 12.5)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .accessibilityHidden(true)
-                }
                 // The popover points at the status, at the row's trailing end, not at the middle of a wide row.
-                .popover(isPresented: open, arrowEdge: .bottom) { popover }
+                KoncluiStatus(tone: status.tone.statusTone, text: words, door: true)
+                    .popover(isPresented: open, arrowEdge: .bottom) { popover }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .frame(minHeight: 44)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(KoncluiAgentCard())
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(KoncluiAgentCard(hovering: hovering))
+            .contentShape(RoundedRectangle(cornerRadius: KoncluiRadius.card, style: .continuous))
         }
         .buttonStyle(.plain)
         .pointerStyle(.link)
+        .onHover { hovering = $0 }
         .accessibilityLabel(Text(verbatim: name))
         .accessibilityValue(Text(verbatim: words))
         .accessibilityHint(Text("konclui.agents.row.hint"))
@@ -84,10 +80,10 @@ struct KoncluiAgentRow<Content: View>: View {
             HStack(spacing: 8) {
                 Circle().fill(Color(hex: colorHex)).frame(width: 10, height: 10).accessibilityHidden(true)
                 Text(verbatim: name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .koncluiType(.bodyStrong)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
-                KoncluiAgentStatusLabel(words: words, tone: status.tone, size: 12)
+                KoncluiStatus(tone: status.tone.statusTone, text: words)
             }
             Divider()
             content()
@@ -127,10 +123,10 @@ struct KoncluiHookDoorPopover: View {
             HStack(spacing: 8) {
                 Circle().fill(Color(hex: colorHex)).frame(width: 10, height: 10).accessibilityHidden(true)
                 Text(verbatim: name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .koncluiType(.bodyStrong)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
-                KoncluiAgentStatusLabel(words: String(localized: String.LocalizationValue(status.key)), tone: status.tone, size: 12)
+                KoncluiStatus(tone: status.tone.statusTone, text: String(localized: String.LocalizationValue(status.key)))
             }
             #if !APPSTORE
             KoncluiHookControls(target: target, name: name, installed: installed, showDiff: showDiff, pending: pending,
@@ -148,38 +144,13 @@ struct KoncluiHookDoorPopover: View {
 
 // MARK: - Small views
 
-/// The status as a symbol and words: colour is never the only signal (UX.md, 6).
-private struct KoncluiAgentStatusLabel: View {
-    let words: String
-    let tone: KoncluiAgentRows.Tone
-    let size: CGFloat
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: symbol)
-                .font(.system(size: size - 1.5))
-                .foregroundColor(color)
-                .accessibilityHidden(true)
-            Text(verbatim: words)
-                .font(.system(size: size))
-                .foregroundColor(tone == .attention ? color : .secondary)
-                .lineLimit(1)
-        }
-    }
-
-    private var symbol: String {
-        switch tone {
-        case .ready:     return "checkmark.circle.fill"
-        case .todo:      return "circle.dashed"
-        case .attention: return "exclamationmark.triangle.fill"
-        }
-    }
-
-    private var color: Color {
-        switch tone {
-        case .ready:     return Color(hex: "#22C55E")
-        case .todo:      return .secondary
-        case .attention: return Color(hex: "#F5B83D")
+extension KoncluiAgentRows.Tone {
+    /// The hub's one way to say how something is: ready is ok, to do is off, attention stays attention.
+    var statusTone: KoncluiStatus.Tone {
+        switch self {
+        case .ready:     return .ok
+        case .todo:      return .off
+        case .attention: return .attention
         }
     }
 }
@@ -190,20 +161,24 @@ private struct KoncluiAgentNote: View {
 
     var body: some View {
         Text(verbatim: text)
-            .font(.system(size: 11))
-            .foregroundColor(text.hasPrefix("❌") ? Color(hex: "#F4505E") : .secondary)
+            .koncluiType(.detail)
+            .foregroundColor(text.hasPrefix("❌") ? KoncluiTheme.error : KoncluiTheme.textBody)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .onChange(of: text) { _, new in AccessibilityNotification.Announcement(new).post() }
     }
 }
 
-/// The calm card of a row, the same fill and edge as the WhatsApp line.
+/// The calm card of a row: the hub's card colour and edge, a little lighter under the pointer.
 private struct KoncluiAgentCard: View {
+    let hovering: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(Color.primary.opacity(0.045))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
+        RoundedRectangle(cornerRadius: KoncluiRadius.card, style: .continuous)
+            .fill(KoncluiTheme.card)
+            .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.card, style: .continuous).fill(Color.white.opacity(hovering ? 0.04 : 0)))
+            .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.card, style: .continuous).strokeBorder(KoncluiTheme.hairline(contrast)))
     }
 }
 

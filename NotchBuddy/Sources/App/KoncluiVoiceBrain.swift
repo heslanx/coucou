@@ -111,12 +111,26 @@ enum KoncluiVoiceBrain {
         return try? JSONSerialization.data(withJSONObject: object)
     }
 
+    /// The most one request may take.
+    static let requestLimit: TimeInterval = 45
+
+    /// A failing proxy never keeps the person waiting longer than this for one turn, across every model and the retry
+    /// without the web search tool (A3-29). After it the phrase parser answers and Settings → Voice shows the failure.
+    static let turnDeadline: TimeInterval = 10
+
+    /// How long the next request may take: the time left until `deadline`, at most a request's own limit. nil when too little
+    /// is left for another try to be worth sending.
+    static func timeLeft(until deadline: Date, now: Date, atLeast floor: TimeInterval = 1.5) -> TimeInterval? {
+        let left = deadline.timeIntervalSince(now)
+        return left >= floor ? min(left, requestLimit) : nil
+    }
+
     /// The proxy request: the token as a bearer and `anthropic-version`, like the notch chat sends them, with a plain
     /// JSON answer instead of an event stream.
-    static func request(base: String, token: String, body: Data) -> URLRequest? {
+    static func request(base: String, token: String, body: Data, timeout: TimeInterval = requestLimit) -> URLRequest? {
         guard var request = KoncluiProxy.messagesRequest(base: base, token: token, body: body) else { return nil }
         request.setValue("application/json", forHTTPHeaderField: "accept")
-        request.timeoutInterval = 45
+        request.timeoutInterval = timeout
         return request
     }
 

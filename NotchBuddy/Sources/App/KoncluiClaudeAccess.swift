@@ -155,8 +155,10 @@ enum KoncluiClaudeAccess {
         /// This Mac's model refused or could not answer.
         case apple
 
-        /// The catalog key of the sentence that tells the person: what happened, what it means, what to do.
-        func messageKey(source: Source) -> String {
+        /// The catalog key of the sentence that tells the person: what happened, what it means, what to do. Dictation says its
+        /// words were pasted as heard; the Notetaker's summary and correction say the notes were left as they were.
+        func messageKey(source: Source, feature: Feature = .cleanup) -> String {
+            guard feature.waitsForAnswer else { return notesMessageKey(source: source) }
             switch self {
             case .noSource:  return "konclui.claude.fail.none"
             case .refused:   return source == .apiKey ? "konclui.claude.fail.refused.key" : "konclui.claude.fail.refused.proxy"
@@ -166,6 +168,18 @@ enum KoncluiClaudeAccess {
             case .offline:   return "konclui.claude.fail.offline"
             case .slow:      return "konclui.claude.fail.slow"
             case .apple:     return "konclui.claude.fail.apple"
+            }
+        }
+
+        private func notesMessageKey(source: Source) -> String {
+            switch self {
+            case .noSource:  return "konclui.claude.fail.notes.none"
+            case .refused:   return source == .apiKey ? "konclui.claude.fail.notes.refused.key" : "konclui.claude.fail.notes.refused.proxy"
+            case .limit:     return "konclui.claude.fail.notes.limit"
+            case .busy:      return "konclui.claude.fail.notes.busy"
+            case .offline:   return "konclui.claude.fail.notes.offline"
+            case .slow:      return "konclui.claude.fail.notes.slow"
+            case .rejected, .unusable, .apple: return "konclui.claude.fail.notes.reply"
             }
         }
 

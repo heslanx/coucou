@@ -248,6 +248,8 @@ struct HubStylesPage: View {
     @ObservedObject private var store = FlowStore.shared
     // Koncluí: which apps this Mac has, asked once per visit (KoncluiInstalledApps).
     @StateObject private var installed = KoncluiInstalledApps()
+    // Koncluí: the Claude source is found a moment after launch; the page redraws when it is (KoncluiClaudeLive.swift).
+    @ObservedObject private var claude = KoncluiClaudeLive.shared
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.styles"),
@@ -257,23 +259,11 @@ struct HubStylesPage: View {
                     Toggle("", isOn: $store.cleanupEnabled)
                         .toggleStyle(.switch)
                         .labelsHidden()
-                        .disabled(!FlowCleanup.hasKey && !store.cleanupEnabled)
+                        .disabled(!FlowCleanup.canClean && !store.cleanupEnabled)   // Koncluí: Apple Intelligence counts for clean-up
                 }
-                if !FlowCleanup.hasKey {
-                    HStack(spacing: 10) {
-                        Image(systemName: "key")
-                            .foregroundColor(HubTheme.accent)
-                        Text("hub.cleanup-key")
-                            .font(.system(size: 12.5))
-                            .foregroundColor(KoncluiTheme.textBody)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Button(String(localized: "hub.open-settings")) {
-                            NotificationCenter.default.post(name: .openFullSettings, object: "chat")
-                        }
-                        .buttonStyle(HubButtonStyle())
-                    }
-                }
+                // Koncluí: what to connect (with the key one click away) and why the last clean-up fell back, where the switch is
+                KoncluiClaudeConnectLine(feature: .cleanup)
+                KoncluiClaudeFailureLine(feature: .cleanup)
                 HubDivider()
                 // Koncluí: with the clean-up off a style changes nothing, so the row is disabled and says so where the style is.
                 HubRow(title: String(localized: "hub.style-default"),
@@ -324,11 +314,14 @@ struct HubStylesPage: View {
             .disabled(!store.cleanupEnabled)
             .opacity(store.cleanupEnabled ? 1 : 0.55)
 
-            // Koncluí: what each style does is in the picker's popover, next to the choice; only the privacy line stays here.
-            Text("hub.cleanup-privacy")
-                .font(.system(size: 12))
-                .foregroundColor(HubTheme.muted)
-                .fixedSize(horizontal: false, vertical: true)
+            // Koncluí: what each style does is in the picker's popover, next to the choice; only the privacy line stays here,
+            // and it says where the words go for the source that answers now (subscription, key or this Mac).
+            if let privacy = claude.privacyLine(for: .cleanup) {
+                Text(verbatim: privacy)
+                    .font(.system(size: 12))
+                    .foregroundColor(HubTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .koncluiUndoBar()
     }
@@ -342,7 +335,7 @@ struct HubStylesPage: View {
                 .foregroundColor(KoncluiTheme.textBody)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
-            if FlowCleanup.hasKey {
+            if FlowCleanup.canClean {
                 Button(String(localized: "konclui.hub.styles-turn-on")) { store.cleanupEnabled = true }
                     .buttonStyle(HubButtonStyle())
             }

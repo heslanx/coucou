@@ -41,6 +41,7 @@ struct HubNotesPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         }
+        .koncluiUndoBar()   // Koncluí: a deleted line can be put back
     }
 }
 
@@ -642,7 +643,7 @@ private struct HubEditableLine: View {
             }
         }
         Divider()
-        Button(String(localized: "notes.delete-line"), role: .destructive) { taker.deleteLine(note.id, line: line.id) }
+        Button(String(localized: "notes.delete-line"), role: .destructive) { taker.deleteLineWithUndo(note.id, line: line.id) }   // Koncluí: Undo
     }
 }
 
@@ -704,6 +705,8 @@ private struct HubTodos: View {
 /// Who writes the summaries: Claude, Apple Intelligence, or nobody.
 struct HubSummaryEnginePicker: View {
     @ObservedObject private var taker = NoteTaker.shared
+    // Koncluí: the engine's name says where Claude comes from, which is found a moment after launch.
+    @ObservedObject private var claude = KoncluiClaudeLive.shared
 
     var body: some View {
         HubRow(title: String(localized: "notes.engine")) {

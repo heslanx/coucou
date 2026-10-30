@@ -40,6 +40,8 @@ what it costs at the next `git merge upstream/main`.
   comment density and idiom of the surrounding file.
 - **Errors are handled where they can be acted on** and surfaced to the person (UX.md, section 3): no empty `catch`, no `try?`
   that turns a failure into a silent default where the person needed to know.
+- A write that can be refused (the Keychain, a file) returns its status and the screen that offered "Save" shows it; `@discardableResult` keeps
+  the signature compatible for callers that cannot act on it.
 - **Leave the code cleaner than you found it**, within the scope of your change (boy-scout rule), without drive-by refactors.
 
 ## 3. Architecture: the dependency rule
@@ -73,6 +75,9 @@ what it costs at the next `git merge upstream/main`.
 - **Broken windows**: fix a known defect or record it in `KONCLUI.md`, "Open items"; never leave it silent.
 - **Reversibility**: prefer decisions that are cheap to undo (flags, new files, small hooks) over ones that lock the fork in.
 - **Design by contract**: state preconditions and what a function guarantees; check them in tests.
+- **One deadline per wait.** A turn that waits on a network service (the voice proxy: 10 s) has one deadline across its models and retries
+  (`KoncluiVoiceBrain.timeLeft`), and the request is raced against the clock because a request's own timeout only counts the silence
+  between bytes.
 
 ## 5. Simplification
 
@@ -91,7 +96,9 @@ what it costs at the next `git merge upstream/main`.
   certificate when the Mac has one (`scripts/konclui/signing.sh`), so macOS keeps Koncluí's Keychain and privacy
   permissions across builds; without one it builds ad hoc and macOS asks again after each build.
 - The tests of what you touched: `scripts/test-*.sh`, `scripts/konclui/test-*.sh`, `python3 scripts/test-localization.py`,
-  `python3 scripts/test-whats-new.py`, `python3 scripts/konclui/test-copy.py`, `scripts/konclui/test-key-name.sh`, `scripts/konclui/test-flow-pages.sh`, and
+  `python3 scripts/test-whats-new.py`, `python3 scripts/konclui/test-copy.py`, `scripts/konclui/test-key-name.sh`, `scripts/konclui/test-flow-pages.sh`,
+  `scripts/konclui/test-final-wiring.sh` (the wiring of the last hand-offs, the key save's answer, the new strings),
+  `scripts/konclui/test-claude-access.sh` and `scripts/konclui/test-voice-brain.sh` (the notes sentences, the deadline), and
   `python3 scripts/konclui/rebrand.py --check`.
 - A screen or interaction change is walked in the running app (UX.md, section 7). The Debug build accepts
   `-konclui.debug.page <page>` to open the Koncluí window on a given page for screenshots.

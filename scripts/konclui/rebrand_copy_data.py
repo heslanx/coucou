@@ -499,23 +499,26 @@ r("flow.edge", "Where the pill is",
   "موضع مؤشر الإملاء", "ডিক্টেশন ইন্ডিকেটরের অবস্থান", "डिक्टेशन इंडिकेटर की जगह", "ตำแหน่งตัวบอกการป้อนด้วยเสียง",
   "听写指示器的位置", "聽寫指示器的位置")
 
-# A1-42, A3-24: the Accessibility explanation, short, with the macOS path written once with ›.
+# A1-42, A3-24: the Accessibility explanation, short, with the macOS path written once with ›. The advice to remove Koncluí and add
+# it again is `konclui.flow.accessibility-stale`, shown by Ajustes do ditado only after macOS once trusted Koncluí.
 r("flow.accessibility",
-  "Koncluí can't paste yet, or see Esc: it needs the Accessibility permission. Turn on Koncluí in System Settings → Privacy & Security → Accessibility. If it is already on, remove it with − and add it again: a new build of Koncluí needs it again.",
-  "Koncluí needs the Accessibility permission to paste what you dictate and to hear Esc. Turn it on in System Settings › Privacy & Security › Accessibility. Already on? Remove Koncluí from the list (the minus button) and add it again.",
-  "O Koncluí precisa da permissão de Acessibilidade para colar o que você dita e ouvir o Esc. Ative em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade. Já estava ativado? Remova o Koncluí da lista (botão menos) e adicione de novo.",
-  "Koncluí necesita el permiso de Accesibilidad para pegar lo que dictas y detectar Esc. Actívalo en Ajustes del Sistema › Privacidad y seguridad › Accesibilidad. ¿Ya estaba activado? Quita Koncluí de la lista (botón menos) y vuelve a añadirlo.",
-  "Koncluí a besoin de l'autorisation Accessibilité pour coller ce que tu dictes et détecter Échap. Active-la dans Réglages Système › Confidentialité et sécurité › Accessibilité. Déjà activée ? Retire Koncluí de la liste (bouton moins) puis ajoute-le de nouveau.",
-  "Koncluí braucht die Berechtigung für Bedienungshilfen, um Diktiertes einzufügen und Esc zu erkennen. Aktiviere sie unter Systemeinstellungen › Datenschutz & Sicherheit › Bedienungshilfen. Schon aktiviert? Entferne Koncluí aus der Liste (Minus-Taste) und füge es erneut hinzu.",
-  "Koncluí нужно разрешение «Универсальный доступ», чтобы вставлять продиктованное и видеть Esc. Включите его в Системных настройках › Конфиденциальность и безопасность › Универсальный доступ. Уже включено? Удалите Koncluí из списка (кнопка «минус») и добавьте снова.",
-  "Koncluí'nun dikte ettiğin metni yapıştırması ve Esc tuşunu algılaması için Erişilebilirlik izni gerekir. Sistem Ayarları › Gizlilik ve Güvenlik › Erişilebilirlik bölümünden aç. Zaten açıksa Koncluí'yu listeden çıkar (eksi düğmesi) ve yeniden ekle.",
-  "Koncluí membutuhkan izin Aksesibilitas untuk menempelkan hasil dikte dan mendeteksi Esc. Aktifkan di Pengaturan Sistem › Privasi & Keamanan › Aksesibilitas. Sudah aktif? Hapus Koncluí dari daftar (tombol minus) lalu tambahkan lagi.",
-  "يحتاج Koncluí إلى إذن تسهيلات الاستخدام للصق ما تُمليه والتقاط مفتاح Esc. فعّله من إعدادات النظام ‹ الخصوصية والأمن ‹ تسهيلات الاستخدام. هل هو مفعّل بالفعل؟ احذف Koncluí من القائمة (زر الناقص) ثم أضفه من جديد.",
-  "আপনি যা ডিক্টেট করেন তা পেস্ট করতে এবং Esc শুনতে Koncluí-র অ্যাক্সেসিবিলিটি অনুমতি দরকার। সিস্টেম সেটিংস › গোপনীয়তা ও নিরাপত্তা › অ্যাক্সেসিবিলিটিতে চালু করুন। আগে থেকেই চালু? তালিকা থেকে Koncluí সরিয়ে (মাইনাস বোতাম) আবার যোগ করুন।",
-  "आप जो डिक्टेट करते हैं उसे पेस्ट करने और Esc सुनने के लिए Koncluí को एक्सेसिबिलिटी अनुमति चाहिए। सिस्टम सेटिंग्स › गोपनीयता और सुरक्षा › एक्सेसिबिलिटी में इसे चालू करें। पहले से चालू है? सूची से Koncluí को हटाएँ (माइनस बटन) और फिर जोड़ें।",
-  "Koncluí ต้องได้รับอนุญาตด้านการช่วยการเข้าถึงเพื่อวางข้อความที่คุณป้อนด้วยเสียงและรับรู้ปุ่ม Esc เปิดได้ที่ การตั้งค่าระบบ › ความเป็นส่วนตัวและความปลอดภัย › การช่วยการเข้าถึง เปิดอยู่แล้ว? ลบ Koncluí ออกจากรายการ (ปุ่มลบ) แล้วเพิ่มอีกครั้ง",
-  "Koncluí 需要“辅助功能”权限才能粘贴你听写的内容并识别 Esc。请在“系统设置”›“隐私与安全性”›“辅助功能”中打开。已经打开了？请把 Koncluí 从列表中移除（减号按钮），再重新添加。",
-  "Koncluí 需要「輔助使用」權限才能貼上你聽寫的內容並偵測 Esc。請在「系統設定 › 隱私權與安全性 › 輔助使用」中開啟。已經開啟了？請將 Koncluí 從列表中移除（減號按鈕），再重新加入。")
+  ("Koncluí can't paste yet, or see Esc: it needs the Accessibility permission. Turn on Koncluí in System Settings → Privacy & Security → Accessibility. If it is already on, remove it with − and add it again: a new build of Koncluí needs it again.",
+   # the text this rule wrote before the advice moved to `konclui.flow.accessibility-stale`
+   "Koncluí needs the Accessibility permission to paste what you dictate and to hear Esc. Turn it on in System Settings › Privacy & Security › Accessibility. Already on? Remove Koncluí from the list (the minus button) and add it again."),
+  "Koncluí needs the Accessibility permission to paste what you dictate and to hear Esc. Turn it on in System Settings › Privacy & Security › Accessibility.",
+  "O Koncluí precisa da permissão de Acessibilidade para colar o que você dita e ouvir o Esc. Ative em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade.",
+  "Koncluí necesita el permiso de Accesibilidad para pegar lo que dictas y detectar Esc. Actívalo en Ajustes del Sistema › Privacidad y seguridad › Accesibilidad.",
+  "Koncluí a besoin de l'autorisation Accessibilité pour coller ce que tu dictes et détecter Échap. Active-la dans Réglages Système › Confidentialité et sécurité › Accessibilité.",
+  "Koncluí braucht die Berechtigung für Bedienungshilfen, um Diktiertes einzufügen und Esc zu erkennen. Aktiviere sie unter Systemeinstellungen › Datenschutz & Sicherheit › Bedienungshilfen.",
+  "Koncluí нужно разрешение «Универсальный доступ», чтобы вставлять продиктованное и видеть Esc. Включите его в Системных настройках › Конфиденциальность и безопасность › Универсальный доступ.",
+  "Koncluí'nun dikte ettiğin metni yapıştırması ve Esc tuşunu algılaması için Erişilebilirlik izni gerekir. Sistem Ayarları › Gizlilik ve Güvenlik › Erişilebilirlik bölümünden aç.",
+  "Koncluí membutuhkan izin Aksesibilitas untuk menempelkan hasil dikte dan mendeteksi Esc. Aktifkan di Pengaturan Sistem › Privasi & Keamanan › Aksesibilitas.",
+  "يحتاج Koncluí إلى إذن تسهيلات الاستخدام للصق ما تُمليه والتقاط مفتاح Esc. فعّله من إعدادات النظام ‹ الخصوصية والأمن ‹ تسهيلات الاستخدام.",
+  "আপনি যা ডিক্টেট করেন তা পেস্ট করতে এবং Esc শুনতে Koncluí-র অ্যাক্সেসিবিলিটি অনুমতি দরকার। সিস্টেম সেটিংস › গোপনীয়তা ও নিরাপত্তা › অ্যাক্সেসিবিলিটিতে চালু করুন।",
+  "आप जो डिक्टेट करते हैं उसे पेस्ट करने और Esc सुनने के लिए Koncluí को एक्सेसिबिलिटी अनुमति चाहिए। सिस्टम सेटिंग्स › गोपनीयता और सुरक्षा › एक्सेसिबिलिटी में इसे चालू करें।",
+  "Koncluí ต้องได้รับอนุญาตด้านการช่วยการเข้าถึงเพื่อวางข้อความที่คุณป้อนด้วยเสียงและรับรู้ปุ่ม Esc เปิดได้ที่ การตั้งค่าระบบ › ความเป็นส่วนตัวและความปลอดภัย › การช่วยการเข้าถึง",
+  "Koncluí 需要“辅助功能”权限才能粘贴你听写的内容并识别 Esc。请在“系统设置”›“隐私与安全性”›“辅助功能”中打开。",
+  "Koncluí 需要「輔助使用」權限才能貼上你聽寫的內容並偵測 Esc。請在「系統設定 › 隱私權與安全性 › 輔助使用」中開啟。")
 PATHS.remove("flow.accessibility")
 
 # A1-32: the updater does not verify a notarization yet (KONCLUI.md, open items), so the footer must not promise it.

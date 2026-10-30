@@ -40,8 +40,8 @@ struct KoncluiHookControls: View {
     @ViewBuilder private var state: some View {
         let controls = KoncluiHookActions.controls(installed: installed, outdated: outdated)
         Text(verbatim: sentence)
-            .font(.system(size: 11.5))
-            .foregroundColor(.secondary)
+            .koncluiType(.detail)
+            .foregroundColor(KoncluiTheme.textBody)
             .fixedSize(horizontal: false, vertical: true)
         HStack(spacing: 10) {
             if let primary = controls.primary {
@@ -76,33 +76,35 @@ struct KoncluiHookControls: View {
     @ViewBuilder private var review: some View {
         if let diff {
             Text(verbatim: summary(diff))
-                .font(.system(size: 11.5, weight: .medium))
+                .koncluiType(.bodyStrong)
+                .foregroundColor(KoncluiTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
             if diff.othersKept > 0 {
                 Text(String(format: String(localized: "konclui.hooks.diff.others"), Int64(diff.othersKept)))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .koncluiType(.detail)
+                    .foregroundColor(KoncluiTheme.textSecondary)
             }
             KoncluiChangedLines(added: diff.added, removed: diff.removed)
             DisclosureGroup {
                 ScrollView {
                     Text(verbatim: diff.whole)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(KoncluiTheme.textBody)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(6)
                 }
                 .frame(height: 140)
-                .background(Color(NSColor.textBackgroundColor))
-                .cornerRadius(6)
+                .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(KoncluiTheme.field))
             } label: {
-                Text("konclui.hooks.diff.whole").font(.system(size: 11.5))
+                Text("konclui.hooks.diff.whole").koncluiType(.detail).foregroundColor(KoncluiTheme.textBody)
             }
             .disclosureGroupStyle(KoncluiDisclosureStyle())
             reviewButtons
         } else {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("konclui.hooks.diff.reading").font(.system(size: 11.5)).foregroundColor(.secondary)
+                Text("konclui.hooks.diff.reading").koncluiType(.detail).foregroundColor(KoncluiTheme.textSecondary)
             }
             Button(String(localized: "Cancel"), action: cancel).buttonStyle(.koncluiSecondary)
         }
@@ -153,24 +155,24 @@ struct KoncluiChangedLines: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(removed.enumerated()), id: \.offset) { row("\u{2212}", $0.element, Color(hex: "#FF453A")) }
-                    ForEach(Array(added.enumerated()), id: \.offset) { row("+", $0.element, Color(hex: "#34D399")) }
+                    ForEach(Array(removed.enumerated()), id: \.offset) { row("\u{2212}", $0.element, KoncluiTheme.error) }
+                    ForEach(Array(added.enumerated()), id: \.offset) { row("+", $0.element, KoncluiTheme.ok) }
                 }
             }
             // A ScrollView has no height of its own inside a popover: about one row per line, up to 150 pt, then it scrolls.
-            .frame(height: min(150, CGFloat(added.count + removed.count) * 14.5 + 2))
-            .background(Color(NSColor.textBackgroundColor))
-            .cornerRadius(6)
+            .frame(height: min(150, CGFloat(added.count + removed.count) * 16.5 + 2))
+            .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(KoncluiTheme.field))
+            .clipShape(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous))
         }
     }
 
     private func row(_ glyph: String, _ line: String, _ tint: Color) -> some View {
         HStack(alignment: .top, spacing: 6) {
             Text(verbatim: glyph).foregroundColor(tint).frame(width: 10)
-            Text(verbatim: line).foregroundColor(.primary)
+            Text(verbatim: line).foregroundColor(KoncluiTheme.textPrimary)
             Spacer(minLength: 0)
         }
-        .font(.system(size: 10, design: .monospaced))
+        .font(.system(size: 11, design: .monospaced))
         .padding(.horizontal, 6)
         .padding(.vertical, 1)
         .background(tint.opacity(0.12))
@@ -189,7 +191,7 @@ struct KoncluiHookDetails: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(verbatim: target.shownPath)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(KoncluiTheme.textBody)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 14) {
@@ -197,11 +199,11 @@ struct KoncluiHookDetails: View {
                     Button(copied ? String(localized: "konclui.hooks.copied") : String(localized: "konclui.hooks.copy-path")) { copy() }
                 }
                 .buttonStyle(.link)
-                .font(.system(size: 11.5))
+                .koncluiType(.detail)
             }
             .padding(.top, 4)
         } label: {
-            Text("konclui.hooks.details").font(.system(size: 11.5)).foregroundColor(.secondary)
+            Text("konclui.hooks.details").koncluiType(.detail).foregroundColor(KoncluiTheme.textSecondary)
         }
         .disclosureGroupStyle(KoncluiDisclosureStyle())
     }

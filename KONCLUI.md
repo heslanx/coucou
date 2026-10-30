@@ -162,6 +162,19 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   clean-up is off. Ajustes do ditado shows the Accessibility permission only while dictation is on and macOS does not trust Koncluí, and
   advises "remove and add again" only when macOS once trusted it. The dictation keys stay in Ajustes do ditado and link to Atalhos.
   DEBUG: `-konclui.debug.page <dictation|insights|dictionary|snippets|styles|settings>`; `-konclui.debug.dictation  off | access | access-stale | ready`; `-konclui.debug.flow-data  empty | sample`.
+- **The last hand-offs, wired.** Estilos and Ajustes do ditado read the Claude source the way the dictation does
+  (`KoncluiClaudeLive`): the clean-up switch counts Apple Intelligence (`FlowCleanup.canClean`), prompt mode and translation need
+  Claude (`hasKey`), the privacy lines and the Notetaker's sentence say where the words go for the source that answers now
+  (subscription, key or this Mac), and a Mac with nothing to ask shows one line with "Abrir Chat" that adds the Anthropic key block
+  first, so the person lands on the field (A1-03, A3-10). The last failed call of each feature stays under its switch until a call
+  succeeds, in words that fit the feature: the dictation sentences say the words were pasted as heard, the Notetaker's (summary,
+  correction) say the notes of the call were left as they were (A3-27). Undo reaches the Atalhos reset, the weekly recap clear and a
+  deleted line of a call. Atalhos lists the dictation keys (read-only, linking to Ajustes do ditado); every shortcut is one key cap,
+  the recorder included. In Voz the voice rows share the Language box's label column. Saving an API key (Chat, ElevenLabs,
+  Integrações) says so when the Keychain refuses it, instead of "Key saved" (A3-28). The voice proxy has one deadline of 10 s for a
+  whole turn across its models and its retry, raced against the clock (A3-29). The agent popovers and rows use the hub's card,
+  `KoncluiStatus` and the type roles.
+  DEBUG: `-konclui.debug.claudeSource none | proxy | key | apple` (what the Claude lines think this Mac has); `-konclui.debug.claudeFail <kind>` now shows under every switch; `-konclui.debug.keychainFail 1` makes every key save answer "refused".
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -275,6 +288,9 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Answer language | UserDefaults `voiceLanguage` | "pt" is a third value; absent means the Mac's language (pt, fr or en), else English | "OK Koru" in Portuguese (the owner speaks pt-BR) |
 | Listen language | UserDefaults `voiceListenLanguage` | "pt" is a fourth value (`auto`, `en`, `fr`, `pt`) | "OK Koru" in Portuguese (the owner speaks pt-BR) |
 | Catalog `voice.*` strings | `Localizable.xcstrings` | untouched: the runner already read them in the answer language's lproj, and pt-BR was complete | "OK Koru" in Portuguese (the owner speaks pt-BR) |
+| Button of the connect line (audit A1-03 and A2-19) | `KoncluiClaudeConnectLine`, `KoncluiClaudeLive.openChatForKey()`, key `hub.open-settings` | kept "Abrir Chat", the label the pill already uses; the click adds the Anthropic key block first | A1-03 asks for "Adicionar a chave do Claude" on the button and A2-19 for "Abrir Chat"; landing on the field is what both rows want |
+| Estilos list while clean-up is off (audit A1-30 and A2-18) | `FlowHubWords.swift`, Estilos | U3b's choice kept: the list is disabled and dimmed, with the line beside it | A1-30 asks for full opacity plus one line, A2-18 for disabled plus one line |
+| Weekly recap clear (audit A1-10) | `RecapStore.snapshotForUndo()`, `KoncluiUndoCenter.offer` (Settings, Clear history) | Undo, no dialog | A1-10 asks for a confirmation with the number; Undo does the same job without a dialog, as for the history clears |
 
 ## Feature flags
 
@@ -459,31 +475,50 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/FlowHub.swift` | `HubSidebar`: `KoncluiAccessibilityMemory.note(trusted:)` on appear and when `flow.trusted` changes | remember that macOS once trusted Koncluí |
 | `App/KoncluiDictationDoor.swift` | the three states come from `flow.koncluiState`; "Ativar o ditado" is `KoncluiDictation.turnOn()` | one source for the state; debug launch arguments reach the sidebar |
 | `App/KoncluiWhatsAppSection.swift` | the private `UndoNotice` and `undoBar` are `KoncluiUndoNotice` and `KoncluiUndoBar` | one Undo bar for the app |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover; 16 `konclui.claude.*` keys (U3a: the source line, privacy, failures); 33 `konclui.*` keys (U3b: undo, home, stat doors, styles, accessibility) |
+| `App/FlowHubWords.swift` | `HubStylesPage`: `@ObservedObject claude`; the switch and "Ligar a limpeza" read `FlowCleanup.canClean`; `KoncluiClaudeConnectLine(feature: .cleanup)` and `KoncluiClaudeFailureLine(feature: .cleanup)` replace the key HStack; the privacy text is `claude.privacyLine(for: .cleanup)` | Apple Intelligence counts for clean-up; nothing is asked for a key it does not need; one line with the way to the key |
+| `App/FlowHubSettings.swift` | `HubSettingsPage`: `@ObservedObject claude`; `KoncluiClaudeFailureLine` under prompt mode and translation; `KoncluiClaudeConnectLine(feature: .prompt)` replaces the key HStack; `claude.privacyLine(for: .prompt)` and `claude.notesDetail` replace `flow.ai-privacy` and `notes.engine-detail`; `KoncluiClaudeFailureLine` for summary and correction under the Notetaker engine | A1-03, A3-10, A3-27 |
+| `App/FlowHubNotes.swift` | `HubSummaryEnginePicker`: `@ObservedObject claude`; the line menu calls `deleteLineWithUndo`; `.koncluiUndoBar()` on `HubNotesPage` | the engine's name follows the source; a deleted line can be put back |
+| `App/NoteTaker.swift` | `deleteLineWithUndo` (the line goes back where it was) | Undo (UX.md 1.5) |
+| `App/KoncluiClaudeLive.swift` | `openChatForKey()` (in `KoncluiClaudeLines.swift`) replaces the pill's own jump; DEBUG `claudeSource` and every feature in `claudeFail` | the key block exists when Chat opens |
+| `App/KoncluiClaudeAccess.swift` | `Failure.messageKey(source:feature:)`: the Notetaker's two features speak of the notes | the failure sentence fits the feature |
+| `App/ShortcutsSettingsView.swift` | `resetAll()` is `KoncluiShortcutsUndo.resetAll(then: reload)`; `KoncluiDictationShortcuts()` after the island group; the island keys are `KoncluiKeyCap`s (`#if !APPSTORE` each) | Undo; the dictation keys where people look for keys (A1-38); one key cap (A2-29) |
+| `App/SettingsView.swift` | `ShortcutRecorderButton`: `KoncluiKeyCap(recording:)` and `.koncluiPointer` | A2-29 |
+| | "Clear history" of the weekly recap: `RecapStore.snapshotForUndo()` and `KoncluiUndoCenter.offer` | Undo |
+| | `voiceSection`: the voice source, the voice type and the pitch get the 130 pt label column of the Language box; "Fonte da voz" is `konclui.voice.source`; the ElevenLabs key sits under the picker | A1-49 |
+| | the six Chat key buttons, the ElevenLabs button and `saveKey` of Integrations use `KoncluiKeychainSave` and `@State koncluiKeychainRefused` | A3-28 |
+| `App/KoncluiSettingsPage.swift` | `.koncluiUndoBar()` after `.koncluiPinnedHeader` | the notch pages show the Undo notice |
+| `App/RecapStore.swift` | `snapshotForUndo()` (what "Clear history" takes, as a closure that puts it back; turns recorded since stay) | Undo |
+| `App/ClaudeService.swift` | `Keychain.save` and `KeychainStore.set` are `@discardableResult` and answer the `OSStatus`; DEBUG `-konclui.debug.keychainFail 1` | A3-28 |
+| `App/KoncluiVoiceBrain.swift`, `KoncluiVoiceBrainLive.swift` | `turnDeadline` (10 s), `timeLeft(until:now:)`, `request(..., timeout:)`; `send` stops when the deadline passes; `post` races the request against the clock | A3-29 |
+| `App/KoncluiAgentRow.swift`, `KoncluiHookControls.swift`, `KoncluiPillRowParts.swift`, `KoncluiOrcaRow.swift` | `KoncluiStatus`, the card tokens, `.koncluiType` roles, `KoncluiTheme` colours, 11 pt minimum for code | the agent rows and popovers look like the rest of the hub |
+| `App/KoncluiTheme.swift` | `KoncluiKeyCap(recording:)` | the recorder's "press the keys" state |
+| `scripts/konclui/rebrand_copy_data.py` | the COPY rule of `flow.accessibility` ends at the path; the previous text is an accepted source spelling | the stale-permission advice lives only in `konclui.flow.accessibility-stale` |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover; 16 `konclui.claude.*` keys (U3a: the source line, privacy, failures); 33 `konclui.*` keys (U3b: undo, home, stat doors, styles, accessibility); 12 `konclui.*` keys (U7) |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
 
 ## Open items
 
-- `deleteLine` in the Notetaker (`FlowHubNotes.swift`, `NoteTaker.swift`) is a one-click delete with no Undo.
-- `FlowCleanup.hasKey` now answers "Claude through the subscription or the key" and is `@MainActor` (the pages read it in `body`).
-  Prompt mode, translation and the correction need it; clean-up should read the new `FlowCleanup.canClean` (Apple Intelligence
-  counts). `FlowHubWords.swift:252` and `:254` still read `hasKey`, so a Mac with only Apple Intelligence keeps the switch
-  disabled until the Styles page reads `canClean` (U3b).
-- The Settings pages (U3b's files) still show the old key sentences. The one-liners to use are
-  `KoncluiClaudeLive.shared.connectLine(for:)`, `.privacyLine(for:)`, `.notesDetail` and `.lastFailure(_:)`; observe
-  `KoncluiClaudeLive.shared` so the line redraws when klaude is found. Until then the old key line is shown (and hidden as soon
-  as `hasKey` is true), which is wrong only on a Mac with neither klaude nor a key.
-- `hub.cleanup-key` ("Add your Claude key in Chat") and `flow.ai-privacy` / `hub.cleanup-privacy` / `notes.engine-detail` stay
-  as the key-only wording; the subscription and Apple wordings are the new `konclui.claude.*` keys.
+- `hub.cleanup-key`, `flow.ai-privacy`, `hub.cleanup-privacy` are no longer read by any page (upstream keys, kept so a merge still finds them);
+  `notes.engine-detail` is read through `KoncluiClaudeAccess.notesDetailKey` when the source is the key.
+- The failure line of a Notetaker feature is the last one for the app, not per note: after a failed summary of one call the Ajustes page
+  says "the notes of this call were left as they were" until any summary succeeds. The note's own page does not show it.
+- The voice proxy's deadline is 10 s for a whole turn (A3-29). A turn that really needs more (a slow web search through the proxy) now
+  falls to the phrase parser and shows "O Koncluí Proxy demorou demais"; raise `KoncluiVoiceBrain.turnDeadline` if that happens on a
+  healthy day.
+- A key saved while the Keychain refuses (A3-28) works until Koncluí quits (the store keeps it in memory) and the line says so; the old
+  value is already deleted by upstream's delete-then-add. The WhatsApp block (`KoncluiWhatsAppSection`) and the crypto portfolio still save
+  without reading the answer.
+- The APPSTORE target does not build: `.koncluiPrimary` / `.koncluiSecondary` (written by `rebrand.py`) and `KoncluiStatus` are
+  `#if !APPSTORE`, and shared files already use them (ShortcutsSettingsView, SettingsView, now KoncluiAgentRow). The hooks U7 added to shared
+  files that need Konclui types carry the guard (Atalhos, the recorder, the recap clear); `KoncluiAgentRow.swift` does not.
+- `ShortcutsSettingsView` still draws the conflict tags and the group titles with upstream's greys and 10 pt text (`conflictTag`); not an
+  agent file, left as is.
 - Latency measured on the owner's Mac (6 runs of the live check, clean-up of a 13-word sentence through the proxy, haiku): 1.9
   to 2.2 s, once 3.4 s, against the 4 s timeout. About 0.3 s of it is reading klaude's token from the Keychain for the call
   (`security` takes 0.3 s on this Mac). The direct API answered in about 1 s. A slower proxy day shows up as the "took too long"
   notice, once per streak.
-- A call's summary or correction that fails is logged (`[Claude] summary via subscription failed: HTTP 529`) and kept in
-  `lastFailure(.summary)` / `(.correction)`; the pill does not announce it (the "notes are ready" notice follows at once and a
-  second message would replace it). The Notetaker page should show it (U3b).
 - Prompt mode and translation have no Apple Intelligence route on purpose (a small on-device model is not good at a structured
   prompt or a translation); the "connect" line says so.
 - The wake word in Portuguese was tested as text ("okei Kôru adiciona…"), never with a real voice. If the recognizer
@@ -500,12 +535,6 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 - A2-34 (is the panel's 20 pt corner concentric with the macOS 26 window?): not changed. A concentric radius is the window's radius minus the
   10 pt inset; the window's radius cannot be read from SwiftUI, and 20 is already the floor. Measure on a Mac with a ruler before touching it.
 - The note title in the Notetaker (24 pt) is the only size outside the seven type roles; kept (a document title is not a page title).
-- `KoncluiAgentRow`, `KoncluiAgentHooks`, `KoncluiHookControls`, `KoncluiPillRowParts` (K16's, in flight) still use `.borderedProminent` /
-  `.bordered`, hard-coded greys and 10 pt monospaced paths; switch them to `.koncluiPrimary` / `.koncluiSecondary` and to `KoncluiStatus` /
-  `KoncluiTheme` tokens, and add `.koncluiTheme()` to their popover content.
-- `ShortcutsSettingsView` key caps (outlined chips) become `KoncluiKeyCap` with one line once that file is touched (A2-29).
-- `flow.accessibility` (still read by `FlowSettingsBox` on Voz) keeps the "remove and add again" advice; Ajustes do ditado shows
-  it only after macOS once trusted Koncluí (`KoncluiAccessibilityMemory`). Trim the COPY rule when Voz stops showing it.
 - Turkish still says "ada" (island) for the notch: Turkish upstream chose it everywhere (about 17 strings); a Turkish speaker
   should pick the word before it changes.
 - The six crypto-portfolio instruction strings (`portfolio.instructions.*`, `portfolio.error.coinbase-key`, `portfolio.testing`)

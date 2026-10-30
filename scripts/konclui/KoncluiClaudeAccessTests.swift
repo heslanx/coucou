@@ -234,6 +234,19 @@ enum KoncluiClaudeAccessTests {
                 check("\(failure.logText) via \(Access.sourceName(source)) has a message", key.hasPrefix("konclui.claude.fail."))
             }
         }
+        for source in [Source.proxy, .apiKey, .none] {
+            for failure in all {
+                for feature in [Access.Feature.summary, .correction] {
+                    check("\(failure.logText) in the \(feature.rawValue) speaks of the notes",
+                          failure.messageKey(source: source, feature: feature).hasPrefix("konclui.claude.fail.notes."))
+                }
+            }
+        }
+        check("prompt mode and translation keep the dictation sentence",
+              Access.Failure.slow.messageKey(source: .proxy, feature: .prompt) == "konclui.claude.fail.slow"
+                && Access.Failure.slow.messageKey(source: .proxy, feature: .translation) == "konclui.claude.fail.slow")
+        check("a refused key in the notes points to the key in Chat",
+              Access.Failure.refused(status: 401).messageKey(source: .apiKey, feature: .summary) == "konclui.claude.fail.notes.refused.key")
         check("a refused subscription points to klaude doctor",
               Access.Failure.refused(status: 401).messageKey(source: .proxy) == "konclui.claude.fail.refused.proxy")
         check("a refused key points to the key in Chat",
@@ -357,7 +370,10 @@ enum KoncluiClaudeAccessTests {
         let failures: [Access.Failure] = [.noSource, .refused(status: 401), .limit, .busy(status: 529), .rejected(status: 400),
                                           .offline, .slow, .unusable, .apple]
         for source in [Source.proxy, .apiKey, .apple, .none] {
-            for failure in failures { keys.insert(failure.messageKey(source: source)) }
+            for failure in failures {
+                keys.insert(failure.messageKey(source: source))
+                keys.insert(failure.messageKey(source: source, feature: .summary))
+            }
             if let key = Access.privacyKey(source) { keys.insert(key) }
             keys.insert(Access.notesEngineKey(source))
             keys.insert(Access.notesDetailKey(source))

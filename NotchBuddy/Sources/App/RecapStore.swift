@@ -241,6 +241,19 @@ final class RecapStore {
         try? FileManager.default.removeItem(at: Self.storageURL)
     }
 
+    /// Koncluí: what "Clear history" is about to take, as the closure that puts it back (Undo, UX.md 1.5). Turns recorded
+    /// after the clear stay.
+    func snapshotForUndo() -> @MainActor () -> Void {
+        let saved = data
+        let savedDrafts = drafts
+        return { [self] in
+            data.turns = saved.turns + data.turns
+            data.decisions = saved.decisions + data.decisions
+            drafts.merge(savedDrafts) { current, _ in current }
+            save()
+        }
+    }
+
     private func load() {
         guard let raw = try? Data(contentsOf: Self.storageURL) else { return }
         do {

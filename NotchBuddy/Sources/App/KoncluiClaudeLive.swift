@@ -24,7 +24,7 @@ final class KoncluiClaudeLive: ObservableObject {
 
         /// The sentence for the person, in their language.
         var message: String {
-            String(localized: String.LocalizationValue(failure.messageKey(source: source)))
+            String(localized: String.LocalizationValue(failure.messageKey(source: source, feature: feature)))
         }
     }
 
@@ -41,7 +41,9 @@ final class KoncluiClaudeLive: ObservableObject {
         }
         #if DEBUG
         // For screenshots: `-konclui.debug.claudeFail slow` (or refused, refused-key, limit, busy, offline, reply, none, apple)
-        // shows that failure on the pill a moment after the first page reads the source (the Styles page does), with no call.
+        // shows that failure on the pill a moment after the first page reads the source (the Styles page does), with no call,
+        // and keeps it under the switch of every feature on the Settings pages. `-konclui.debug.claudeSource none` (or proxy,
+        // key, apple) pretends that is all this Mac has, to draw each state of the connect line.
         if let kind = UserDefaults.standard.string(forKey: "konclui.debug.claudeFail") {
             Task { [weak self] in
                 try? await Task.sleep(for: .seconds(1.5))
@@ -59,7 +61,20 @@ final class KoncluiClaudeLive: ObservableObject {
             "slow": (.slow, .proxy), "reply": (.unusable, .proxy), "none": (.noSource, .none), "apple": (.apple, .apple),
         ]
         guard let (failure, source) = samples[kind] else { return }
-        record(failure, feature: .cleanup, source: source)
+        // Clean-up first: it is the one that tells on the pill; the others (same kind in a row) stay quiet.
+        for feature in KoncluiClaudeAccess.Feature.allCases {
+            record(failure, feature: feature, source: source)
+        }
+    }
+
+    private static func debugInputs() -> KoncluiClaudeAccess.Inputs? {
+        switch UserDefaults.standard.string(forKey: "konclui.debug.claudeSource") {
+        case "none":  return .init(proxyAvailable: false, apiKeySaved: false, appleIntelligence: false)
+        case "proxy": return .init(proxyAvailable: true, apiKeySaved: false, appleIntelligence: false)
+        case "key":   return .init(proxyAvailable: false, apiKeySaved: true, appleIntelligence: false)
+        case "apple": return .init(proxyAvailable: false, apiKeySaved: false, appleIntelligence: true)
+        default:      return nil
+        }
     }
     #endif
 
@@ -68,7 +83,10 @@ final class KoncluiClaudeLive: ObservableObject {
     // MARK: Which source
 
     func inputs() -> KoncluiClaudeAccess.Inputs {
-        .init(proxyAvailable: KoncluiVoiceBrainLive.shared.proxyReady,
+        #if DEBUG
+        if let forced = Self.debugInputs() { return forced }
+        #endif
+        return .init(proxyAvailable: KoncluiVoiceBrainLive.shared.proxyReady,
               apiKeySaved: !(KeychainStore.shared.get("anthropic-api-key") ?? "").isEmpty,
               appleIntelligence: KoncluiVoiceBrainLive.appleIntelligence() == .available)
     }
@@ -207,7 +225,7 @@ final class KoncluiClaudeLive: ObservableObject {
             FlowAnnouncement(symbol: "exclamationmark.triangle.fill", tint: "#F5B83D", text: report.message,
                              action: opensChat ? String(localized: "hub.open-settings") : nil),
             for: 10) {
-            if opensChat { NotificationCenter.default.post(name: .openFullSettings, object: "chat") }
+            if opensChat { Self.openChatForKey() }
         }
     }
 }

@@ -10,6 +10,8 @@ struct HubSettingsPage: View {
     @State private var confirmClear = false
     @State private var showInDock = FlowHubController.showInDock
     @State private var openAtLaunch = FlowHubController.openAtLaunch
+    // Koncluí: the Claude source is found a moment after launch; the page redraws when it is (KoncluiClaudeLive.swift).
+    @ObservedObject private var claude = KoncluiClaudeLive.shared
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.settings"), subtitle: String(localized: "konclui.settings.sub")) {   // Koncluí: a band with one word had no subtitle
@@ -76,6 +78,7 @@ struct HubSettingsPage: View {
                         .labelsHidden()
                         .disabled(!FlowCleanup.hasKey && !store.promptMode)
                 }
+                KoncluiClaudeFailureLine(feature: .prompt)   // Koncluí: the last prompt that fell back (A3-27)
                 HubDivider()
                 HubRow(title: String(localized: "flow.translate"),
                        detail: FlowLanguages.language(store.translateTo).map {
@@ -90,25 +93,15 @@ struct HubSettingsPage: View {
                     .fixedSize()
                     .disabled(!FlowCleanup.hasKey && store.translateTo.isEmpty)
                 }
-                if !FlowCleanup.hasKey {
-                    HStack(spacing: 10) {
-                        Image(systemName: "key")
-                            .foregroundColor(HubTheme.accent)
-                        Text("hub.cleanup-key")
-                            .font(.system(size: 12.5))
-                            .foregroundColor(KoncluiTheme.textBody)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Button(String(localized: "hub.open-settings")) {
-                            NotificationCenter.default.post(name: .openFullSettings, object: "chat")
-                        }
-                        .buttonStyle(HubButtonStyle())
-                    }
+                KoncluiClaudeFailureLine(feature: .translation)   // Koncluí: A3-27
+                // Koncluí: what to connect, with the key one click away; and where the words go for the source that answers now
+                KoncluiClaudeConnectLine(feature: .prompt)
+                if let privacy = claude.privacyLine(for: .prompt) {
+                    Text(verbatim: privacy)
+                        .font(.system(size: 12))
+                        .foregroundColor(HubTheme.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text("flow.ai-privacy")
-                    .font(.system(size: 12))
-                    .foregroundColor(HubTheme.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HubLabel(String(localized: "hub.settings.recognition"))
@@ -119,10 +112,13 @@ struct HubSettingsPage: View {
             HubLabel(String(localized: "hub.page.notes"))
             HubCard {
                 HubSummaryEnginePicker()
-                Text("notes.engine-detail")
+                // Koncluí: where a transcript goes with the Claude engine (subscription or key), and the last call that failed
+                Text(verbatim: claude.notesDetail)
                     .font(.system(size: 12))
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                KoncluiClaudeFailureLine(feature: .summary)
+                KoncluiClaudeFailureLine(feature: .correction)
                 HubDivider()
                 Text("notes.legal")
                     .font(.system(size: 12))

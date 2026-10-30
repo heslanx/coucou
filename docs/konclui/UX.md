@@ -28,6 +28,9 @@ motion) meets the contrast, motion and polish rules of sections 6 and 8.
   2. **Explain**: say in one line why it is blocked.
   3. **Redirect**: offer a link or move focus straight to the field or setting that is missing.
   4. **Resolve**: let the person fix it right there, in the same click.
+     A line that says a service is not connected carries the button that gets there in the same click and prepares the destination:
+     "Abrir Chat" adds the Anthropic key block first (`KoncluiClaudeLive.openChatForKey`), so the person lands on the field and not on
+     a page without one.
 - When a "I clicked and nothing happened" bug is found, fix the shared component everywhere it is used, not only on that screen,
   and list any occurrence left.
 
@@ -133,6 +136,8 @@ come from?".
 
 - **No silent error.** No failure is swallowed in code. An exception never becomes a fake success, a silently empty list or a
   chart at zero.
+- A save the system can refuse (the Keychain) shows the system's answer, never "saved" by hope: `KoncluiKeychainSave.message` says what
+  happened, what it means (the key works until Koncluí quits) and what to do (unlock the Keychain and save again).
 - **Background errors show on the affected thing.** When a poller (GitHub, Vercel, Stripe…), a hook, the WhatsApp gateway,
   the MCP bridge or a chat route fails in the background, the error shows on the pill or card it affects and in its Settings
   block, not only in a log.
@@ -145,6 +150,8 @@ come from?".
   refused, was busy or took too long), the person is told on the pill what happened, what it means and what to do, once per
   streak of the same kind of failure; the Settings page of that feature keeps the last one under its switch until a call succeeds.
   A failure the person must fix (a refused key, nothing connected) offers the button to the page that fixes it.
+- The sentence fits the feature: dictation says the words were pasted as heard; the Notetaker's summary and correction say the notes of the
+  call were left as they were (`konclui.claude.fail.notes.*`), never "dictation".
 - **Inspection has no side effect.** Opening the details of an error, log or metric only reads; retrying or fixing are
   separate buttons.
 - **Every number is clickable, zero included.** Any metric, total or counter (Statistics: words dictated, words per minute,
@@ -251,6 +258,7 @@ Add a row whenever a new concept reaches the interface.
 - [ ] Numbers and counters are clickable and show the records behind them (zero included).
 - [ ] Actions that change data offer Undo, or a preview + confirmation when irreversible.
 - [ ] A removal or uninstall previews like an install (what changes, in lines) and says per file what happened afterwards.
+- [ ] A save the system can refuse reports the system's answer; a wait on a network service has one deadline for all its tries.
 - [ ] Buttons use specific verbs; texts have no dashes and no technical jargon; terms match the glossary.
 - [ ] No retired word on the screen: notch (never "ilha"/"island"), aba, Ajustes with one meaning, "Koncluí" for the window
       (`python3 scripts/konclui/test-copy.py`).
@@ -382,12 +390,15 @@ card side, 14 pt free beside its divider, so "Gravar uma chamada" is 238 pt wide
   off box you can see (3:1 against the card). An on/off setting with a hidden label asks for `.toggleStyle(.switch)`.
 - **Status**: `KoncluiStatus(tone:text:door:)`: a dot (an icon for an error), a sentence, a chevron when it opens a popover. One
   way to say "installed", "not installed", "needs attention", "failed", "off". Never the accent, never a grey caption that looks
-  like a link.
+  like a link. Agent rows and their popovers say their state with `KoncluiStatus` (ok, off, attention), never a symbol and a grey caption
+  of their own. Code and diff lines are monospaced at 11 pt (the minimum); a path is a sentence only inside an install or removal review
+  ("Adds 13 entries to ~/.claude/settings.json"), elsewhere it lives under Detalhes.
 - **Doors**: a status or a name that opens a popover is a `Button` with the pointing hand (`.koncluiPointer()`), a hover fill and a
   chevron; the popover is a short list of `KoncluiPopoverAction` rows, the likeliest first.
 - **Fields**: `KoncluiField` (via `HubField`): an edge you can see (white 16 %), a 2 pt accent ring with focus, an optional label
   above that stays while typing, an optional line below that says what is missing.
-- **Key caps**: `KoncluiKeyCap`: one filled chip for every shortcut.
+- **Key caps**: `KoncluiKeyCap`: one filled chip for every shortcut, the recorder button included; while it waits for the new keys the chip
+  takes the accent with ink on it (`KoncluiKeyCap(recording:)`).
 - **Popovers** are their own windows: they take the system's glass and do not inherit the hub's styles; a popover's content calls
   `.koncluiTheme()` when it uses hub buttons, toggles or boxes.
 
