@@ -4,14 +4,18 @@ import Foundation
 // Store updates its own build). Pure Foundation so tests/MacUpdateTests.swift checks the rules:
 // which release is the Mac's, whether it is newer, what to say about it. The Mac's tags are
 // `vX.Y.Z` with a `Coucou.zip`; Windows, Linux and Android have their own prefixed tags.
+// Koncluí: only Koncluí's releases. Its public releases repository, its `konclui-vX.Y.Z` tags with a `Konclui.zip`
+// (upstream's `vX.Y.Z` tags reach this repository with every sync), its team. scripts/konclui/release.sh publishes there.
 
 enum MacUpdate {
-    static let owner = "Louis-CFM"
-    static let repo = "coucou"
+    static let owner = "konclui"            // Koncluí: public, releases only; `konclui/konclui-notch` is private
+    static let repo = "konclui-releases"
     static let releasesURL = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases?per_page=20")!
-    /// What the downloaded app must be signed as: Coucou's bundle id, Louis's Developer ID team.
-    static let bundleId = "fr.louisraille.NotchBuddy"
-    static let teamId = "256AUJ9555"
+    /// What the downloaded app must be signed as: Koncluí's bundle id, Koncluí's Developer ID team.
+    static let bundleId = "com.konclui.mac"
+    static let teamId = "5M8RG3BCX2"        // Koncluí: scripts/konclui/signing.sh's team
+    /// Koncluí: the Mac's tags; a Coucou tag (`v0.5.6`) is never Koncluí's.
+    static let tagPrefix = "konclui-v"
     static var codeRequirement: String {
         "anchor apple generic and identifier \"\(bundleId)\" and certificate leaf[subject.OU] = \"\(teamId)\""
     }
@@ -33,7 +37,7 @@ enum MacUpdate {
             guard r["draft"] as? Bool != true, r["prerelease"] as? Bool != true,
                   let tag = r["tag_name"] as? String, let version = macVersion(tag),
                   let assets = r["assets"] as? [[String: Any]],
-                  let zip = assets.first(where: { $0["name"] as? String == "Coucou.zip" }),
+                  let zip = assets.first(where: { $0["name"] as? String == "Konclui.zip" }),
                   let s = zip["browser_download_url"] as? String, let url = URL(string: s),
                   let page = (r["html_url"] as? String).flatMap(URL.init(string:)) else { return nil }
             return Release(version: version, tag: tag, zipURL: url, size: (zip["size"] as? Int) ?? 0,
@@ -42,10 +46,10 @@ enum MacUpdate {
         return releases.max { isNewer($1.version, than: $0.version) }
     }
 
-    /// "v0.5.1" → "0.5.1"; "windows-v0.5.0", "linux-latest", "android-v0.2.0" → nil.
+    /// "konclui-v0.5.1" → "0.5.1"; Coucou's "v0.5.1", "windows-v0.5.0", "linux-latest", "android-v0.2.0" → nil.
     static func macVersion(_ tag: String) -> String? {
-        guard tag.hasPrefix("v") else { return nil }
-        let v = String(tag.dropFirst())
+        guard tag.hasPrefix(tagPrefix) else { return nil }   // Koncluí: its own prefix
+        let v = String(tag.dropFirst(tagPrefix.count))
         let parts = v.split(separator: ".")
         guard (2...4).contains(parts.count), parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }) else { return nil }
         return v

@@ -29,6 +29,9 @@ enum TurnEndPolicy {
     static let conversationEndPhrases: Set<String> = [
         "merci", "c est bon", "c'est bon", "that s all", "that's all", "stop",
         "laisse tomber", "annule", "annuler", "cancel", "never mind", "bye", "au revoir",
+        // Koncluí: Portuguese
+        "obrigado", "obrigada", "valeu", "é só isso", "só isso", "tá bom", "ta bom", "deixa pra lá", "deixa pra la",
+        "esquece", "cancela", "cancele", "para", "pare", "tchau", "até mais", "ate mais",
     ]
 
     // Words that suggest the utterance is mid-thought and should get extra silence.
@@ -52,6 +55,12 @@ enum TurnEndPolicy {
         // EN bare action verbs
         "add", "remove", "disable", "enable", "play", "start",
         "increase", "decrease", "set",
+        // Koncluí: Portuguese linkers, articles, prepositions and bare action verbs
+        "e", "depois", "mas", "entao", "tipo",
+        "o", "os", "as", "um", "uma", "do", "da", "dos", "das", "no", "na", "nos", "nas", "em", "para", "pra", "pro",
+        "com", "por", "pelo", "pela", "que",
+        "adiciona", "adicione", "tira", "tire", "remova", "ativa", "ative", "desativa", "desative",
+        "poe", "coloca", "bota", "toca", "toque", "aumenta", "abaixa", "diminui", "abre", "abra", "troca", "pausa",
     ]
 }
 #endif

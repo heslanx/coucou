@@ -11,20 +11,20 @@ enum ClaudeHookDetectionTests {
         // Installed: the hook Coucou writes, GitHub build
         precondition(coucouHooksPresent(inSettings: settings("""
         {"hooks":{"SessionStart":[{"hooks":[
-          {"type":"command","command":"$HOME/.claude/coucou/nb-hook"}]}]}}
+          {"type":"command","command":"$HOME/.claude/konclui/nb-hook"}]}]}}
         """)))
 
         // Installed: App Store build names NotchBuddy
         precondition(coucouHooksPresent(inSettings: settings("""
         {"hooks":{"SessionStart":[{"hooks":[
-          {"type":"command","command":"/Applications/NotchBuddy.app/.../nb-hook"}]}]}}
+          {"type":"command","command":"/Applications/Konclui.app/.../nb-hook"}]}]}}
         """)))
 
         // Installed: our hook sits alongside somebody else's
         precondition(coucouHooksPresent(inSettings: settings("""
         {"hooks":{"SessionStart":[
           {"hooks":[{"type":"command","command":"/usr/local/bin/other-tool"}]},
-          {"hooks":[{"type":"command","command":"$HOME/.claude/coucou/nb-hook"}]}]}}
+          {"hooks":[{"type":"command","command":"$HOME/.claude/konclui/nb-hook"}]}]}}
         """)))
 
         // Not installed: other tools only — the case that showed "Key not configured"
@@ -37,7 +37,14 @@ enum ClaudeHookDetectionTests {
         // Not installed: hooks for other events do not count
         precondition(!coucouHooksPresent(inSettings: settings("""
         {"hooks":{"PreToolUse":[{"hooks":[
-          {"type":"command","command":"$HOME/.claude/coucou/nb-hook"}]}]}}
+          {"type":"command","command":"$HOME/.claude/konclui/nb-hook"}]}]}}
+        """)))
+
+        // Not installed: Coucou's own hooks, next to which Koncluí runs (KONCLUI.md)
+        precondition(!coucouHooksPresent(inSettings: settings("""
+        {"hooks":{"SessionStart":[{"hooks":[
+          {"type":"command","command":"/Users/me/Library/Application Support/NotchBuddy/nb-hook"},
+          {"type":"command","command":"/Users/me/.claude/coucou/nb-hook"}]}]}}
         """)))
 
         // Malformed or empty settings never crash, and never read as installed
@@ -55,6 +62,6 @@ enum ClaudeHookDetectionTests {
         {"hooks":"not-an-object"}
         """)))
 
-        print("Claude hook detection: 10 cases passed")
+        print("Claude hook detection: 11 cases passed")
     }
 }

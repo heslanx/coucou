@@ -88,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         add(NoteTaker.shared.isRecording ? String(localized: "notes.stop") : String(localized: "hub.record-call"),
             #selector(toggleCallRecording))
         menu.addItem(.separator())
-        add(String(localized: "Open Coucou"), #selector(openIsland))
+        add(String(localized: "Open Koncluí"), #selector(openIsland))
         add(NSLocalizedString("Settings…", comment: ""), #selector(openSettings))
         return menu
     }
@@ -118,9 +118,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupMenuBarItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem?.button else { return }
-        button.image = NSImage(named: "MenuBarIcon") ?? NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "Coucou")
+        button.image = NSImage(named: "MenuBarIcon") ?? NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "Koncluí")
         button.image?.size = NSSize(width: 24, height: 18)
-        button.image?.accessibilityDescription = "Coucou"
+        button.image?.accessibilityDescription = "Koncluí"
         button.image?.isTemplate = true
 
         let menu = NSMenu()
@@ -141,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         demoMenuItem = demoItem
         menu.addItem(demoItem)
         menu.addItem(.separator())
-        menu.addItem(withTitle: NSLocalizedString("Open Coucou", comment: ""), action: #selector(openIsland), keyEquivalent: "")
+        menu.addItem(withTitle: NSLocalizedString("Open Koncluí", comment: ""), action: #selector(openIsland), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: NSLocalizedString("Weekly recap", comment: ""), action: #selector(openWeeklyRecap), keyEquivalent: "")
         menu.addItem(withTitle: String(localized: "Reminders"), action: #selector(openReminders), keyEquivalent: "")
@@ -174,10 +174,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width * 2), pixelsHigh: Int(size.height * 2),
                                          bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
                                          colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else {
-            let icon = NSImage(named: "MenuBarIcon") ?? NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "Coucou")
+            let icon = NSImage(named: "MenuBarIcon") ?? NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "Koncluí")
             icon?.size = size
             icon?.isTemplate = true
-            icon?.accessibilityDescription = "Coucou"
+            icon?.accessibilityDescription = "Koncluí"
             button.image = icon
             return
         }
@@ -192,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let blue = NSImage(size: size)
         blue.addRepresentation(rep)
         blue.isTemplate = false
-        blue.accessibilityDescription = "Coucou"
+        blue.accessibilityDescription = "Koncluí"
         button.image = blue
     }
     #endif
@@ -372,7 +372,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = SpotifyController.shared
         MailController.shared.start()
         WhatsAppController.shared.start()
-        MacUpdater.shared.start()
+        if KoncluiFeatures.isOn("block_updates") { MacUpdater.shared.start() }   // Koncluí: no update channel yet (KONCLUI.md)
+        Task { await KoncluiVoiceBrainLive.shared.refreshProxy() }   // Koncluí: find klaude early, so the pages name the right source
         ClaudeDesktopChatWatcher.shared.start()
         #endif
         CryptoController.shared.start()

@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koncluí · O aviso do lembrete · 10 propostas</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --canvas: #000; --panel: #0E0F11; --card: #18191C; --field: #1F2024;
+    --t1: #F5F6F8; --t2: #C7CAD0; --t3: #8E939C; --t4: #83888F;
+    --accent: #FB923C; --ink: #170C04; --ok: #34D399; --warn: #F5B83D;
+    --hair: rgba(255,255,255,.08);
+    --spring: cubic-bezier(.16, 1, .3, 1);
+    --sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    --sfd: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    --sfr: ui-rounded, "SF Pro Rounded", -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--canvas); color: var(--t1); font: 14px/1.45 var(--sf); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- page ---------- */
+  .page { max-width: 1060px; margin: 0 auto; padding: 44px 28px 120px; }
+  header.top h1 { font: 700 30px/1.1 var(--sfd); letter-spacing: -.02em; margin: 0 0 8px; }
+  header.top p { color: var(--t2); margin: 0; max-width: 70ch; }
+  .controls { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    padding: 12px 0; margin: 22px 0 8px; background: rgba(0,0,0,.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--hair); }
+  .seg { display: inline-flex; background: #1D1E22; border-radius: 9px; padding: 2px; border: 1px solid rgba(255,255,255,.08); }
+  .seg button { border: 0; background: transparent; color: var(--t2); padding: 5px 11px; border-radius: 7px; font-size: 12.5px; }
+  .seg button[aria-pressed="true"] { background: #C2410C; color: #fff; }
+  .ctl-label { font: 700 11px var(--sf); letter-spacing: 1.2px; text-transform: uppercase; color: var(--t4); margin-right: 6px; }
+  .btn-quiet { border: 1px solid rgba(255,255,255,.14); background: #1D1E22; color: var(--t1); border-radius: 9px; padding: 6px 12px; font-size: 12.5px; }
+  .btn-quiet:active { transform: scale(.97); }
+
+  .review { margin: 26px 0 8px; padding: 20px 22px; background: var(--card); border: 1px solid var(--hair); border-radius: 14px; }
+  .review h2 { font: 600 15px var(--sf); margin: 0 0 12px; }
+  .review dl { display: grid; grid-template-columns: 150px 1fr; gap: 8px 16px; margin: 0; }
+  .review dt { color: var(--t3); font-size: 12.5px; }
+  .review dd { margin: 0; color: var(--t2); font-size: 13.5px; }
+  .review b { color: var(--t1); font-weight: 600; }
+  .verdict { color: var(--warn); font-weight: 600; }
+
+  section.opt { margin-top: 56px; }
+  .opt-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .opt-num { font: 700 12px var(--sf); color: var(--ink); background: var(--accent); border-radius: 6px; padding: 2px 7px; }
+  .opt-num.base { background: #3A3B40; color: var(--t2); }
+  .opt-head h3 { font: 600 19px var(--sfd); letter-spacing: -.01em; margin: 0; }
+  .opt-head .tag { font-size: 12px; color: var(--ok); border: 1px solid rgba(52,211,153,.35); border-radius: 99px; padding: 1px 8px; }
+  .opt-head .seg { margin-left: auto; }
+  .opt-line { color: var(--t2); margin: -4px 0 14px; max-width: 75ch; }
+  .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+  .notes div { background: var(--panel); border: 1px solid var(--hair); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--t2); }
+  .notes b { display: block; font: 700 11px var(--sf); letter-spacing: 1.1px; text-transform: uppercase; color: var(--t4); margin-bottom: 4px; }
+
+  /* ---------- the stage: a slice of a Mac screen, 1:1 ---------- */
+  .stage { position: relative; height: 470px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.1);
+    background: var(--wall); isolation: isolate; }
+  .stage.fs { height: auto; aspect-ratio: 1440 / 900; }
+  .stage:not(.fs):has(.o11) { height: 600px; }
+  .stage .screen { position: absolute; inset: 0; }
+  .stage.fs .screen { width: 1440px; height: 900px; transform-origin: 0 0; transform: scale(var(--fit, .7)); }
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 32px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; font: 500 13px var(--sf); color: rgba(255,255,255,.92); background: rgba(0,0,0,.18);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 1; }
+  .menubar .left { display: flex; gap: 18px; } .menubar .left b { font-weight: 700; }
+  .notch { position: absolute; top: 0; left: 50%; width: 200px; height: 32px; transform: translateX(-50%); background: #000;
+    border-radius: 0 0 14px 14px; z-index: 3; }
+  .win { position: absolute; border-radius: 12px; background: rgba(28,30,36,.92); box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+  .win::before { content: ""; position: absolute; left: 12px; top: 11px; width: 52px; height: 12px;
+    background: radial-gradient(circle at 6px 6px, #FF5F57 5px, transparent 5.5px), radial-gradient(circle at 26px 6px, #FEBC2E 5px, transparent 5.5px),
+                radial-gradient(circle at 46px 6px, #28C840 5px, transparent 5.5px); }
+  .win .lines { position: absolute; inset: 40px 18px 18px; background:
+    repeating-linear-gradient(180deg, transparent 0 9px, rgba(255,255,255,.05) 9px 19px); }
+  .win .lines::before { content: ""; position: absolute; inset: 0; background:
+    linear-gradient(90deg, rgba(251,146,60,.5) 0 18%, transparent 18% 22%, rgba(110,193,201,.45) 22% 50%, transparent 50%) 0 9px / 100% 19px no-repeat,
+    linear-gradient(90deg, rgba(167,139,250,.45) 0 30%, transparent 30%) 0 47px / 100% 19px no-repeat,
+    linear-gradient(90deg, rgba(110,193,201,.45) 6% 40%, transparent 40%) 0 85px / 100% 19px no-repeat,
+    linear-gradient(90deg, rgba(251,146,60,.4) 6% 26%, transparent 26%) 0 123px / 100% 19px no-repeat; }
+  .win.light { background: rgba(245,245,247,.95); } .win.light .lines { background: repeating-linear-gradient(180deg, transparent 0 9px, rgba(0,0,0,.06) 9px 19px); }
+
+  body[data-wall="sequoia"] { --wall:
+    radial-gradient(60% 80% at 15% 20%, #2F6F8F 0, transparent 60%),
+    radial-gradient(50% 70% at 85% 30%, #C2410C 0, transparent 60%),
+    radial-gradient(60% 70% at 60% 100%, #6D28D9 0, transparent 65%),
+    linear-gradient(135deg, #10233A, #2A1530); }
+  body[data-wall="dark"] { --wall: linear-gradient(160deg, #15171C, #0B0C0F 60%, #1A1410); }
+  body[data-wall="light"] { --wall:
+    radial-gradient(60% 80% at 20% 20%, #CDE7F5 0, transparent 60%),
+    radial-gradient(60% 80% at 85% 60%, #F8D9C4 0, transparent 60%), linear-gradient(135deg, #EEF1F6, #F7EFE8); }
+  body[data-wall="light"] .menubar { color: rgba(0,0,0,.85); background: rgba(255,255,255,.35); }
+
+  /* the reminder layer */
+  .rem { position: absolute; z-index: 4; }
+  .rem.anchor-top { top: 46px; left: 50%; transform: translateX(-50%); }
+  .arrive .rem.anchor-top { animation: dropIn .62s var(--spring) both; }
+  @keyframes dropIn { from { opacity: 0; transform: translate(-50%, -14px) scale(.96); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+  .fsl { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; }
+  .arrive .fsl { animation: fadeIn .5s ease-out both; }
+  .arrive .fsl .fs-content { animation: rise .7s var(--spring) both .05s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* shared atoms */
+  .ico { width: 1em; height: 1em; display: block; }
+  .b { border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
+    transition: transform .1s ease-out, background-color .15s ease, filter .15s ease; }
+  .b:active { transform: scale(.97); }
+  .kc { font: 600 11px var(--sf); padding: 1px 5px; border-radius: 5px; border: 1px solid currentColor; opacity: .7; line-height: 1.3; }
+  .tab { font-variant-numeric: tabular-nums; }
+
+  /* ---------- 0 · today's alert, as ReminderAlertView draws it ---------- */
+  .o0 { width: 480px; height: 272px; border-radius: 24px; background: rgba(40,40,44,.72); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,.12); box-shadow: 0 12px 24px rgba(0,0,0,.28); padding: 24px; text-align: center; }
+  .o0 .ic { font-size: 42px; color: var(--accent); display: flex; justify-content: center; }
+  .o0 h4 { font: 700 28px/1.15 var(--sfr); margin: 18px 0 8px; }
+  .o0 p { font-size: 16px; color: rgba(235,235,245,.6); margin: 0 0 18px; }
+  .o0 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .o0 .grid .b { height: 24px; border-radius: 6px; background: rgba(255,255,255,.12); font-size: 13px; }
+  .o0 .grid .b.p { color: var(--accent); background: rgba(251,146,60,.2); }
+  .o0 small { display: block; margin-top: 18px; font-size: 11px; color: rgba(235,235,245,.6); }
+
+  /* ---------- 1 · the notch drop ---------- */
+  .o1 { width: 470px; padding: 44px 20px 18px; background: #000; border-radius: 0 0 30px 30px; box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+  .rem.o1.anchor-top { top: 0; }
+  .o1::before, .o1::after { content: ""; position: absolute; top: 0; width: 18px; height: 18px; }
+  .o1::before { left: -18px; background: radial-gradient(circle at 0 100%, transparent 17.5px, #000 18px); }
+  .o1::after { right: -18px; background: radial-gradient(circle at 100% 100%, transparent 17.5px, #000 18px); }
+  .arrive .rem.o1 { animation: notchGrow .7s var(--spring) both; }
+  @keyframes notchGrow { from { clip-path: inset(0 135px 100% 135px round 0 0 14px 14px); } to { clip-path: inset(0 0 0 0 round 0 0 30px 30px); } }
+  .o1 .row { display: flex; align-items: center; gap: 10px; }
+  .o1 .who { font: 600 12px var(--sf); color: var(--t3); letter-spacing: .2px; }
+  .o1 .when { margin-left: auto; font: 500 12px var(--sf); color: var(--t3); }
+  .o1 h4 { font: 600 19px/1.25 var(--sfd); letter-spacing: -.01em; margin: 12px 0 3px; }
+  .o1 p { margin: 0; color: var(--t2); font-size: 13.5px; }
+  .o1 .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .o1 .b { height: 32px; padding: 0 14px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+  .o1 .b.s { background: rgba(255,255,255,.12); color: var(--t1); } .o1 .b.s:hover { background: rgba(255,255,255,.18); }
+  .o1 .b.p { background: var(--accent); color: var(--ink); } .o1 .b.p:hover { filter: brightness(1.06); }
+  .o1 .b.l { background: transparent; color: var(--accent); padding: 0 8px; margin-right: auto; }
+
+  /* ---------- 2 · system glass ---------- */
+  .o2 { width: 380px; padding: 14px; border-radius: 22px; background: rgba(36,36,40,.5);
+    backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.18); box-shadow: 0 18px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(0,0,0,.2); }
+  .o2 .hd { display: flex; align-items: center; gap: 8px; font: 600 11.5px var(--sf); color: rgba(255,255,255,.62); letter-spacing: .3px; }
+  .o2 .app { width: 20px; height: 20px; border-radius: 5px; background: var(--accent); display: grid; place-items: center; }
+  .o2 .hd .t { margin-left: auto; font-weight: 500; }
+  .o2 h4 { font: 600 15px/1.3 var(--sf); margin: 10px 0 2px; color: #fff; }
+  .o2 p { margin: 0; font-size: 13px; color: rgba(255,255,255,.78); }
+  .o2 .acts { display: flex; gap: 8px; margin-top: 12px; }
+  .o2 .b { flex: 1; height: 30px; border-radius: 99px; font-size: 12.5px; font-weight: 600; background: rgba(255,255,255,.14); color: #fff; }
+  .o2 .b:hover { background: rgba(255,255,255,.2); }
+  .o2 .b.p { background: var(--accent); color: var(--ink); }
+
+  /* ---------- 3 · liquid glass ---------- */
+  .o3 { width: 400px; padding: 26px 24px 20px; border-radius: 30px; text-align: center; position: relative;
+    background: rgba(255,255,255,.08); backdrop-filter: blur(26px) saturate(170%); -webkit-backdrop-filter: blur(26px) saturate(170%);
+    box-shadow: 0 30px 70px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.18); }
+  .o3::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: linear-gradient(135deg, rgba(255,255,255,.7), rgba(255,255,255,.08) 40%, rgba(255,255,255,.04) 60%, rgba(255,255,255,.35));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .o3 .lens { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: -1; filter: url(#liquid); opacity: .55;
+    background: radial-gradient(40% 60% at 30% 20%, rgba(255,255,255,.25), transparent 60%), radial-gradient(50% 60% at 80% 90%, rgba(251,146,60,.25), transparent 60%); }
+  .o3 .sweep { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; }
+  .o3 .sweep::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -60%; transform: skewX(-18deg);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent); animation: sweep 6s ease-in-out infinite 1s; }
+  @keyframes sweep { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+  .o3 .disc { width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 28px; color: #fff;
+    background: linear-gradient(160deg, rgba(251,146,60,.95), rgba(194,65,12,.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px rgba(194,65,12,.35); }
+  .o3 h4 { font: 600 22px/1.2 var(--sfd); letter-spacing: -.015em; margin: 14px 0 4px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+  .o3 p { margin: 0; font-size: 14px; color: rgba(255,255,255,.82); text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .o3 .acts { display: flex; gap: 10px; margin-top: 20px; }
+  .o3 .b { flex: 1; height: 40px; border-radius: 99px; font-size: 14px; font-weight: 600; color: #fff; background: rgba(255,255,255,.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+  .o3 .b.p { background: var(--accent); color: var(--ink); box-shadow: inset 0 1px 0 rgba(255,255,255,.45); }
+
+  /* ---------- 4 · calm card ---------- */
+  .o4 { width: 440px; border-radius: 18px; background: var(--card); border: 1px solid var(--hair); box-shadow: 0 22px 56px rgba(0,0,0,.5); }
+  .o4 .bd { display: grid; grid-template-columns: 40px 1fr; gap: 14px; padding: 18px 18px 16px; }
+  .o4 .tile { width: 40px; height: 40px; border-radius: 11px; background: rgba(251,146,60,.16); color: var(--accent); display: grid; place-items: center; font-size: 20px; }
+  .o4 h4 { font: 600 16px/1.3 var(--sf); margin: 1px 0 3px; }
+  .o4 p { margin: 0; font-size: 13.5px; color: var(--t2); }
+  .o4 .meta { margin-top: 8px; font-size: 12px; color: var(--t3); }
+  .o4 .ft { display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 18px; border-top: 1px solid var(--hair); }
+  .o4 .b { height: 30px; padding: 0 14px; border-radius: 9px; font-size: 13px; font-weight: 500; }
+  .o4 .b.s { background: transparent; color: var(--t2); padding: 0 8px; } .o4 .b.s:hover { color: var(--t1); background: rgba(255,255,255,.06); }
+  .o4 .b.l { background: #1D1E22; border: 1px solid rgba(255,255,255,.16); color: var(--t1); margin-left: auto; }
+  .o4 .b.p { background: var(--accent); color: var(--ink); font-weight: 600; }
+  .o4 .b.l + .b.p { margin-left: 0; } .o4 .b.s + .b.p { margin-left: auto; }
+
+  /* ---------- 5 · action bar ---------- */
+  .o5 { width: 300px; border-radius: 20px; overflow: hidden; text-align: center; background: rgba(38,38,42,.78);
+    backdrop-filter: blur(30px) saturate(170%); -webkit-backdrop-filter: blur(30px) saturate(170%);
+    border: 1px solid rgba(255,255,255,.14); box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .o5 .bd { padding: 20px 18px 16px; }
+  .o5 .ic { font-size: 30px; color: var(--accent); display: flex; justify-content: center; }
+  .o5 h4 { font: 600 17px/1.25 var(--sf); margin: 10px 0 3px; }
+  .o5 p { margin: 0; font-size: 13px; color: rgba(255,255,255,.72); }
+  .o5 .bar { display: grid; border-top: 1px solid rgba(255,255,255,.12); }
+  .o5 .bar.h2 { grid-template-columns: 1fr 1fr; } .o5 .bar.h2 .b + .b { border-left: 1px solid rgba(255,255,255,.12); }
+  .o5 .bar.v .b + .b { border-top: 1px solid rgba(255,255,255,.12); }
+  .o5 .b { height: 44px; background: transparent; color: #4FA3FF; font-size: 15px; }
+  .o5 .b:hover { background: rgba(255,255,255,.06); }
+  .o5 .b.p { color: var(--accent); font-weight: 600; }
+  .o5 .b.s, .o5 .b.l { color: var(--t1); }
+
+  /* ---------- 6 · alarm clock ---------- */
+  .o6 { width: 340px; padding: 22px 22px 18px; border-radius: 26px; background: #0B0B0D; border: 1px solid rgba(255,255,255,.1);
+    box-shadow: 0 26px 60px rgba(0,0,0,.55); text-align: center; }
+  .o6 .tm { font: 200 58px/1 var(--sfd); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .o6 .rep { font: 600 11px var(--sf); letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); margin-top: 6px; }
+  .o6 h4 { font: 600 18px/1.25 var(--sf); margin: 14px 0 3px; }
+  .o6 p { margin: 0; font-size: 13.5px; color: var(--t3); }
+  .o6 .acts { display: grid; gap: 6px; margin-top: 18px; }
+  .o6 .b { height: 46px; border-radius: 99px; font-size: 15px; font-weight: 600; }
+  .o6 .b.p { background: var(--accent); color: var(--ink); order: -2; }
+  .o6 .b.l { background: rgba(255,255,255,.1); color: var(--t1); order: -1; }
+  .o6 .b.s { background: transparent; color: var(--accent); height: 34px; font-weight: 500; }
+
+  /* ---------- 7 · Koru tells you ---------- */
+  .o7 { width: 400px; padding: 34px 22px 18px; border-radius: 24px; background: var(--card); border: 1px solid var(--hair);
+    box-shadow: 0 24px 60px rgba(0,0,0,.5); text-align: center; position: relative; margin-top: 30px; }
+  .o7 .koru { position: absolute; left: 50%; top: -36px; transform: translateX(-50%); width: 64px; height: 64px; }
+  .arrive .o7 .koru { animation: hop .9s var(--spring) both .25s; }
+  @keyframes hop { from { transform: translate(-50%, 18px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+  .o7 .koru .lid, .lid { transform: scaleY(0); transform-origin: center; transform-box: fill-box; }
+  .o7 .koru .lid { animation: blink 4.2s infinite 1.4s; }
+  @media (prefers-reduced-motion: reduce) { .o7 .koru .lid { animation: none; } .arrive .rem, .arrive .fsl, .arrive .fsl .fs-content, .arrive .o7 .koru { animation: none !important; } .o3 .sweep::after { animation: none; } }
+  @keyframes blink { 0%, 94%, 100% { transform: scaleY(0); } 96% { transform: scaleY(1); } }
+  .o7 .say { font: 600 12px var(--sf); color: var(--t3); }
+  .o7 h4 { font: 700 21px/1.2 var(--sfr); margin: 6px 0 4px; }
+  .o7 p { margin: 0; font-size: 14px; color: var(--t2); }
+  .o7 .acts { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+  .o7 .b { height: 36px; padding: 0 16px; border-radius: 99px; font-size: 13.5px; font-weight: 600; background: rgba(255,255,255,.08); color: var(--t1); }
+  .o7 .b.p { background: var(--accent); color: var(--ink); }
+
+  /* ---------- 8 · banner ---------- */
+  .o8 { width: 560px; height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 12px; border-radius: 20px;
+    background: rgba(30,30,34,.62); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.16); box-shadow: 0 16px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18); }
+  .o8 .tile { flex: none; width: 40px; height: 40px; border-radius: 12px; background: rgba(251,146,60,.2); color: var(--accent); display: grid; place-items: center; font-size: 20px; }
+  .o8 .tx { min-width: 0; flex: 1; }
+  .o8 h4 { font: 600 14px/1.25 var(--sf); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .o8 p { margin: 0; font-size: 12.5px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .o8 .acts { display: flex; gap: 6px; flex: none; }
+  .o8 .b { height: 30px; padding: 0 12px; border-radius: 99px; font-size: 12.5px; font-weight: 600; background: rgba(255,255,255,.12); color: #fff; }
+  .o8 .b.p { background: var(--accent); color: var(--ink); }
+  .o8 .b.l { display: none; }
+
+  /* ---------- 9 · the reminder's own colour ---------- */
+  .o9 { width: 420px; padding: 18px; border-radius: 22px; color: #fff;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--rc) 38%, #141518), #141518 70%);
+    border: 1px solid color-mix(in srgb, var(--rc) 35%, transparent); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .o9 .hd { display: flex; align-items: center; gap: 12px; }
+  .o9 .tile { width: 44px; height: 44px; border-radius: 14px; background: var(--rc); color: #0A0A0B; display: grid; place-items: center; font-size: 22px; }
+  .o9 .meta { font: 600 12px var(--sf); color: color-mix(in srgb, var(--rc) 55%, #fff); }
+  .o9 h4 { font: 600 18px/1.25 var(--sf); margin: 0; }
+  .o9 p { margin: 12px 0 0; font-size: 14px; color: rgba(255,255,255,.8); }
+  .o9 .acts { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+  .o9 .b { height: 34px; padding: 0 15px; border-radius: 11px; font-size: 13.5px; font-weight: 600; background: rgba(255,255,255,.1); color: #fff; }
+  .o9 .b.p { background: var(--rc); color: #0A0A0B; }
+  .o9 .b.l { margin-right: auto; background: transparent; color: color-mix(in srgb, var(--rc) 60%, #fff); padding: 0 6px; }
+
+  /* ---------- 10 · keyboard first ---------- */
+  .o10 { width: 440px; border-radius: 16px; background: #141518; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 22px 56px rgba(0,0,0,.5); padding: 16px 16px 14px 18px; }
+  .o10 .hd { display: flex; align-items: flex-start; gap: 12px; }
+  .o10 .ic { font-size: 20px; color: var(--accent); margin-top: 2px; }
+  .o10 .tx { flex: 1; }
+  .o10 h4 { font: 600 16px/1.3 var(--sf); margin: 0 0 3px; }
+  .o10 p { margin: 0; font-size: 13.5px; color: var(--t2); }
+  .o10 .esc { border: 1px solid rgba(255,255,255,.18); background: transparent; color: var(--t3); border-radius: 6px; font: 600 11px var(--sf); padding: 2px 6px; }
+  .o10 .acts { display: flex; gap: 8px; margin-top: 14px; padding-left: 32px; }
+  .o10 .b { height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13px; font-weight: 500; background: #1F2024; border: 1px solid rgba(255,255,255,.12); color: var(--t1); }
+  .o10 .b.p { background: var(--accent); border-color: transparent; color: var(--ink); font-weight: 600; margin-left: auto; }
+  .o10 .b .kc { opacity: .55; }
+
+
+  /* ---------- 11 · alarm clock with Koru (the owner's pick: 6 + 7, with In Your Face's countdown and snooze row) ---------- */
+  .o11 { width: 360px; padding: 44px 22px 18px; border-radius: 28px; background: #0B0B0D; border: 1px solid rgba(255,255,255,.1);
+    box-shadow: 0 28px 64px rgba(0,0,0,.55); text-align: center; margin-top: 34px; }
+  .o11 .koru, .k11 { position: absolute; left: 50%; top: -40px; width: 76px; height: 76px; transform: translateX(-50%); }
+  .o11 .koru svg, .k11 svg { animation: bob 3.2s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  .o11 .lid, .k11 .lid { animation: blink 4.6s infinite 1.2s; }
+  .arrive .o11 .koru { animation: hop .9s var(--spring) both .2s; }
+  .o11 .tm { font: 200 62px/1 var(--sfd); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+  .o11 .cd { margin-top: 8px; font: 500 12.5px var(--sf); color: var(--t3); font-variant-numeric: tabular-nums; }
+  .o11 .cd b { color: var(--accent); font-weight: 600; }
+  .o11 h4 { font: 600 19px/1.25 var(--sf); margin: 16px 0 3px; }
+  .o11 p { margin: 0; font-size: 13.5px; color: var(--t3); }
+  .o11 .main { display: grid; gap: 8px; margin-top: 18px; }
+  .o11 .main .b { height: 46px; border-radius: 99px; font-size: 15px; font-weight: 600; background: rgba(255,255,255,.1); color: var(--t1); }
+  .o11 .main .b:hover { background: rgba(255,255,255,.15); }
+  .o11 .main .b.p { background: var(--accent); color: var(--ink); } .o11 .main .b.p:hover { filter: brightness(1.06); }
+  .o11 .main .b .ico { font-size: 17px; }
+  .o11 .snz { margin-top: 14px; }
+  .o11 .snz-l { font: 700 10.5px var(--sf); letter-spacing: 1.2px; text-transform: uppercase; color: var(--t4); margin-bottom: 7px; }
+  .o11 .chips { display: flex; justify-content: center; gap: 6px; position: relative; }
+  .o11 .chip { height: 30px; min-width: 62px; padding: 0 12px; border-radius: 99px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05);
+    color: var(--t2); font: 600 12.5px var(--sf); transition: background-color .15s, transform .1s; }
+  .o11 .chip:hover { background: rgba(255,255,255,.12); color: var(--t1); } .o11 .chip:active { transform: scale(.96); }
+  .o11 .chip.more { min-width: 34px; padding: 0; }
+  .o11 .menu { position: absolute; bottom: 36px; right: 0; display: none; background: #1D1E22; border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; padding: 5px; box-shadow: 0 14px 30px rgba(0,0,0,.5); text-align: left; z-index: 2; }
+  .o11 .menu.open { display: block; }
+  .o11 .menu button { display: block; width: 100%; border: 0; background: transparent; color: var(--t1); font-size: 13px; padding: 6px 14px; border-radius: 7px; text-align: left; white-space: nowrap; }
+  .o11 .menu button:hover { background: #C2410C; color: #fff; }
+  .fs11 { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(10,10,12,.55);
+    backdrop-filter: blur(44px) saturate(140%); -webkit-backdrop-filter: blur(44px) saturate(140%); }
+  .arrive .fs11 { animation: fadeIn .5s ease-out both; }
+  .island { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 760px; height: 176px; background: #000;
+    border-radius: 0 0 34px 34px; z-index: 6; padding: 12px 14px 14px; }
+  .island .in { position: relative; height: 100%; border-radius: 24px; background: #17181B; overflow: hidden; display: grid; place-items: center; }
+  .island .k { position: relative; width: 96px; height: 96px; }
+  .island .k svg { animation: bob 3.2s ease-in-out infinite; } .island .lid { animation: blink 4.6s infinite 1s; }
+  .spark { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: .2; animation: tw 2.4s ease-in-out infinite; }
+  @keyframes tw { 0%, 100% { opacity: .1; transform: scale(.7); } 50% { opacity: .9; transform: scale(1.2); } }
+  .arrive .island { animation: notchOpen .8s var(--spring) both; }
+  @keyframes notchOpen { from { clip-path: inset(0 280px 100% 280px round 0 0 16px 16px); } to { clip-path: inset(0 0 0 0 round 0 0 34px 34px); } }
+  .fs11 .c { text-align: center; padding-top: 120px; }
+  .fs11 .tm { font: 200 168px/1 var(--sfd); letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+  .fs11 .cd { margin-top: 12px; font: 500 20px var(--sf); color: rgba(255,255,255,.62); font-variant-numeric: tabular-nums; }
+  .fs11 .cd b { color: var(--accent); font-weight: 600; }
+  .fs11 h4 { font: 600 48px/1.12 var(--sfd); letter-spacing: -.02em; margin: 34px 0 10px; }
+  .fs11 p { font-size: 21px; color: rgba(255,255,255,.72); margin: 0; }
+  .fs11 .main { display: flex; justify-content: center; gap: 14px; margin-top: 46px; }
+  .fs11 .main .b { height: 58px; min-width: 230px; padding: 0 30px; border-radius: 99px; font-size: 19px; font-weight: 600; background: rgba(255,255,255,.12); color: #fff; }
+  .fs11 .main .b.p { background: var(--accent); color: var(--ink); }
+  .fs11 .main .b .ico { font-size: 21px; }
+  .fs11 .snz-l { margin-top: 36px; font: 700 13px var(--sf); letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255,255,255,.5); }
+  .fs11 .chips { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
+  .fs11 .chip { height: 44px; min-width: 120px; padding: 0 18px; border-radius: 99px; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06);
+    color: #fff; font: 600 16px var(--sf); }
+  .fs11 .chip.more { min-width: 44px; padding: 0; }
+  .fs11 .fs-hint { margin-top: 30px; }
+  @media (prefers-reduced-motion: reduce) { .o11 .koru svg, .k11 svg, .island .k svg, .spark, .o11 .lid, .k11 .lid, .island .lid { animation: none !important; } }
+
+  /* ---------- full screen: the whole width, every option ---------- */
+  .fsl.v0 { background: rgba(0,0,0,.88); padding: 32px; }
+  .fsl.v0 .fs-content { width: 100%; height: 100%; border-radius: 24px; background: rgba(40,40,44,.6); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,.12); padding: 36px; text-align: center; }
+  .fsl.v0 .col { width: 480px; margin: 0 auto; }
+  .fs-content { text-align: center; }
+  .fs-content .col { width: 640px; }
+  .fs-time { font: 200 120px/1 var(--sfd); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .fs-content h4 { margin: 18px 0 8px; }
+  .fs-acts { display: flex; justify-content: center; gap: 14px; margin-top: 40px; }
+  .fs-acts .b { height: 54px; padding: 0 28px; font-size: 18px !important; min-width: 180px; }
+  .fs-hint { margin-top: 26px; font-size: 14px; color: rgba(255,255,255,.45); }
+  .fs-hint .kc { font-size: 12px; margin: 0 3px; }
+</style>
+</head>
+<body data-wall="sequoia">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="liquid"><feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="3" result="n">
+    <animate attributeName="baseFrequency" dur="16s" values="0.009 0.013;0.013 0.009;0.009 0.013" repeatCount="indefinite"/></feTurbulence>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="18" xChannelSelector="R" yChannelSelector="G"/></filter>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <h1>O aviso do lembrete: 10 propostas e a sua escolha</h1>
+    <p>Cada proposta aparece numa fatia da tela do Mac em tamanho real, com o notch e janelas atrás, e também em tela cheia, que agora cobre a largura toda. As cores são as do Koncluí (laranja #FB923C com tinta escura, os mesmos cinzas do app). Passe o mouse e clique nos botões; "Reproduzir chegada" mostra a entrada de cada uma.</p>
+  </header>
+
+  <div class="controls" role="toolbar" aria-label="Controles da prévia">
+    <span><span class="ctl-label">Lembrete</span><span class="seg" data-ctl="sample">
+      <button data-v="agua" aria-pressed="true">Beber água</button><button data-v="pr" aria-pressed="false">Revisar PR</button><button data-v="daily" aria-pressed="false">Daily</button></span></span>
+    <span><span class="ctl-label">Fundo</span><span class="seg" data-ctl="wall">
+      <button data-v="sequoia" aria-pressed="true">Colorido</button><button data-v="dark" aria-pressed="false">Escuro</button><button data-v="light" aria-pressed="false">Claro</button></span></span>
+    <span><span class="ctl-label">Todas em</span><span class="seg" data-ctl="all">
+      <button data-v="card" aria-pressed="true">Cartão</button><button data-v="fs" aria-pressed="false">Tela cheia</button></span></span>
+    <button class="btn-quiet" id="replay">Reproduzir chegada</button>
+  </div>
+
+  <div class="review">
+    <h2>O aviso de hoje, pelas lentes (Jobs, Apple, revisão de design)</h2>
+    <dl>
+      <dt>Veredito</dt><dd><span class="verdict">Não está pronto · 4/10.</span> Funciona, mas parece um diálogo genérico solto na tela, não algo do Koncluí.</dd>
+      <dt>A única coisa</dt><dd>Avisar na hora certa e deixar resolver em um clique: <b>Concluído</b> ou <b>Adiar</b>.</dd>
+      <dt>Alinhamento</dt><dd>Título e texto centralizados, mas a grade de botões (<code>adaptive(minimum: 120)</code>) encosta à esquerda: com 2 botões sobra uma coluna vazia à direita. O conteúdo fica preso no alto e o resto do cartão (320 pt) fica vazio.</dd>
+      <dt>Botões</dt><dd>Nenhuma ação principal: "Concluído" é só um botão com borda e texto laranja, e "Adiar" vem primeiro, no lugar mais forte. No Mac a ação principal fica à direita, cheia, e responde ao ⏎.</dd>
+      <dt>Cor e estilo</dt><dd>Ícone laranja de 42 pt solto no cinza do material, título arredondado de 28 pt que não é o do app e sombra fraca. Não há hora nem dono: não diz quando, nem que veio do Koncluí.</dd>
+      <dt>Corta</dt><dd>A frase "Pressione Esc para fechar este alerta" vira uma tecla <span class="kc">esc</span>. Corta também a grade e o espaço vazio fixo.</dd>
+      <dt>Tela cheia</dt><dd>Era uma coluna estreita no preto. Em todas as propostas abaixo ela cobre a largura, e o texto fica numa coluna legível no centro.</dd>
+    </dl>
+  </div>
+
+  <div id="options"></div>
+</div>
+
+<script>
+const ICON = {
+  drop: '<svg class="ico" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.6c3.7 4.5 6.6 8.2 6.6 11.8a6.6 6.6 0 0 1-13.2 0C5.4 10.8 8.3 7.1 12 2.6z"/></svg>',
+  check: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5l1.8 1.8L9 5"/><path d="M4 13.5l1.8 1.8L9 12"/><path d="M12.5 7h7.5M12.5 14h7.5M5 19.5h15"/></svg>',
+  phone: '<svg class="ico" viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 3.2c.5-.4 1.3-.3 1.7.2l2.2 3c.4.5.3 1.2-.1 1.6l-1.3 1.2a12 12 0 0 0 5 5l1.2-1.3c.4-.4 1.1-.5 1.6-.1l3 2.2c.5.4.6 1.2.2 1.7l-1.4 1.8c-.6.8-1.7 1.1-2.7.8A18.5 18.5 0 0 1 4 7.4c-.3-1 0-2.1.8-2.7z"/></svg>',
+  video: '<svg class="ico" viewBox="0 0 24 24"><path fill="currentColor" d="M3.5 7.5A2.5 2.5 0 0 1 6 5h8a2.5 2.5 0 0 1 2.5 2.5v1.2l3.3-2.2a.8.8 0 0 1 1.2.7v9.6a.8.8 0 0 1-1.2.7l-3.3-2.2v1.2A2.5 2.5 0 0 1 14 19H6a2.5 2.5 0 0 1-2.5-2.5z"/></svg>',
+  bell: '<svg class="ico" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5a6 6 0 0 1 6 6v3.6l1.6 3a1 1 0 0 1-.9 1.4H5.3a1 1 0 0 1-.9-1.4l1.6-3V8.5a6 6 0 0 1 6-6zM9.5 18.5h5a2.5 2.5 0 0 1-5 0z"/></svg>'
+};
+const KORU = (size = 28) => `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">
+  <path d="M14 18 L18 6 L26 15 Z M50 18 L46 6 L38 15 Z" fill="#4E9EAA"/>
+  <ellipse cx="32" cy="36" rx="24" ry="23" fill="#6EC1C9"/>
+  <ellipse cx="32" cy="44" rx="13" ry="11" fill="#9ED8DE"/>
+  <circle cx="22.5" cy="31" r="9" fill="#fff"/><circle cx="41.5" cy="31" r="9" fill="#fff"/>
+  <circle cx="23.5" cy="31.5" r="4.2" fill="#1B1D22"/><circle cx="40.5" cy="31.5" r="4.2" fill="#1B1D22"/>
+  <circle cx="25" cy="30" r="1.3" fill="#fff"/><circle cx="42" cy="30" r="1.3" fill="#fff"/>
+  <rect class="lid" x="13" y="22" width="18" height="18" rx="9" fill="#6EC1C9"/><rect class="lid" x="32.5" y="22" width="18" height="18" rx="9" fill="#6EC1C9"/>
+  <path d="M29 38 L35 38 L32 43 Z" fill="#FB923C"/></svg>`;
+
+const SAMPLES = {
+  agua:  { icon: 'drop',  color: '#3B9EFF', title: 'Beber água', message: 'Um copo agora. Já faz duas horas.', time: '15:30', repeat: 'Todo dia',
+           acts: [{ t: 'Adiar 5 min', k: 's' }, { t: 'Concluído', k: 'p' }] },
+  pr:    { icon: 'check', color: '#A78BFA', title: 'Revisar o PR #42', message: 'Lembretes com prévia ao vivo, antes do daily de amanhã.', time: '17:00', repeat: 'Uma vez',
+           acts: [{ t: 'Adiar 10 min', k: 's' }, { t: 'Abrir PR', k: 'l' }, { t: 'Concluído', k: 'p' }] },
+  daily: { icon: 'phone', color: '#34D399', title: 'Daily com o time', message: 'Google Meet · 6 pessoas', time: '10:00', range: '10:00 – 10:30', countdown: 115, meeting: true, repeat: 'Dias úteis',
+           acts: [{ t: 'Adiar 2 min', k: 's' }, { t: 'Entrar na reunião', k: 'l' }, { t: 'Concluído', k: 'p' }] }
+};
+
+const kbd = a => a.k === 'p' ? ' <span class="kc">⏎</span>' : '';
+const btns = (s, { keys = false, order } = {}) => {
+  let list = s.acts.slice();
+  if (order) list.sort((x, y) => order.indexOf(x.k) - order.indexOf(y.k));
+  return list.map(a => `<button class="b ${a.k}">${a.t}${keys ? kbd(a) : ''}</button>`).join('');
+};
+
+const OPTIONS = [
+  { id: 0, base: true, name: 'Hoje', line: 'O aviso como o app desenha agora (ReminderAlertView), para comparar.',
+    card: s => `<div class="rem anchor-top o0"><div class="ic">${ICON[s.icon]}</div><h4>${s.title}</h4><p>${s.message}</p>
+      <div class="grid">${btns(s, { order: ['s', 'l', 'p'] }).replace('b p', 'b p')}</div><small>Pressione Esc para fechar este alerta.</small></div>`,
+    fs: s => `<div class="fsl v0"><div class="fs-content"><div class="col"><div class="o0" style="all:unset;display:block">
+      <div class="ic" style="font-size:42px;color:var(--accent);display:flex;justify-content:center">${ICON[s.icon]}</div>
+      <h4 style="font:700 28px/1.15 var(--sfr);margin:18px 0 8px">${s.title}</h4><p style="font-size:16px;color:rgba(235,235,245,.6);margin:0 0 18px">${s.message}</p>
+      <div class="o0" style="all:unset;display:block"><div class="grid">${btns(s, { order: ['s', 'l', 'p'] })}</div></div></div></div></div></div>`,
+    notes: ['Base de comparação.', 'Tela cheia já cobre a largura (mudança de hoje); o resto é o desenho atual.', ''] },
+
+  { id: 11, name: 'Despertador com a Koru', pick: true,
+    line: 'O 6 com a Koru: ela pousa no aviso e, em tela cheia, aparece no notch. A hora grande, a contagem até a hora, o botão principal na largura toda, e o Adiar com várias durações, como no In Your Face. Numa reunião, "Entrar na reunião" vem primeiro.',
+    card: s => `<div class="rem anchor-top o11"><div class="koru">${KORU(76)}</div><div class="tm">${s.time}</div>
+      <div class="cd">${countdown(s)}</div><h4>${s.title}</h4><p>${s.message}</p>
+      <div class="main">${mainButtons(s, false)}</div>${snoozeRow(s, false)}</div>`,
+    fs: s => `<div class="fs11"><div class="island"><div class="in">${sparks()}<div class="k">${KORU(96)}</div></div></div>
+      <div class="c"><div class="tm">${s.time}</div><div class="cd">${countdown(s)}</div><h4>${s.title}</h4><p>${s.message}</p>
+      <div class="main">${mainButtons(s, true)}</div>${snoozeRow(s, true)}
+      <div class="fs-hint"><span class="kc">esc</span> fecha · <span class="kc">⏎</span> ${s.meeting ? 'entra na reunião' : 'conclui'}</div></div></div>`,
+    notes: ['A hora e a contagem dizem o quanto é urgente antes de ler; a Koru deixa claro que é do Koncluí e torna o aviso simpático. Um botão principal, grande; o Adiar oferece a duração na hora, sem configurar antes.',
+            'Mais alto que um cartão comum. As durações do Adiar e o "Entrar na reunião" automático pedem pouco no app: o adiamento por minutos já existe (o mesmo do MCP) e o link de reunião é reconhecido pelo endereço (Meet, Zoom, Teams).',
+            'Padrão do cartão e da tela cheia. Uma opção "Mostrar a Koru" pode desligá-la para contextos sérios.'] },
+
+  { id: 1, name: 'Gota do notch',
+    line: 'O aviso nasce do notch, como a ilha do Koncluí: preto, colado no topo, cresce para baixo. Quem é, quando, o quê, e a ação principal à direita.',
+    card: s => `<div class="rem anchor-top o1"><div class="row">${KORU(22)}<span class="who">Koncluí · Lembrete</span><span class="when tab">${s.time} · ${s.repeat}</span></div>
+      <h4>${s.title}</h4><p>${s.message}</p><div class="acts">${btns(s, { keys: true, order: ['l', 's', 'p'] })}</div></div>`,
+    fs: s => `<div class="fsl" style="background:#000"><div class="fs-content o1" style="all:unset;display:block;text-align:center"><div class="col" style="margin:0 auto">
+      <div style="display:flex;justify-content:center">${KORU(64)}</div><div class="fs-time tab" style="margin-top:14px">${s.time}</div>
+      <h4 style="font:600 40px/1.15 var(--sfd);letter-spacing:-.02em">${s.title}</h4><p style="font-size:19px;color:var(--t2);margin:0">${s.message}</p>
+      <div class="fs-acts o1" style="all:unset;display:flex;justify-content:center;gap:14px;margin-top:40px">${btns(s, { keys: true, order: ['l', 's', 'p'] }).replace(/class="b /g, 'style="margin:0" class="b ')}</div>
+      <div class="fs-hint"><span class="kc">esc</span> fecha · <span class="kc">⏎</span> conclui</div></div></div></div>`,
+    notes: ['É a identidade do produto: o aviso sai de onde o Koncluí mora. Um primário, à direita, com ⏎; o resto fica quieto.',
+            'A forma colada no topo pede o cartão "no alto, no centro" (o padrão novo). Em outras posições vira um cartão preto comum.',
+            'Recomendada como padrão do cartão e da tela cheia.'] },
+
+  { id: 2, name: 'Vidro do sistema',
+    line: 'Como uma notificação do macOS: vidro claro sobre o desktop, cabeçalho com o app e a hora, dois botões iguais lado a lado.',
+    card: s => `<div class="rem anchor-top o2"><div class="hd"><span class="app">${KORU(16)}</span>KONCLUÍ<span class="t tab">${s.time}</span></div>
+      <h4>${s.title}</h4><p>${s.message}</p><div class="acts">${btns(s, { order: ['s', 'l', 'p'] })}</div></div>`,
+    fs: s => fsGlass(s, 'o2', 'rgba(20,20,24,.45)', 40),
+    notes: ['Familiar: parece do sistema, então ninguém precisa aprender. Botões iguais e alinhados.',
+            'Some no meio das notificações de verdade; com 3 botões, os rótulos apertam.', 'Quem quer discrição máxima e cara de Mac.'] },
+
+  { id: 3, name: 'Vidro líquido',
+    line: 'Vidro grosso com refração e uma borda de luz, ícone num disco laranja, tudo centrado. A mais "material" das dez.',
+    card: s => `<div class="rem anchor-top o3"><div class="lens"></div><div class="sweep"></div><div class="disc">${ICON[s.icon]}</div>
+      <h4>${s.title}</h4><p>${s.message}</p><div class="acts">${btns(s, { order: ['s', 'l', 'p'] })}</div></div>`,
+    fs: s => fsGlass(s, 'o3', 'rgba(10,10,14,.35)', 48, true),
+    notes: ['Bonita sobre fundos coloridos; a borda de luz e o brilho que passa dão sensação de objeto real.',
+            'A mais cara de desenhar (desfoque e refração); sobre fundo claro perde contraste e precisa de reforço.', 'Quem quer o visual do macOS 26 no máximo.'] },
+
+  { id: 4, name: 'Cartão calmo',
+    line: 'Sólido, alinhado à esquerda, ícone em placa, hora e repetição em uma linha, rodapé separado com Adiar (texto) e Concluído.',
+    card: s => `<div class="rem anchor-top o4"><div class="bd"><div class="tile">${ICON[s.icon]}</div><div><h4>${s.title}</h4><p>${s.message}</p>
+      <div class="meta tab">${s.time} · ${s.repeat}</div></div></div><div class="ft">${btns(s, { order: ['s', 'l', 'p'] })}</div></div>`,
+    fs: s => fsSolid(s, 'o4'),
+    notes: ['A mais legível: contraste alto em qualquer fundo, uma grade só, nada decorativo. É o idioma das telas do app.',
+            'Menos memorável; sem o notch, poderia ser de qualquer app.', 'Quem quer o mesmo visual dos ajustes do Koncluí.'] },
+
+  { id: 5, name: 'Barra de ações',
+    line: 'O alerta do iPhone: texto centrado e as ações numa barra de largura total, com divisórias. Três ações empilham.',
+    card: s => `<div class="rem anchor-top o5"><div class="bd"><div class="ic">${ICON[s.icon]}</div><h4>${s.title}</h4><p>${s.message}</p></div>
+      <div class="bar ${s.acts.length > 2 ? 'v' : 'h2'}">${btns(s, { order: s.acts.length > 2 ? ['p', 'l', 's'] : ['s', 'p'] })}</div></div>`,
+    fs: s => fsGlass(s, 'o5', 'rgba(10,10,14,.5)', 36),
+    notes: ['Alvos grandes e alinhamento perfeito; todo mundo conhece o padrão.',
+            'É iOS, não Mac: no Mac o padrão é botão à direita. Pequeno para mensagens longas.', 'Quem usa muito o trackpad e quer alvos grandes.'] },
+
+  { id: 6, name: 'Despertador',
+    line: 'A hora primeiro, grande e fina, como o alarme do relógio. Concluído ocupa a largura; Adiar fica em texto embaixo.',
+    card: s => `<div class="rem anchor-top o6"><div class="tm">${s.time}</div><div class="rep">${s.repeat}</div><h4>${s.title}</h4><p>${s.message}</p>
+      <div class="acts">${btns(s)}</div></div>`,
+    fs: s => `<div class="fsl" style="background:#050506"><div class="fs-content o6" style="all:unset;display:block;text-align:center">
+      <div class="fs-time tab" style="font-size:180px">${s.time}</div><div class="rep" style="font:600 15px var(--sf);letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-top:10px">${s.repeat}</div>
+      <h4 style="font:600 38px var(--sfd);margin:30px 0 8px">${s.title}</h4><p style="font-size:19px;color:var(--t3);margin:0">${s.message}</p>
+      <div class="o6" style="all:unset;display:grid;gap:10px;width:420px;margin:44px auto 0">${btns(s).replace(/class="b /g, 'style="height:58px;font-size:19px" class="b ')}</div></div></div>`,
+    notes: ['Para o que tem hora marcada (remédio, reunião), a hora é a notícia. Um botão grande, impossível de errar.',
+            'Ocupa mais altura; para lembretes sem urgência, a hora em destaque pesa demais.', 'Tela cheia de alarmes, remédios e reuniões.'] },
+
+  { id: 7, name: 'A Koru avisa',
+    line: 'A Koru pousa no topo do cartão e pisca. O lembrete vira uma fala dela, com botões em pílula centrados.',
+    card: s => `<div class="rem anchor-top o7"><div class="koru">${KORU(64)}</div><div class="say tab">${s.time} · ${s.repeat}</div>
+      <h4>${s.title}</h4><p>${s.message}</p><div class="acts">${btns(s, { order: ['s', 'l', 'p'] })}</div></div>`,
+    fs: s => fsSolid(s, 'o7', KORU(96)),
+    notes: ['O mais caloroso e com marca: dá personalidade a um aviso que costuma irritar.',
+            'Em contexto sério (reunião com cliente na tela) pode parecer brincadeira; o personagem pisca, então respeita Reduzir movimento.', 'Lembretes pessoais: água, pausa, alongar.'] },
+
+  { id: 8, name: 'Faixa',
+    line: 'Uma faixa fina sob o notch: ícone, título e texto em uma linha, ações à direita. A menos invasiva.',
+    card: s => `<div class="rem anchor-top o8"><div class="tile">${ICON[s.icon]}</div><div class="tx"><h4>${s.title}</h4><p>${s.message}</p></div>
+      <div class="acts">${btns(s, { order: ['s', 'l', 'p'] })}</div></div>`,
+    fs: s => fsGlass(s, 'o8', 'rgba(10,10,14,.5)', 40),
+    notes: ['Interrompe sem tomar a tela; cabe no ritmo de quem está escrevendo.',
+            'Corta mensagens longas (reticências) e esconde o terceiro botão; não serve para o que não pode passar.', 'O tamanho "Pequeno".'] },
+
+  { id: 9, name: 'Cor do lembrete',
+    line: 'Cada lembrete tem uma cor (água azul, PR roxo, daily verde) que tinge o cartão, a placa do ícone e o botão principal.',
+    card: s => `<div class="rem anchor-top o9" style="--rc:${s.color}"><div class="hd"><div class="tile">${ICON[s.icon]}</div><div><div class="meta tab">${s.time} · ${s.repeat}</div><h4>${s.title}</h4></div></div>
+      <p>${s.message}</p><div class="acts">${btns(s, { order: ['l', 's', 'p'] })}</div></div>`,
+    fs: s => `<div class="fsl" style="--rc:${s.color};background:linear-gradient(160deg, color-mix(in srgb, var(--rc) 40%, #0B0B0D), #0B0B0D 70%)">
+      <div class="fs-content o9" style="all:unset;display:block;text-align:center;color:#fff"><div class="col" style="margin:0 auto">
+      <div class="tile" style="width:84px;height:84px;border-radius:24px;background:var(--rc);color:#0A0A0B;display:grid;place-items:center;font-size:42px;margin:0 auto">${ICON[s.icon]}</div>
+      <h4 style="font:600 40px var(--sfd);margin:26px 0 8px">${s.title}</h4><p style="font-size:19px;color:rgba(255,255,255,.8);margin:0">${s.message}</p>
+      <div class="o9" style="all:unset;display:flex;justify-content:center;gap:14px;margin-top:40px">${btns(s, { order: ['l', 's', 'p'] }).replace(/class="b /g, 'style="height:54px;padding:0 28px;font-size:18px;min-width:170px" class="b ')}</div></div></div></div>`,
+    notes: ['Reconhece o lembrete antes de ler. Liga com a lista, que já tem ícone por lembrete.',
+            'Pede um campo novo (cor) no editor; o laranja da marca deixa de ser o único destaque.', 'Quem tem muitos lembretes diferentes no dia.'] },
+
+  { id: 10, name: 'Teclado primeiro',
+    line: 'Cartão sóbrio com as teclas à mostra: ⏎ conclui, esc fecha (no canto, no lugar da frase). Ação principal à direita.',
+    card: s => `<div class="rem anchor-top o10"><div class="hd"><div class="ic">${ICON[s.icon]}</div><div class="tx"><h4>${s.title}</h4><p>${s.message}</p></div>
+      <button class="esc" aria-label="Fechar">esc</button></div><div class="acts">${btns(s, { keys: true, order: ['s', 'l', 'p'] })}</div></div>`,
+    fs: s => fsGlass(s, 'o10', 'rgba(8,8,10,.62)', 44, false, true),
+    notes: ['Resolve sem tirar a mão do teclado; a frase do Esc vira uma tecla. Alinhamento numa coluna só.',
+            'As teclas pesam um pouco visualmente; precisa mesmo responder ao ⏎ e ao esc.', 'Quem vive no teclado (devs, quem usa o ditado).'] }
+];
+
+function countdown(s) {
+  if (s.countdown) return `${s.range} · começa em <b data-cd="${s.countdown}">${fmt(s.countdown)}</b>`;
+  return `<b>agora</b> · ${s.repeat}`;
+}
+function fmt(n) { return n >= 60 ? `${Math.floor(n / 60)} min ${String(n % 60).padStart(2, '0')} s` : `${n} s`; }
+function mainButtons(s, big) {
+  const primary = s.meeting ? `<button class="b p">${ICON.video}Entrar na reunião${big ? ' <span class="kc">⏎</span>' : ''}</button><button class="b">Concluído</button>`
+                            : `<button class="b p">Concluído${big ? ' <span class="kc">⏎</span>' : ''}</button>`;
+  return primary + (s.acts.some(a => a.k === 'l') && !s.meeting ? `<button class="b">${s.acts.find(a => a.k === 'l').t}</button>` : '');
+}
+function snoozeRow(s, big) {
+  return `<div class="snz"><div class="snz-l">Adiar</div><div class="chips"><button class="chip">1 min</button><button class="chip">5 min</button><button class="chip">10 min</button>
+    <button class="chip more" aria-label="Mais tempos" data-more>⋯</button>${big ? '' : '<div class="menu"><button>15 min</button><button>30 min</button><button>1 hora</button><button>Amanhã, 9:00</button></div>'}</div></div>`;
+}
+function sparks() {
+  const pts = [[16,30],[22,62],[30,22],[38,70],[62,26],[70,66],[78,34],[84,58],[12,48],[88,44],[26,44],[74,48]];
+  return pts.map(([x, y], i) => `<span class="spark" style="left:${x}%;top:${y}%;animation-delay:${(i * .37) % 2.4}s"></span>`).join('');
+}
+setInterval(() => document.querySelectorAll('[data-cd]').forEach(el => {
+  let n = +el.dataset.cd - 1; if (n < 0) n = SAMPLES[state.sample].countdown || 0; el.dataset.cd = n; el.textContent = fmt(n);
+}), 1000);
+document.addEventListener('click', e => {
+  const more = e.target.closest('[data-more]');
+  document.querySelectorAll('.o11 .menu.open').forEach(m => { if (!more || m !== more.nextElementSibling) m.classList.remove('open'); });
+  if (more && more.nextElementSibling) more.nextElementSibling.classList.toggle('open');
+});
+
+function fsGlass(s, cls, tint, blur, big = false, keys = false) {
+  return `<div class="fsl" style="background:${tint};backdrop-filter:blur(${blur}px) saturate(150%);-webkit-backdrop-filter:blur(${blur}px) saturate(150%)">
+    <div class="fs-content ${cls}" style="all:unset;display:block;text-align:center;color:#fff"><div class="col" style="margin:0 auto">
+    <div style="font-size:${big ? 64 : 52}px;color:var(--accent);display:flex;justify-content:center">${ICON[s.icon]}</div>
+    <div class="tab" style="font:500 17px var(--sf);color:rgba(255,255,255,.6);margin-top:20px">${s.time} · ${s.repeat}</div>
+    <h4 style="font:600 44px/1.15 var(--sfd);letter-spacing:-.02em;margin:10px 0 10px">${s.title}</h4>
+    <p style="font-size:20px;color:rgba(255,255,255,.8);margin:0">${s.message}</p>
+    <div class="${cls}" style="all:unset;display:flex;justify-content:center;gap:14px;margin-top:44px">${btns(s, { keys, order: ['s', 'l', 'p'] })
+      .replace(/class="b /g, 'style="height:54px;padding:0 28px;font-size:18px;min-width:180px;flex:none;margin:0;border-radius:99px" class="b ')}</div>
+    ${keys ? '<div class="fs-hint"><span class="kc">esc</span> fecha · <span class="kc">⏎</span> conclui</div>' : ''}</div></div></div>`;
+}
+
+function fsSolid(s, cls, hero) {
+  return `<div class="fsl" style="background:#0B0B0D"><div class="fs-content ${cls}" style="all:unset;display:block;text-align:center"><div class="col" style="margin:0 auto">
+    <div style="display:flex;justify-content:center">${hero || `<div style="width:84px;height:84px;border-radius:24px;background:rgba(251,146,60,.16);color:var(--accent);display:grid;place-items:center;font-size:42px">${ICON[s.icon]}</div>`}</div>
+    <div class="tab" style="font:500 17px var(--sf);color:var(--t3);margin-top:22px">${s.time} · ${s.repeat}</div>
+    <h4 style="font:600 44px/1.15 var(--sfd);letter-spacing:-.02em;margin:10px 0">${s.title}</h4><p style="font-size:20px;color:var(--t2);margin:0">${s.message}</p>
+    <div class="${cls}" style="all:unset;display:flex;justify-content:center;gap:14px;margin-top:44px">${btns(s, { order: ['s', 'l', 'p'] })
+      .replace(/class="b /g, 'style="height:54px;padding:0 28px;font-size:18px;min-width:180px;margin:0;border-radius:99px" class="b ')}</div></div></div></div>`;
+}
+
+const state = { sample: 'agua', modes: {} };
+const params = new URLSearchParams(location.search);
+if (params.get('sample') in SAMPLES) state.sample = params.get('sample');
+if (params.get('wall')) document.body.dataset.wall = params.get('wall');
+const allFs = params.get('mode') === 'fs';
+const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function desktop() {
+  return `<div class="menubar"><div class="left"><span></span><b>Orca</b><span>Arquivo</span><span>Editar</span><span>Janela</span></div><div class="tab">sex. 30 de out. ${SAMPLES[state.sample].time}</div></div>
+    <div class="notch"></div>
+    <div class="win" style="left:6%;top:90px;width:46%;height:330px"><div class="lines"></div></div>
+    <div class="win ${document.body.dataset.wall === 'light' ? 'light' : ''}" style="left:44%;top:150px;width:50%;height:290px"><div class="lines"></div></div>`;
+}
+
+function render() {
+  const host = document.getElementById('options');
+  host.innerHTML = OPTIONS.map(o => {
+    const mode = state.modes[o.id] || (allFs ? 'fs' : 'card');
+    return `<section class="opt" id="o${o.id}">
+      <div class="opt-head"><span class="opt-num ${o.base ? 'base' : ''}">${o.base ? 'Hoje' : o.id}</span><h3>${o.name}</h3>${o.rec ? '<span class="tag">Recomendada</span>' : ''}${o.pick ? '<span class="tag">Sua escolha: o 6 com a Koru</span>' : ''}
+        <span class="seg" data-opt="${o.id}"><button data-v="card" aria-pressed="${mode === 'card'}">Cartão</button><button data-v="fs" aria-pressed="${mode === 'fs'}">Tela cheia</button></span></div>
+      <p class="opt-line">${o.line}</p>
+      <div class="stage ${mode === 'fs' ? 'fs' : ''} ${still ? '' : 'arrive'}"><div class="screen">${desktop()}${mode === 'fs' ? o.fs(SAMPLES[state.sample]) : o.card(SAMPLES[state.sample])}</div></div>
+      ${o.base ? '' : `<div class="notes"><div><b>Por que funciona</b>${o.notes[0]}</div><div><b>Custo</b>${o.notes[1]}</div><div><b>Bom para</b>${o.notes[2]}</div></div>`}
+    </section>`;
+  }).join('');
+  fit();
+}
+
+function fit() {
+  document.querySelectorAll('.stage.fs').forEach(st => st.style.setProperty('--fit', st.clientWidth / 1440));
+}
+
+function replay() {
+  document.querySelectorAll('.stage').forEach(st => { st.classList.remove('arrive'); void st.offsetWidth; if (!still) st.classList.add('arrive'); });
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('.seg button');
+  if (!b) return;
+  const seg = b.parentElement;
+  if (seg.dataset.opt !== undefined) { state.modes[seg.dataset.opt] = b.dataset.v; render(); return; }
+  seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  if (seg.dataset.ctl === 'sample') state.sample = b.dataset.v;
+  if (seg.dataset.ctl === 'wall') document.body.dataset.wall = b.dataset.v;
+  if (seg.dataset.ctl === 'all') OPTIONS.forEach(o => state.modes[o.id] = b.dataset.v);
+  render();
+});
+document.getElementById('replay').addEventListener('click', replay);
+addEventListener('resize', fit);
+render();
+</script>
+</body>
+</html>

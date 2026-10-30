@@ -25,6 +25,9 @@ button{font:inherit;color:inherit}
 .notch{position:relative;margin:4px auto 0;width:220px;height:40px;background:#000;border-radius:0 0 16px 16px}
 .notch canvas{position:absolute;left:8px;top:-4px;width:48px;height:48px}
 .notch .mini2{left:auto;right:8px}
+.strip{display:grid;grid-template-columns:repeat(3,auto);justify-content:center;gap:4px 26px;margin:4px auto 0;padding:8px 10px 6px;background:#000;border-radius:16px}
+.strip figure{margin:0;text-align:center;font-size:10px;color:var(--muted)}
+.strip canvas{display:block;width:48px;height:48px}
 .sl{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-top:8px}
 .sl input{width:100%;accent-color:var(--ink)}
 .sub{flex-basis:100%}
@@ -54,6 +57,7 @@ body.shot #shot.grid,body.shot #shot.film{display:grid}
     <div class="grp"><h2>Emotes</h2><div class="btns" id="emoteBtns"></div></div>
     <div class="grp" id="featureGrp" hidden><h2>Recursos</h2><div class="btns" id="featureBtns"></div><div id="featureSliders"></div></div>
     <div class="grp"><h2>No notch</h2><div class="notch"><canvas id="minic"></canvas><canvas id="minic2" class="mini2"></canvas></div></div>
+    <div class="grp"><h2>Minis coloridas</h2><div class="strip" id="strip"><figure><canvas data-agent="claude"></canvas>Claude</figure><figure><canvas data-agent="codex"></canvas>Codex</figure><figure><canvas data-agent="resend"></canvas>Resend</figure><figure><canvas data-agent="n8n"></canvas>n8n</figure><figure><canvas data-agent="vercel"></canvas>Vercel</figure><figure><canvas data-agent="github"></canvas>GitHub</figure></div></div>
   </div>
 </main>
 <div id="shot"></div>
@@ -67,6 +71,8 @@ body.shot #shot.grid,body.shot #shot.film{display:grid}
 <script src="koru/features/dance.js"></script>
 <script src="koru/features/minis.js"></script>
 <script src="koru/features/outfits.js"></script>
+<script src="koru/features/life.js"></script>   <!-- after every feature that moves her: its follow-through sees their whole frame -->
+<script src="koru/features/sounds.js"></script>
 <script>
 (()=>{
 const {params,SHOT,GRID,FILM,Clock,reseed,clamp,STATES,EMOTES,Bot,each,actions}=Koru;
@@ -143,6 +149,7 @@ if(SHOT||GRID){
 // Live, Koru takes 80 % of her usual size on the stage, so hats, hops and squashes stay inside it.
 const main=new Bot($('#mainc'),{px:Math.round($('#mainc').clientWidth)||560,frame:.8}), mini=new Bot($('#minic'),{mini:true,px:48}), mini2=new Bot($('#minic2'),{mini:true,px:48});
 mini2.setState('working');
+const strip=[...document.querySelectorAll('#strip canvas')].map(c=>new Bot(c,{mini:true,px:48}));   // one mini per agent colour; they wander
 const stateBtns=$('#stateBtns'), emoteBtns=$('#emoteBtns');
 for(const k in STATES){ const b=document.createElement('button'); b.className='cb'+(k==='idle'?' on':''); b.dataset.state=k; b.style.setProperty('--c',STATES[k].col); b.innerHTML=`<i></i>${STATES[k].label}`;
   b.onclick=()=>{ main.setState(k); mini.setState(k) }; stateBtns.appendChild(b) }
@@ -159,14 +166,14 @@ const ui={
   slider(label,min,max,step,value,fn){ $('#featureGrp').hidden=false; const l=document.createElement('label'); l.className='sl'; l.innerHTML=`<span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${value}">`;
     const i=l.querySelector('input'); i.oninput=()=>fn(+i.value); (row?row.parentNode:$('#featureSliders')).appendChild(l); return i } };   // a slider sits in its feature's group
 ui.toggle('Atualização','#3B82F6',on=>{ for(const b of [main,mini]) b.setUpdateHint(on) });
-each('controls',ui,{main,mini,mini2});
+each('controls',ui,{main,mini,mini2,strip});
 $('#mainc').addEventListener('click',()=>main.click());
 addEventListener('pointermove',e=>{ for(const [b,el] of [[main,$('#mainc')],[mini,$('#minic')],[mini2,$('#minic2')]]){ const r=el.getBoundingClientRect();
   b.look.x=clamp((e.clientX-(r.left+r.width/2))/(innerWidth*.35),-1,1); b.look.y=clamp(-(e.clientY-(r.top+r.height/2))/(innerHeight*.35),-1,1) } });
 // One bot failing reports its first error and leaves the others running. Features change states too (three slaps: dizzy),
 // so the highlighted state follows Koru rather than the last click.
 let shown='idle';
-function frame(){ for(const b of [main,mini,mini2]){ try{ b.update(); b.draw() }catch(e){ if(!b.err){ b.err=e; reportError(e) } } }
+function frame(){ for(const b of [main,mini,mini2,...strip]){ try{ b.update(); b.draw() }catch(e){ if(!b.err){ b.err=e; reportError(e) } } }
   if(main.state!==shown){ shown=main.state; for(const o of stateBtns.children) o.classList.toggle('on',o.dataset.state===shown) }
   requestAnimationFrame(frame) }
 requestAnimationFrame(frame);

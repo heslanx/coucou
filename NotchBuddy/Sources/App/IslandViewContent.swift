@@ -593,6 +593,7 @@ struct QuestionView: View {
                 .padding(.trailing, 16)
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .koncluiScrollsWhenTall()   // Koncluí: a question taller than the island scrolls instead of spilling past both edges
             }
         }
         .onAppear { resetQuestionState() }
@@ -1596,15 +1597,16 @@ struct ChipFlowLayout: Layout {
 
 struct ModelPickerView: View {
     @ObservedObject var state: AppState
+    @ObservedObject private var access = ChatAccess.shared
     @Binding var isPresented: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Provider chips — wrap; hide local providers when not connected and not already active
+            // Provider chips — wrap
+            // Koncluí: only the providers this Mac can use now (a key saved, a local server set, a subscription
+            // signed in, as ChatAccess detects them) and the one already active
             let visibleProviders = ChatProvider.allCases.filter { p in
-                if p == .ollama   { return !AppState.shared.ollamaServerURL.isEmpty   || state.chatProvider == .ollama }
-                if p == .lmstudio { return !AppState.shared.lmstudioServerURL.isEmpty || state.chatProvider == .lmstudio }
-                return true
+                access.status(p).isReady || state.chatProvider == p
             }
             ChipFlowLayout(spacing: 6) {
                 ForEach(visibleProviders, id: \.self) { provider in
@@ -1662,6 +1664,7 @@ struct ModelPickerView: View {
             }
             state.fetchModelsIfNeeded(for: provider)
         }
+        .task { await access.refreshIfStale() }
     }
 
     @ViewBuilder
@@ -1685,16 +1688,7 @@ struct ModelPickerView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(models, id: \.id) { model in
                         Button {
-                            switch state.chatProvider {
-                            case .anthropic: state.claudeModel = model.id
-                            case .google:    state.googleChatModel = model.id
-                            case .openai:    state.openAIChatModel = model.id
-                            case .ollama:    state.ollamaChatModel = model.id
-                            case .lmstudio:  state.lmstudioChatModel = model.id
-                            case .deepseek:  state.deepseekChatModel = model.id
-                            case .qwen:      state.qwenChatModel = model.id
-                            case .moonshot:  state.moonshotChatModel = model.id
-                            }
+                            state.setActiveChatModel(model.id, for: state.chatProvider)
                             isPresented = false
                             SoundEngine.shared.play("blip")
                         } label: {
@@ -4168,7 +4162,8 @@ struct AgentPill: View {
 
     // The Claude pill shows "VS Code" (or "Claude Code" for a terminal session) regardless of project name
     private var displayName: String {
-        task.id == "integration_claude" ? ClaudeHost.pillName(hostApp: task.hostApp) : task.name
+        // Koncluí: a tab shows at most 11 characters, a long name by its short form ("Claude Desk").
+        KoncluiTabLabel.short(task.id == "integration_claude" ? ClaudeHost.pillName(hostApp: task.hostApp) : task.name)
     }
 
     var body: some View {
@@ -4258,7 +4253,7 @@ struct MusicPill: View {
             .allowsHitTesting(false)
 
             // Title — trailing padding grows on hover to make room for buttons
-            Text(task.name)
+            Text(KoncluiTabLabel.short(task.name))   // Koncluí: tab names fit in 11 characters
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(isHovered ? Color(hex: task.color).lighter(by: 0.3) : Color(hex: "#6B7079"))
                 .lineLimit(1)
@@ -4351,7 +4346,7 @@ struct MusicCardView: View {
                 .padding(.leading, 108)
                 .padding(.trailing, 36)
 
-                Text("Allow Coucou to control Music")
+                Text("Allow Koncluí to control Music")
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#8E939C"))
                     .padding(.leading, 108)
@@ -5078,7 +5073,7 @@ struct SettingsIslandView: View {
               let ss = hooks["SessionStart"] as? [[String: Any]] else { return false }
         return ss.contains { matcher in
             (matcher["hooks"] as? [[String: Any]])?.contains {
-                ($0["command"] as? String)?.contains("NotchBuddy") == true
+                ($0["command"] as? String)?.contains("Konclui") == true
             } ?? false
         }
     }

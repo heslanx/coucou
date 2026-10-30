@@ -58,6 +58,7 @@ struct PillDefinition {
         case "agent_codex":        return "Codex"
         case "agent_hermes":       return "Hermes"
         case "agent_claude-desktop": return "Claude Desktop"
+        case "agent_orca":         return "Orca"
         default:                   return String(localized: "Agent")
         }
     }
@@ -76,6 +77,10 @@ enum PillCatalog {
         .init(id: "agent_antigravity",   name: "Antigravity", color: "#E879F9",
               category: .workspace, subtitle: String(localized: "Integration"),  source: .agent,  githubOnly: true),
         .init(id: "agent_codex",         name: "Codex",       color: "#2DD4BF",
+              category: .workspace, subtitle: String(localized: "Integration"),  source: .agent,  githubOnly: true),
+        // Koncluí: sessions of the agents run in Orca's terminals (Orca.app). Its icon is monochrome: the colour is
+        // the mid silver of the orca's shading, the one grey the catalog's other greys (#F5F6F8, #C0C4CC, #8C8C8C) leave free.
+        .init(id: "agent_orca",          name: "Orca",        color: "#A6A6A6",
               category: .workspace, subtitle: String(localized: "Integration"),  source: .agent,  githubOnly: true),
         // ── Agents ───────────────────────────────────────────────────────────
         .init(id: "agent_gemini",        name: "Gemini CLI",  color: "#8AB4F8",
@@ -136,10 +141,11 @@ enum PillCatalog {
 
     /// Pills available in the current build target.
     static var available: [PillDefinition] {
+        // Koncluí: a pill whose feature flag is off is offered nowhere (Active pills, the notch, voice).
         #if APPSTORE
-        all.filter { !$0.githubOnly }
+        all.filter { !$0.githubOnly && KoncluiFeatures.isOn($0.id) }
         #else
-        all
+        all.filter { KoncluiFeatures.isOn($0.id) }
         #endif
     }
 

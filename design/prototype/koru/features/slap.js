@@ -12,14 +12,14 @@ eyeShapes.slapped=(b,{x,R,dr,sd,ink})=>{ x.save(); x.rotate(-sd*.4); x.fillStyle
 function slap(b){ const k=b.slap, n=NOW();
   b.interruptGreet(); if(b.state==='dizzy'||n-k.last<COOL) return; k.last=n;
   k.times=k.times.filter(t=>n-t<1700); k.times.push(n);
-  const sd=rand()<.5?-1:1; b.squash(); b.physVy-=1.2; b.physVx+=.7*sd;
+  const sd=rand()<.5?-1:1; b.sound('slap'); b.squash(); b.physVy-=1.2; b.physVx+=.7*sd;
   // Mochi shows the kick only on its outfits; Koru rocks her head and body away from the hit.
   b.anim('knock',[[sd,90,E.out],[-.3*sd,220,E.inOut],[0,260,E.out]]);
   b.anim('slapGlow',[[1,120,E.out],[1,500,E.lin],[0,280,E.inOut]]);
   // The spiral eyes show at once: the line eyes of the slap before would otherwise hold over them.
   if(k.times.length>=3){ k.times=[]; const back=b.state; b.clearOverride(); b.setState('dizzy');
     b.after('slapDizzy',3300,()=>{ b.setState(back); b.emote('happy') }) }
-  else b.emote('slapped',800) }
+  else { b.emote('slapped',800); b.after('annoyedSound',60,()=>b.sound('annoyed')) } }   // BotEngine.swift:432, 441-445
 function slap3(b){ slap(b); b.after('slap3a',250,()=>slap(b)); b.after('slap3b',500,()=>slap(b)) }
 
 register({name:'slap',

@@ -74,7 +74,7 @@ final class RecapStore {
 
     private static let storageURL: URL = {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appendingPathComponent("NotchBuddy/recap.json")
+        return support.appendingPathComponent("Konclui/recap.json")
     }()
 
     private init() { load() }
@@ -239,6 +239,19 @@ final class RecapStore {
         data = RecapData()
         drafts = [:]
         try? FileManager.default.removeItem(at: Self.storageURL)
+    }
+
+    /// Koncluí: what "Clear history" is about to take, as the closure that puts it back (Undo, UX.md 1.5). Turns recorded
+    /// after the clear stay.
+    func snapshotForUndo() -> @MainActor () -> Void {
+        let saved = data
+        let savedDrafts = drafts
+        return { [self] in
+            data.turns = saved.turns + data.turns
+            data.decisions = saved.decisions + data.decisions
+            drafts.merge(savedDrafts) { current, _ in current }
+            save()
+        }
     }
 
     private func load() {

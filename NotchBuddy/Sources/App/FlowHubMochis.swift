@@ -21,6 +21,8 @@ extension EnvironmentValues {
 @MainActor
 final class HubWindowState: ObservableObject {
     @Published private(set) var visible = true
+    /// Koncluí: whether the window is the front one; the canvases draw at 30 Hz while it is not (KoncluiMotion).
+    @Published private(set) var key = true
     private var observers: [NSObjectProtocol] = []
 
     func watch(_ window: NSWindow) {
@@ -28,7 +30,9 @@ final class HubWindowState: ObservableObject {
         let names: [Notification.Name] = [NSWindow.didChangeOcclusionStateNotification,
                                           NSWindow.didMiniaturizeNotification,
                                           NSWindow.didDeminiaturizeNotification,
-                                          NSWindow.willCloseNotification]
+                                          NSWindow.willCloseNotification,
+                                          NSWindow.didBecomeKeyNotification,   // Koncluí
+                                          NSWindow.didResignKeyNotification]   // Koncluí
         observers = names.map { name in
             NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] note in
                 let closing = note.name == NSWindow.willCloseNotification
@@ -36,6 +40,9 @@ final class HubWindowState: ObservableObject {
                     guard let self else { return }
                     let on = !closing && window.occlusionState.contains(.visible) && !window.isMiniaturized
                     if on != self.visible { self.visible = on }
+                    // Koncluí
+                    let front = !closing && window.isKeyWindow
+                    if front != self.key { self.key = front }
                 }
             }
         }
@@ -181,7 +188,7 @@ final class HubMochiTroupe: ObservableObject {
 /// window shows, still otherwise. Click one to say hello.
 struct HubMochiScene: View {
     @StateObject private var troupe: HubMochiTroupe
-    @Environment(\.hubVisible) private var visible
+    @Environment(\.koncluiMotion) private var motion   // Koncluí: hidden or Reduce Motion draws once, behind draws at 30 Hz
 
     init(cast: [HubMochiSpec], range: ClosedRange<CGFloat> = 0.05...0.95) {
         _troupe = StateObject(wrappedValue: {
@@ -193,7 +200,7 @@ struct HubMochiScene: View {
 
     var body: some View {
         GeometryReader { geo in
-            TimelineView(.animation(paused: !visible)) { timeline in
+            TimelineView(.animation(minimumInterval: motion.minimumInterval, paused: motion.paused)) { timeline in
                 let frame = timeline.date
                 Canvas { context, size in
                     _ = frame
@@ -236,7 +243,8 @@ struct HubHeroTheme {
         }
         switch page {
         case .dictation:
-            return .init(color: Color(hex: "#FB923C"), cast: [m("#F5F6F8", 66, 0.2), m("#FB923C", 52, 0.65), m("#F472B6", 44, 0.95, outfit: .bow)])
+            // Koncluí: the home page wears the brand, mint (KoncluiPalette.accent), where Coucou's orange was
+            return .init(color: KoncluiTheme.accent, cast: [m("#F5F6F8", 66, 0.2), m(KoncluiPalette.accent, 52, 0.65), m("#F472B6", 44, 0.95, outfit: .bow)])
         case .notes:
             return .init(color: Color(hex: "#3B9EFF"), cast: [m("#3B9EFF", 58, 0.1, outfit: .roundGlasses), m("#34D399", 50, 0.5), m("#A78BFA", 46, 0.9)])
         case .insights:
@@ -262,6 +270,8 @@ struct HubHeroTheme {
             return .init(color: Color(hex: "#E07950"), cast: [m("#E07950", 58, 0.3, state: .thinking, roams: false), m("#F5F6F8", 48, 0.85)])
         case .integrations:
             return .init(color: Color(hex: "#7C5CFF"), cast: [m("#7C5CFF", 54, 0.15), m("#22D3EE", 46, 0.55), m("#F7B32B", 42, 0.95)])
+        case .reminders:   // Koncluí: the owner's own lines (his main checkout), so the later merge is a no-op
+            return .init(color: Color(hex: "#F59E0B"), cast: [m("#F59E0B", 54, 0.25, state: .thinking), m("#F5F6F8", 46, 0.8)])
         case .voice:
             return .init(color: Color(hex: "#F97316"), cast: [m("#F97316", 60, 0.3), m("#F5F6F8", 48, 0.85, outfit: .roundGlasses)])
         case .shortcuts:
@@ -279,11 +289,14 @@ struct HubHero<Trailing: View>: View {
     var compact = false
     @ViewBuilder var trailing: () -> Trailing
     @StateObject private var light = HubHeroLight()
+    @Environment(\.koncluiGlassHeader) private var glass   // Koncluí: pinned over scrolling content
 
     var body: some View {
         let theme = HubHeroTheme.of(page)
         ZStack(alignment: .bottomTrailing) {
-            HubHeroBackdrop(color: theme.color, light: light)
+            // Koncluí: every band drifts, still where the rate is (KoncluiMotion.bandIsLive)
+            HubHeroBackdrop(color: theme.color, light: light, live: true)
+                .overlay { KoncluiGrain() }   // Koncluí: the brand's grain, as on the website's dark boxes
                 .allowsHitTesting(false)
             HubMochiScene(cast: theme.cast, range: 0...1)
                 .id(page)
@@ -292,25 +305,30 @@ struct HubHero<Trailing: View>: View {
                 .padding(.bottom, 6)
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
+                    // Koncluí: the title keeps its size and its inset on every page; `compact` only lowers the band.
                     Text(title)
-                        .font(.system(size: compact ? 24 : 30, weight: .bold))
-                        .tracking(-0.6)
+                        .koncluiType(.display)
                     if let subtitle {
                         Text(subtitle)
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "#B7BBC2"))
+                            .foregroundColor(KoncluiTheme.textBody)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: 420, alignment: .leading)
                     }
                     Spacer(minLength: 0)
                     trailing()
                 }
-                .padding(compact ? 20 : 26)
+                // Koncluí: the title starts where the content of a card does (18), one inner edge on every page.
+                .padding(.horizontal, KoncluiSpace.cardPadding)
+                .padding(.vertical, compact ? 20 : 26)
                 Spacer(minLength: compact ? 290 : 350)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(height: compact ? 116 : 170)
+        .frame(minHeight: compact ? KoncluiSpace.compactBand : 170)
+        // Koncluí: as tall as its title and line need, never the whole space a page or a pinned bar offers.
+        .fixedSize(horizontal: false, vertical: true)
+        .background { if glass { Rectangle().fill(.ultraThinMaterial) } }   // Koncluí
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(theme.color.opacity(0.16)))
         // The light follows the pointer over the band.
@@ -416,55 +434,68 @@ final class HubHeroLight: ObservableObject {
 
 /// A band's background: an ultra deep black, the page's colour as a glow that breathes in a
 /// corner, and particles drifting up all the time, pushed away by the pointer and brighter near it.
+/// Koncluí: the drifting is where `live` is set (every page's band, not the glow cards) and never under Reduce Motion or in a
+/// hidden window; otherwise it is the colour wash drawn once, which costs no frames. Over scrolling content (`koncluiGlassHeader`) the black is translucent.
 struct HubHeroBackdrop: View {
     let color: Color
     let light: HubHeroLight
     var cornerRadius: CGFloat = 18
-    @Environment(\.hubVisible) private var visible
+    var live = false
+    @Environment(\.koncluiMotion) private var motion
+    @Environment(\.koncluiGlassHeader) private var glass
 
     var body: some View {
-        TimelineView(.animation(paused: !visible)) { timeline in
-            let frame = timeline.date
-            Canvas { context, size in
-                _ = frame
-                light.step(size: size)
-                let rect = CGRect(origin: .zero, size: size)
-                let t = CGFloat(CACurrentMediaTime() - light.start)
-
-                // The black, deeper than the card around it.
-                context.fill(Path(rect), with: .color(Color(hex: "#020203")))
-                // The page's colour, low in the opposite corner and breathing in the top one.
-                context.fill(Path(rect), with: .linearGradient(
-                    Gradient(colors: [color.opacity(0.10), .clear]),
-                    startPoint: CGPoint(x: size.width, y: 0), endPoint: CGPoint(x: size.width * 0.35, y: size.height)))
-                let breath = 0.85 + 0.15 * sin(t * 0.9)
-                context.fill(Path(rect), with: .radialGradient(
-                    Gradient(colors: [color.opacity(0.30 * breath), color.opacity(0.08), .clear]),
-                    center: CGPoint(x: size.width * 0.92, y: -size.height * 0.15),
-                    startRadius: 0, endRadius: max(size.width, size.height) * 0.55 * breath))
-
-                // The particles.
-                for p in light.particles {
-                    var alpha = (0.22 + 0.5 * (0.5 + 0.5 * sin(t * (1.2 + p.depth) + p.phase))) * p.depth
-                    var radius = p.radius
-                    if let pos = light.position, light.strength > 0.01 {
-                        let d = hypot(p.x - pos.x, p.y - pos.y)
-                        if d < 200 {
-                            let near = (1 - d / 200) * light.strength
-                            alpha += near * 0.6
-                            radius *= 1 + near * 0.8
-                        }
-                    }
-                    let tint = p.white ? Color.white : color
-                    let dot = CGRect(x: p.x - radius, y: p.y - radius, width: radius * 2, height: radius * 2)
-                    if radius > 1.1 {
-                        // A soft halo around the bigger ones.
-                        context.fill(Path(ellipseIn: dot.insetBy(dx: -radius * 1.6, dy: -radius * 1.6)),
-                                     with: .color(tint.opacity(min(1, alpha) * 0.12)))
-                    }
-                    context.fill(Path(ellipseIn: dot), with: .color(tint.opacity(min(1, alpha))))
+        if live && motion != .still {
+            TimelineView(.animation(minimumInterval: motion.minimumInterval)) { timeline in
+                let frame = timeline.date
+                Canvas { context, size in
+                    _ = frame
+                    light.step(size: size)
+                    paint(&context, size: size, drifting: true)
                 }
             }
+        } else {
+            Canvas { context, size in paint(&context, size: size, drifting: false) }
+        }
+    }
+
+    private func paint(_ context: inout GraphicsContext, size: CGSize, drifting: Bool) {
+        let rect = CGRect(origin: .zero, size: size)
+        let t = drifting ? CGFloat(CACurrentMediaTime() - light.start) : 0
+
+        // The black, deeper than the card around it.
+        context.fill(Path(rect), with: .color(KoncluiTheme.sunken.opacity(glass ? 0.72 : 1)))   // Koncluí: the navy family's well
+        // The page's colour, low in the opposite corner and breathing in the top one.
+        context.fill(Path(rect), with: .linearGradient(
+            Gradient(colors: [color.opacity(0.10), .clear]),
+            startPoint: CGPoint(x: size.width, y: 0), endPoint: CGPoint(x: size.width * 0.35, y: size.height)))
+        let breath = drifting ? 0.85 + 0.15 * sin(t * 0.9) : 1
+        context.fill(Path(rect), with: .radialGradient(
+            Gradient(colors: [color.opacity(0.30 * breath), color.opacity(0.08), .clear]),
+            center: CGPoint(x: size.width * 0.92, y: -size.height * 0.15),
+            startRadius: 0, endRadius: max(size.width, size.height) * 0.55 * breath))
+        guard drifting else { return }
+
+        // The particles.
+        for p in light.particles {
+            var alpha = (0.22 + 0.5 * (0.5 + 0.5 * sin(t * (1.2 + p.depth) + p.phase))) * p.depth
+            var radius = p.radius
+            if let pos = light.position, light.strength > 0.01 {
+                let d = hypot(p.x - pos.x, p.y - pos.y)
+                if d < 200 {
+                    let near = (1 - d / 200) * light.strength
+                    alpha += near * 0.6
+                    radius *= 1 + near * 0.8
+                }
+            }
+            let tint = p.white ? Color.white : color
+            let dot = CGRect(x: p.x - radius, y: p.y - radius, width: radius * 2, height: radius * 2)
+            if radius > 1.1 {
+                // A soft halo around the bigger ones.
+                context.fill(Path(ellipseIn: dot.insetBy(dx: -radius * 1.6, dy: -radius * 1.6)),
+                             with: .color(tint.opacity(min(1, alpha) * 0.12)))
+            }
+            context.fill(Path(ellipseIn: dot), with: .color(tint.opacity(min(1, alpha))))
         }
     }
 }
@@ -504,7 +535,7 @@ struct HubEmptyState: View {
             HubLiveMochi(color: color, size: 54, state: state)
                 .frame(height: 54)
             Text(text)
-                .font(.system(size: 13.5))
+                .koncluiType(.body)
                 .foregroundColor(HubTheme.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)

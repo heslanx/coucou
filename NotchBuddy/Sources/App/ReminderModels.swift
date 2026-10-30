@@ -168,14 +168,14 @@ enum ReminderValidationError: Error, Equatable, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidTitle: "A reminder title must contain 1–120 characters."
-        case .messageTooLong: "A reminder message must contain at most 2,000 characters."
-        case .invalidLayout: "The reminder size or position is outside the supported range."
-        case .invalidSnooze: "Snooze must be between 1 and 1,440 minutes."
-        case .tooManyButtons: "A reminder can have at most three buttons."
-        case .invalidButton: "A reminder button has an invalid title or action."
-        case .invalidImage: "The reminder image must be a PNG or JPEG image."
-        case .imageTooLarge: "The reminder image exceeds the 2 MB limit."
+        case .invalidTitle: String(localized: "A reminder title must contain 1–120 characters.")
+        case .messageTooLong: String(localized: "A reminder message must contain at most 2,000 characters.")
+        case .invalidLayout: String(localized: "The reminder size or position is outside the supported range.")
+        case .invalidSnooze: String(localized: "Snooze must be between 1 and 1,440 minutes.")
+        case .tooManyButtons: String(localized: "A reminder can have at most three buttons.")
+        case .invalidButton: String(localized: "A reminder button has an invalid title or action.")
+        case .invalidImage: String(localized: "The reminder image must be a PNG or JPEG image.")
+        case .imageTooLarge: String(localized: "The reminder image exceeds the 2 MB limit.")
         }
     }
 }

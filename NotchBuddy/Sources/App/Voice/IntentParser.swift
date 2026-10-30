@@ -11,6 +11,8 @@ enum IntentParser {
     // MARK: - Public API
 
     static func parse(_ raw: String, pills: [PillDefinition] = []) -> VoiceIntent {
+        // Koncluí: Brazilian Portuguese commands and questions (KoncluiVoiceParserPT.swift).
+        if let portuguese = KoncluiVoicePT.parse(raw, pills: pills) { return portuguese }
         let norm  = normalise(raw)
         let words = norm.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return .unknown }
@@ -305,6 +307,7 @@ enum IntentParser {
     /// "Cursor" alone is unknown → falls back to the single-intent parser which returns
     /// `.pillAddMultiple`).
     static func parseMultiAction(_ raw: String, pills: [PillDefinition] = []) -> [VoiceIntent]? {
+        if let portuguese = KoncluiVoicePT.parseMulti(raw, pills: pills) { return portuguese }   // Koncluí
         let conjunctions: Set<String> = ["et", "puis", "ensuite", "and", "then"]
 
         // 1. Commas (before normalise, which strips punctuation).

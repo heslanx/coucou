@@ -30,7 +30,10 @@ struct AskQuestion: Equatable {
     /// Island height that fits the tallest question without truncation (rough estimate, text wraps at ~500 pt).
     var estimatedIslandHeight: CGFloat {
         func lines(_ text: String, charWidth: CGFloat) -> CGFloat {
-            max(1, (CGFloat(text.count) * charWidth / 500).rounded(.up))
+            // Koncluí: each paragraph wraps on its own; a brief of ten short lines is ten lines, not one
+            text.split(separator: "\n", omittingEmptySubsequences: false).reduce(0) { sum, paragraph in
+                sum + max(1, (CGFloat(paragraph.count) * charWidth / 500).rounded(.up))
+            }
         }
         let tallest = questions.map { item -> CGFloat in
             var h: CGFloat = 20 + lines(item.question, charWidth: 7) * 17 + 64

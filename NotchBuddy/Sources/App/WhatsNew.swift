@@ -115,9 +115,6 @@ enum WhatsNew {
 
     // MARK: - Links
 
-    /// "Buy Mochi a coffee": the same Stripe page as coucou's site and README.
-    static let coffeeURL = URL(string: "https://buy.stripe.com/dRm6oGbfa7Kqcqs0hxes003")!
-
     static func releasePage(_ version: String) -> URL {
         URL(string: "https://github.com/\(MacUpdate.owner)/\(MacUpdate.repo)/releases/tag/v\(version)")!
     }

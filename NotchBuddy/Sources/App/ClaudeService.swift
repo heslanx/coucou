@@ -4,10 +4,16 @@ import Security
 // MARK: - Keychain helpers
 
 enum Keychain {
-    static let service = "fr.louisraille.NotchBuddy"
+    static let service = "com.konclui.mac"
 
-    static func save(key: String, value: String) {
-        guard let data = value.data(using: .utf8) else { return }
+    // Koncluí: answers the Keychain's status, so a screen can say when the key was not stored (KoncluiKeychainSave.swift).
+    @discardableResult
+    static func save(key: String, value: String) -> OSStatus {
+        #if DEBUG
+        // For screenshots: `-konclui.debug.keychainFail 1` makes every save answer "refused" without touching the Keychain.
+        if UserDefaults.standard.bool(forKey: "konclui.debug.keychainFail") { return errSecInteractionNotAllowed }
+        #endif
+        guard let data = value.data(using: .utf8) else { return errSecParam }
         // Delete existing item first (update pattern)
         let lookup: [String: Any] = [
             kSecClass as String:       kSecClassGenericPassword,
@@ -26,7 +32,7 @@ enum Keychain {
             kSecAttrAccessible as String:   kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecAttrSynchronizable as String: kCFBooleanFalse!,
         ]
-        SecItemAdd(item as CFDictionary, nil)
+        return SecItemAdd(item as CFDictionary, nil)
     }
 
     static func load(key: String) -> String? {
@@ -97,10 +103,12 @@ final class KeychainStore: @unchecked Sendable {
         lock.withLock { cache[key] }
     }
 
-    /// Updates cache + persists to Keychain.
-    func set(_ key: String, value: String) {
+    /// Updates cache + persists to Keychain. Koncluí: answers the Keychain's status; the cache keeps the key for this run
+    /// even when the Keychain refused it.
+    @discardableResult
+    func set(_ key: String, value: String) -> OSStatus {
         lock.withLock { cache[key] = value }
-        Keychain.save(key: key, value: value)
+        return Keychain.save(key: key, value: value)
     }
 
     /// Removes from cache + Keychain only if the key was previously set.
@@ -215,6 +223,7 @@ final class ClaudeService {
 
     func clearConversation() {
         conversationMessages = []
+        KoncluiChat.shared.clear()
     }
 
     /// Resolved once: NSFullUserName() is a system call, and the name cannot change under us
@@ -223,15 +232,16 @@ final class ClaudeService {
 
     /// Greets the user by their macOS first name when there is one worth using, and stays
     /// neutral otherwise — same wording as the Windows build.
-    private nonisolated static func makeSystemPrompt() -> String {
+    nonisolated static func makeSystemPrompt(webSearch: Bool = true) -> String {
         let opening = if let firstName = resolveUserFirstName() {
-            "You are Mochi, \(firstName)'s personal AI assistant embedded in the notch of their Mac."
+            "You are Koru, \(firstName)'s personal AI assistant embedded in the notch of their Mac."
         } else {
-            "You are Mochi, a personal AI assistant embedded in the notch of the user's Mac."
+            "You are Koru, a personal AI assistant embedded in the notch of the user's Mac."
         }
+        let abilities = webSearch ? "You have web search access and can help with" : "You can help with"
         return """
         \(opening) \
-        You have web search access and can help with absolutely anything — research, coding, finding places, recommendations, tasks, questions. \
+        \(abilities) absolutely anything — research, coding, finding places, recommendations, tasks, questions. \
         Respond in the user's language. Be thorough and complete — use as much detail as the task requires. \
         Use light Markdown when it helps: short paragraphs, bullet lists, **bold**, `inline code` and fenced code blocks. Avoid tables and big headings: the chat window is small.
         """
@@ -251,7 +261,12 @@ final class ClaudeService {
             return
         }
         guard state.chatProvider == .anthropic else {
-            await chatOpenAICompatible(query: query, context: context, state: state)
+            if state.chatProvider.isSubscription {
+                // Koncluí: Claude Code, Codex or the Koncluí Proxy, no API key
+                await KoncluiChat.shared.chat(query: query, context: context, state: state)
+            } else {
+                await chatOpenAICompatible(query: query, context: context, state: state)
+            }
             return
         }
         guard let key = apiKey, !key.isEmpty else {
@@ -301,7 +316,7 @@ final class ClaudeService {
 
     func chatOpenAICompatible(query: String, context: PromptContext?, state: AppState) async {
         let provider = state.chatProvider
-        guard provider != .anthropic else { return }
+        guard provider != .anthropic, !provider.isSubscription else { return }
 
         let baseURL: String
         if provider == .ollama {
@@ -315,7 +330,7 @@ final class ClaudeService {
             case .deepseek:  baseURL = "https://api.deepseek.com/v1"
             case .qwen:      baseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
             case .moonshot:  baseURL = "https://api.moonshot.cn/v1"
-            case .anthropic, .ollama, .lmstudio: baseURL = ""
+            case .anthropic, .ollama, .lmstudio, .claudeCode, .codex, .koncluiProxy: baseURL = ""
             }
         }
 
@@ -545,6 +560,13 @@ final class ClaudeService {
     /// the stop reason. The fast model first, the Settings model if the key can't use it.
     func voiceTurn(system: String, messages: [[String: Any]], tools: [[String: Any]])
         async -> (content: [[String: Any]], stopReason: String)? {
+        // Koncluí: the Koncluí Proxy answers when it is the source (KoncluiVoiceBrainLive.swift).
+        if KoncluiVoiceBrainLive.shared.claudeSource() == .proxy {
+            guard let sent = await KoncluiVoiceBrainLive.shared.send(system: system, messages: messages, tools: tools,
+                                                                     maxTokens: 2048, fastModel: Self.voiceModel)
+            else { return nil }
+            return KoncluiVoiceBrain.parseTurn(sent)
+        }
         guard let key = apiKey, !key.isEmpty else { return nil }
         func body(_ model: String) -> [String: Any] {
             ["model": model, "max_tokens": 2048, "system": system, "tools": tools, "messages": messages]
@@ -572,20 +594,24 @@ final class ClaudeService {
     /// A short answer Coucou can say aloud, with web search, in the answer language.
     /// `history` holds the previous exchanges of this voice conversation (memory only).
     /// nil on any failure: no key, network, quota.
-    func voiceAnswer(_ question: String, history: [VoiceWebTurn], french: Bool) async -> String? {
-        guard let key = apiKey, !key.isEmpty else { return nil }
+    func voiceAnswer(_ question: String, history: [VoiceWebTurn], language: VoiceLanguage) async -> String? {
+        let french = language == .fr   // Koncluí: French, English or Portuguese (KoncluiVoicePrompts.swift)
+        // Koncluí: the key is only needed when the Koncluí Proxy is not the source.
+        let viaProxy = KoncluiVoiceBrainLive.shared.claudeSource() == .proxy
+        let key = apiKey ?? ""
+        guard viaProxy || !key.isEmpty else { return nil }
         let today = Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year()
-            .locale(Locale(identifier: french ? "fr_FR" : "en_US")))
-        let system = french
+            .locale(language.locale))
+        let system = language == .pt ? KoncluiVoicePrompts.webAnswer(today: today) : french
             ? """
-              Tu es Coucou, un assistant vocal dans le notch du Mac. Nous sommes le \(today). \
+              Tu es Koncluí, un assistant vocal dans le notch du Mac. Nous sommes le \(today). \
               Ta réponse est lue à voix haute : 2 à 4 phrases courtes, en français, sans markdown, sans liste, \
               sans lien, sans citer tes sources. Cherche sur le web dès que la réponse peut avoir changé \
               (actualité, résultats, prix, horaires, météo, personnes). Donne directement les faits utiles. \
               S'il y a clairement plus à raconter, termine par une seule courte question pour proposer la suite.
               """
             : """
-              You are Coucou, a voice assistant in the Mac's notch. Today is \(today). \
+              You are Koncluí, a voice assistant in the Mac's notch. Today is \(today). \
               Your answer is read aloud: 2 to 4 short sentences in English, no markdown, no lists, no links, \
               never cite sources. Search the web whenever the answer may have changed (news, scores, prices, \
               opening hours, weather, people). Give the useful facts straight away. \
@@ -602,6 +628,16 @@ final class ClaudeService {
         var location: [String: Any] = ["type": "approximate", "timezone": TimeZone.current.identifier]
         if let country = Locale.current.region?.identifier, country.count == 2 { location["country"] = country }
         search["user_location"] = location
+
+        // Koncluí: the Koncluí Proxy answers when it is the source (KoncluiVoiceBrainLive.swift).
+        if viaProxy {
+            guard let sent = await KoncluiVoiceBrainLive.shared.send(system: system, messages: messages, tools: [search],
+                                                                     maxTokens: 700, fastModel: Self.voiceModel),
+                  let content = KoncluiVoiceBrain.parseTurn(sent)?.content,
+                  let text = claudeResponseText(fromContent: content) else { return nil }
+            let spoken = VoiceQuery.spokenText(text)
+            return spoken.isEmpty ? nil : spoken
+        }
 
         func body(_ model: String) -> [String: Any] {
             ["model": model, "max_tokens": 700, "system": system, "tools": [search], "messages": messages]
@@ -743,7 +779,7 @@ final class ClaudeService {
 
     // MARK: - File content block builder
 
-    private func readFileAsBlock(url: URL) -> [String: Any]? {
+    func readFileAsBlock(url: URL) -> [String: Any]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let ext = url.pathExtension.lowercased()
         let base64 = data.base64EncodedString()

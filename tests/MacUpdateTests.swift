@@ -12,24 +12,25 @@ enum MacUpdateTests {
     static func release(_ tag: String, draft: Bool = false, pre: Bool = false, zip: Bool = true, body: String = "") -> [String: Any] {
         var assets: [[String: Any]] = [["name": "notes.txt", "browser_download_url": "https://github.com/x/notes.txt", "size": 3]]
         if zip {
-            assets.append(["name": "Coucou.zip", "size": 34_000_000,
-                           "browser_download_url": "https://github.com/Louis-CFM/coucou/releases/download/\(tag)/Coucou.zip"])
+            assets.append(["name": "Konclui.zip", "size": 34_000_000,
+                           "browser_download_url": "https://github.com/konclui/konclui-releases/releases/download/\(tag)/Konclui.zip"])
         }
         return ["tag_name": tag, "draft": draft, "prerelease": pre, "assets": assets, "body": body,
-                "html_url": "https://github.com/Louis-CFM/coucou/releases/tag/\(tag)"]
+                "html_url": "https://github.com/konclui/konclui-releases/releases/tag/\(tag)"]
     }
 
     static func json(_ list: [[String: Any]]) -> Data { try! JSONSerialization.data(withJSONObject: list) }
 
     static func main() {
         print("\nTags: only the Mac's")
-        check("v0.5.1", MacUpdate.macVersion("v0.5.1") == "0.5.1")
-        check("v1.0", MacUpdate.macVersion("v1.0") == "1.0")
+        check("konclui-v0.5.1", MacUpdate.macVersion("konclui-v0.5.1") == "0.5.1")
+        check("konclui-v1.0", MacUpdate.macVersion("konclui-v1.0") == "1.0")
+        check("Coucou's v0.5.6 is not Koncluí's", MacUpdate.macVersion("v0.5.6") == nil)
         check("windows-v0.5.0 is not the Mac's", MacUpdate.macVersion("windows-v0.5.0") == nil)
         check("linux-latest", MacUpdate.macVersion("linux-latest") == nil)
         check("android-v0.2.0", MacUpdate.macVersion("android-v0.2.0") == nil)
-        check("v0.5.1-beta", MacUpdate.macVersion("v0.5.1-beta") == nil)
-        check("v", MacUpdate.macVersion("v") == nil)
+        check("konclui-v0.5.1-beta", MacUpdate.macVersion("konclui-v0.5.1-beta") == nil)
+        check("konclui-v", MacUpdate.macVersion("konclui-v") == nil)
 
         print("\nVersions compare as numbers")
         check("0.10.0 > 0.9.3", MacUpdate.isNewer("0.10.0", than: "0.9.3"))
@@ -42,16 +43,16 @@ enum MacUpdateTests {
         do {
             let list = [
                 release("windows-v0.6.0"), release("linux-latest"),
-                release("v0.9.0", draft: true), release("v0.8.0", pre: true), release("v0.7.0", zip: false),
-                release("v0.5.1"), release("v0.10.0", body: "Coucou 0.10.0\n\n## What's new\n\n- **One-click update** from the notch.\n- Other\n\n## Install\n- x"),
-                release("v0.6.2"),
+                release("konclui-v0.9.0", draft: true), release("konclui-v0.8.0", pre: true), release("konclui-v0.7.0", zip: false),
+                release("konclui-v0.5.1"), release("konclui-v0.10.0", body: "Coucou 0.10.0\n\n## What's new\n\n- **One-click update** from the notch.\n- Other\n\n## Install\n- x"),
+                release("konclui-v0.6.2"),
             ]
             let r = MacUpdate.latest(json(list))
-            check("picks v0.10.0 over 0.6.2 and 0.5.1", r?.version == "0.10.0" && r?.tag == "v0.10.0")
-            check("its Coucou.zip", r?.zipURL.lastPathComponent == "Coucou.zip" && r?.size == 34_000_000)
-            check("its page", r?.pageURL.absoluteString == "https://github.com/Louis-CFM/coucou/releases/tag/v0.10.0")
+            check("picks v0.10.0 over 0.6.2 and 0.5.1", r?.version == "0.10.0" && r?.tag == "konclui-v0.10.0")
+            check("its Konclui.zip", r?.zipURL.lastPathComponent == "Konclui.zip" && r?.size == 34_000_000)
+            check("its page", r?.pageURL.absoluteString == "https://github.com/konclui/konclui-releases/releases/tag/konclui-v0.10.0")
             check("headline from the bold part", r?.headline == "One-click update")
-            check("nothing for drafts and others only", MacUpdate.latest(json([release("v0.9.0", draft: true), release("windows-v1.0")])) == nil)
+            check("nothing for drafts and others only", MacUpdate.latest(json([release("konclui-v0.9.0", draft: true), release("windows-v1.0")])) == nil)
             check("garbage", MacUpdate.latest(Data("{\"message\":\"rate limited\"}".utf8)) == nil)
         }
 
@@ -82,7 +83,7 @@ enum MacUpdateTests {
         check("an hour ago: not yet", !MacUpdate.shouldCheck(last: now - 3600, now: now))
         check("seven hours ago", MacUpdate.shouldCheck(last: now - 7 * 3600, now: now))
         check("the clock went back", MacUpdate.shouldCheck(last: now + 3600, now: now))
-        let r = MacUpdate.Release(version: "0.6.0", tag: "v0.6.0", zipURL: URL(string: "https://github.com/a")!, size: 1,
+        let r = MacUpdate.Release(version: "0.6.0", tag: "konclui-v0.6.0", zipURL: URL(string: "https://github.com/a")!, size: 1,
                                   pageURL: URL(string: "https://github.com/b")!, headline: nil)
         check("newer: announced", MacUpdate.shouldAnnounce(r, current: "0.5.1", snoozedVersion: nil, snoozedAt: nil, now: now))
         check("same: not", !MacUpdate.shouldAnnounce(r, current: "0.6.0", snoozedVersion: nil, snoozedAt: nil, now: now))
@@ -102,10 +103,12 @@ enum MacUpdateTests {
         check("Later on an older version: blue", MacUpdate.showsHint(r, current: "0.5.1", consent: true, laterVersion: "0.5.9", laterAt: now - 60, now: now))
 
         print("\nThe app in the zip")
-        check("right id and version", MacUpdate.matches(infoPlist: ["CFBundleIdentifier": "fr.louisraille.NotchBuddy", "CFBundleShortVersionString": "0.6.0"], version: "0.6.0"))
+        check("right id and version", MacUpdate.matches(infoPlist: ["CFBundleIdentifier": "com.konclui.mac", "CFBundleShortVersionString": "0.6.0"], version: "0.6.0"))
         check("another app", !MacUpdate.matches(infoPlist: ["CFBundleIdentifier": "com.evil.app", "CFBundleShortVersionString": "0.6.0"], version: "0.6.0"))
-        check("another version", !MacUpdate.matches(infoPlist: ["CFBundleIdentifier": "fr.louisraille.NotchBuddy", "CFBundleShortVersionString": "0.5.9"], version: "0.6.0"))
-        check("requirement names the team", MacUpdate.codeRequirement.contains("256AUJ9555") && MacUpdate.codeRequirement.contains("anchor apple generic"))
+        check("another version", !MacUpdate.matches(infoPlist: ["CFBundleIdentifier": "com.konclui.mac", "CFBundleShortVersionString": "0.5.9"], version: "0.6.0"))
+        check("requirement names Koncluí's team", MacUpdate.codeRequirement.contains("5M8RG3BCX2") && MacUpdate.codeRequirement.contains("anchor apple generic"))
+        check("never Louis's team", !MacUpdate.codeRequirement.contains("256AUJ9555"))
+        check("only Koncluí's releases", MacUpdate.releasesURL.absoluteString == "https://api.github.com/repos/konclui/konclui-releases/releases?per_page=20")
 
         if failures > 0 {
             print("\n\(failures) failure(s)")

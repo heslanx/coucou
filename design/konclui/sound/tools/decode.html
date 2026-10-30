@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">PENDING</pre><script>
+// Every prototype file loads and decodes in Chrome (media element, file://): readyState, duration, error.
+const PROTO=new URLSearchParams(location.search).get('proto')||'file:///Users/erickheslan/Developments/study/coucou/design/prototype/';
+const dir=PROTO+'koru/sounds/';
+const names=['annoyed','approval','approve','attach','blip','close','dizzy','error','finish','greet','greeting','gulp','hover','love','open','peek','pop','proud','question','rate','search','send','slap','sleep','think','tick','wink','work','yawn','sleep-loop','think-loop','work-loop','search-loop'];
+Promise.all(names.map(n=>new Promise(r=>{ const a=new Audio(dir+n+'.m4a'); a.preload='auto';
+  a.oncanplaythrough=()=>r(`ok ${n} ${a.duration.toFixed(4)} s`); a.onerror=()=>r(`ERROR ${n} ${a.error&&a.error.code}`); setTimeout(()=>r(`TIMEOUT ${n}`),8000) })))
+ .then(l=>{ document.getElementById('out').textContent=(l.every(s=>s.startsWith('ok'))?'DECODE PASS':'DECODE FAIL')+'\n'+l.join('\n'); document.title='ready' });
+</script></body>

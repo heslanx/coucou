@@ -30,7 +30,7 @@ final class WhatsAppGOWAProcess {
     /// Application Support, so the link survives restarts.
     nonisolated static var workingDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Coucou/GOWA", isDirectory: true)
+        return base.appendingPathComponent("Konclui/GOWA", isDirectory: true)
     }
 
     /// What the running GOWA was started with: changed, it is restarted; same, left alone.

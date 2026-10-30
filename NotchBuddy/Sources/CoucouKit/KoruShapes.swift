@@ -47,17 +47,24 @@ func koruRGBA(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat) -> Color {
 // MARK: - Palette
 
 /// The colours a whole Koru can swap (core.js PALETTE): body = the key-light ramp from the lit dome to the shaded base,
-/// belly = top to bottom, wing = upper edge to tip. Minis and coloured pills take their colour this way (minis.js palette()).
+/// belly = top to bottom, wing = upper edge to tip, face = the facial disc (rings, brows, tufts) from top to bottom and the soft glow
+/// on the tufts. Minis and coloured pills take their colour this way (minis.js palette()), tufts and facial disc included.
 struct KoruPalette: Sendable {
     var body: [Color]
     var belly: [Color]
     var wing: [Color]
+    var face: [Color]
+    var glow: KoruRGB
+    var lid: [Color]   // the eyelids, top to edge
     var isKoru = false
 
     static let koru = KoruPalette(
         body: ["#6CCAD5", "#3EA5B1", "#2A94A2", "#167E8A", "#0E6470"].map { KoruRGB(hex: $0).color() },
         belly: [KoruRGB(hex: "#3FAAB2").color(), KoruRGB(hex: "#268C98").color(), koruRGBA(38, 140, 152, 0.6)],
         wing: [KoruRGB(hex: "#124F5C").color(), KoruRGB(hex: "#09343E").color()],
+        face: ["#40B2BF", "#4EBBC3", "#2E9FAB"].map { KoruRGB(hex: $0).color() },
+        glow: KoruRGB(80, 200, 218),
+        lid: [KoruRGB(hex: "#3FAFBA").color(), KoruRGB(hex: "#2E9DA9").color()],
         isKoru: true)
 
     /// minis.js palette(c): the ramp under Koru's key light from the colour, a paler belly, deeper wings.
@@ -67,7 +74,10 @@ struct KoruPalette: Sendable {
             body: [c.mix(w, 0.8), c.mix(w, 0.6), c.mix(w, 0.32), c.mix(w, 0.08),
                    c.mix(c.deep(1), 0.3).mix(.black, 0.16)].map { $0.color() },
             belly: [c.mix(w, 0.3).color(), c.mix(w, 0.18).color(), c.mix(w, 0.12).color(0.75)],
-            wing: [c.deep(0.78).mix(w, 0.15).color(), c.deep(0.5).color()])
+            wing: [c.deep(0.78).mix(w, 0.15).color(), c.deep(0.5).color()],
+            face: [c.mix(w, 0.42).color(), c.mix(w, 0.5).color(), c.mix(w, 0.28).color()],   // lighter than the body, as Koru's disc is
+            glow: c.mix(w, 0.55),
+            lid: [c.mix(w, 0.42).color(), c.mix(w, 0.28).color()])
     }
 }
 
@@ -313,21 +323,27 @@ enum KoruShape {
     }
 
     /// Eyelid inside an eye disc of radius dr (0…1 closed): its edge bows down in the middle like a real lid.
-    static func lidPath(_ dr: CGFloat, _ lid: CGFloat) -> Path {
+    /// The height of the edge's ends and of its control point; lidEdge strokes the edge, lidPath fills the lid down to it.
+    static func lidCurve(_ dr: CGFloat, _ lid: CGFloat) -> (ends: CGFloat, control: CGFloat) {
         let y = -dr + 2 * dr * lid, bow = dr * 0.28 * sin(.pi * lid)
+        return (y - bow * 0.6, y + bow)
+    }
+
+    static func lidPath(_ dr: CGFloat, _ lid: CGFloat) -> Path {
+        let (ye, yc) = lidCurve(dr, lid)
         var p = Path()
         p.move(to: CGPoint(x: -dr, y: -dr)); p.addLine(to: CGPoint(x: dr, y: -dr))
-        p.addLine(to: CGPoint(x: dr, y: y - bow * 0.6))
-        p.addQuadCurve(to: CGPoint(x: -dr, y: y - bow * 0.6), control: CGPoint(x: 0, y: y + bow))
+        p.addLine(to: CGPoint(x: dr, y: ye))
+        p.addQuadCurve(to: CGPoint(x: -dr, y: ye), control: CGPoint(x: 0, y: yc))
         p.closeSubpath()
         return p
     }
 
     static func lidEdge(_ dr: CGFloat, _ lid: CGFloat) -> Path {
-        let y = -dr + 2 * dr * lid, bow = dr * 0.28 * sin(.pi * lid)
+        let (ye, yc) = lidCurve(dr, lid)
         var p = Path()
-        p.move(to: CGPoint(x: -dr, y: y - bow * 0.6))
-        p.addQuadCurve(to: CGPoint(x: dr, y: y - bow * 0.6), control: CGPoint(x: 0, y: y + bow))
+        p.move(to: CGPoint(x: -dr, y: ye))
+        p.addQuadCurve(to: CGPoint(x: dr, y: ye), control: CGPoint(x: 0, y: yc))
         return p
     }
 }

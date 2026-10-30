@@ -82,10 +82,6 @@ final class WhatsNewCenter: ObservableObject {
         NotificationCenter.default.post(name: .islandCollapse, object: nil)
     }
 
-    func openCoffee() {
-        NSWorkspace.shared.open(WhatsNew.coffeeURL)
-    }
-
     func openReleasePage() {
         NSWorkspace.shared.open(WhatsNew.releasePage(release?.version ?? MacUpdater.currentVersion))
     }
@@ -154,7 +150,7 @@ struct WhatsNewCardView: View {
         }
     }
 
-    // Step 2: your Coucou so far, and the coffee
+    // Step 2: your Coucou so far
 
     @ViewBuilder private var soFar: some View {
         let chips = WhatsNew.chips(center.stats)
@@ -167,14 +163,8 @@ struct WhatsNewCardView: View {
                 }
             }
         }
-        Text(String(localized: "whatsnew.thanks"))
-            .font(.system(size: 11))
-            .foregroundColor(Color(hex: "#8E939C"))
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
         Spacer(minLength: 0)
         HStack(spacing: 8) {
-            PrimaryButton(verbatim: "☕ " + String(localized: "whatsnew.coffee")) { center.openCoffee() }
             SecondaryButton("OK") { center.close() }
         }
     }

@@ -380,7 +380,7 @@ extension Koru {
         }
         d.face = face; d.tufts = tufts
         if full { drop(h, tufts, koruRGBA(2, 40, 46, 0.35), R * 0.05, 0, R * 0.035) }
-        h.fill(face, with: lin([(KoruRGB(hex: "#40B2BF").color(), 0), (KoruRGB(hex: "#4EBBC3").color(), 0.35), (KoruRGB(hex: "#2E9FAB").color(), 1)],
+        h.fill(face, with: lin([(P.face[0], 0), (P.face[1], 0.35), (P.face[2], 1)],
                                CGPoint(x: 0, y: -R * 1.15), CGPoint(x: 0, y: ey + R * S.ring)))
         if full {
             do {   // light from the right
@@ -393,9 +393,9 @@ extension Koru {
             c.clip(to: tufts)
             for sd in [-1, 1] as [CGFloat] {
                 let tx = -sd * 1.08 * R + fx * 0.15
-                c.fill(rect(tx - R * 0.4, -R * 1.45, R * 0.8, R * 0.7), with: rad([(koruRGBA(80, 200, 218, 0.4), 0), (koruRGBA(80, 200, 218, 0), 1)], CGPoint(x: tx, y: -R * 1.1), R * 0.32))
+                c.fill(rect(tx - R * 0.4, -R * 1.45, R * 0.8, R * 0.7), with: rad([(P.glow.color(0.4), 0), (P.glow.color(0), 1)], CGPoint(x: tx, y: -R * 1.1), R * 0.32))
                 let lx = -sd * 1.12 * R + fx * 0.15
-                c.fill(rect(lx - R * 0.3, -R * 1.0, R * 0.6, R * 0.6), with: rad([(koruRGBA(80, 200, 218, 0.3), 0), (koruRGBA(80, 200, 218, 0), 1)], CGPoint(x: lx, y: -R * 0.72), R * 0.22))
+                c.fill(rect(lx - R * 0.3, -R * 1.0, R * 0.6, R * 0.6), with: rad([(P.glow.color(0.3), 0), (P.glow.color(0), 1)], CGPoint(x: lx, y: -R * 0.72), R * 0.22))
             }
             grainStamp(c, tufts, KoruSheets.get("grainTufts", R: Rpx) { Rq in
                 KoruSheets.grain(box: CGRect(x: -Rq * 1.45, y: -Rq * 1.4, width: Rq * 2.9, height: Rq * 1.05),
@@ -436,7 +436,7 @@ extension Koru {
             eye(c, shape: shape, dr: dr, sd: e.sd, yawN: yawN, pitN: pitN, far: e.far, R: R, pose: p, hooks: L.eye)
             let lid = 1 - p.open
             if lid > 0.01 {   // the lid comes down with a rounded edge and a thin lash line
-                c.fill(S.lidPath(dl, lid), with: lin([(KoruRGB(hex: "#3FAFBA").color(), 0), (KoruRGB(hex: "#2E9DA9").color(), 1)],
+                c.fill(S.lidPath(dl, lid), with: lin([(P.lid[0], 0), (P.lid[1], 1)],
                                                      CGPoint(x: 0, y: -dr), CGPoint(x: 0, y: dr * (2 * lid - 1))))
                 if lid < 0.98 { c.stroke(S.lidEdge(dr, lid), with: .color(koruRGBA(22, 65, 73, 0.55)), lineWidth: R * 0.016) }
             }

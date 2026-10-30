@@ -13,8 +13,13 @@ final class HookServer: @unchecked Sendable {
 
     // Support directory paths
     static var supportDir: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("NotchBuddy")
+        #if DEBUG && !APPSTORE
+        if let path = ProcessInfo.processInfo.environment["COUCOU_SUPPORT_DIR"], !path.isEmpty {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        #endif
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Konclui")
     }
     static var socketPath: String {
         #if APPSTORE
@@ -123,7 +128,7 @@ final class HookServer: @unchecked Sendable {
     private func removeApproval(id: UUID, answer json: String? = nil, note: String? = nil) {
         guard let entry = approvals.remove(id: id) else { return }
         let age = Int(Date().timeIntervalSince(entry.received))
-        nbLog("Approval \(entry.tool) closed after \(age) s: \(json.map { _ in "answered from Coucou" } ?? note ?? "dropped")")
+        nbLog("Approval \(entry.tool) closed after \(age) s: \(json.map { _ in "answered from Koncluí" } ?? note ?? "dropped")")
         let source = approvalSources.removeValue(forKey: id)
         if let json {
             let fd = entry.fd
@@ -447,6 +452,7 @@ final class HookServer: @unchecked Sendable {
             bundleId.lowercased().contains("vscode"))
 
         // Routing:
+        // • an Orca terminal (any agent running in it: Claude Code, klaude, Codex…) → agent_orca
         // • "codex" → agent_codex (GitHub build only: workspace pill, approvals in the notch)
         // • other valid coucou_agent → external pill (fire-and-forget, no approval card)
         // • Cursor bundle ID → agent_cursor
@@ -457,10 +463,15 @@ final class HookServer: @unchecked Sendable {
         #else
         let isCodexEvent = false
         #endif
+        let isOrcaSession = ClaudeHost.isOrca(termProgram: termProgram, bundleId: bundleId)
         let agentId: String
         let isExternalAgent: Bool
         var hostApp: String? = nil
-        if isCodexEvent {
+        if isOrcaSession {
+            agentId = ClaudeHost.orcaPillId
+            isExternalAgent = false
+            hostApp = ClaudeHost.orcaBundleId
+        } else if isCodexEvent {
             agentId = "agent_codex"
             isExternalAgent = false
         } else if let agent = validAgent {
@@ -494,7 +505,13 @@ final class HookServer: @unchecked Sendable {
             session: sessionId,
             projectName: isExternalAgent ? (validAgent ?? projectName) : projectName,
             cwd: isExternalAgent ? "" : cwd,
-            hostApp: hostApp, bundleId: bundleId)
+            hostApp: hostApp, bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId)
+        // The Orca pill opens the terminal of the session that owns its card.
+        if isOrcaSession {
+            noteOrcaTerminal(payload, session: sessionId)
+            if name == "SessionEnd" { OrcaTerminals.shared.forget(session: sessionId) }
+        }
+        defer { if isOrcaSession { syncOrcaFocus() } }
         // For sessions that carry no id, derive a unique key from pill + cwd so that
         // concurrent anonymous sessions are tracked independently in RecapStore.
         let recapSessionId = (sessionId == "unknown" || sessionId.isEmpty)
@@ -854,8 +871,11 @@ final class HookServer: @unchecked Sendable {
         }
 
         // Determine which workspace pill owns the request.
+        let isOrcaSession = ClaudeHost.isOrca(termProgram: termProgram, bundleId: bundleId)
         let pillId: String
-        if isCodexRequest {
+        if isOrcaSession {
+            pillId = ClaudeHost.orcaPillId
+        } else if isCodexRequest {
             pillId = "agent_codex"
         } else if isCopilotRequest {
             pillId = "agent_copilot"
@@ -871,7 +891,8 @@ final class HookServer: @unchecked Sendable {
         // Terminal sessions: only when turned on in Settings, else the terminal asks itself.
         let terminalHost = isCursorEditor || isVSCodeEditor ? nil
             : ClaudeHost.terminal(termProgram: termProgram, bundleId: bundleId)
-        let isTerminal = terminalHost != nil && ClaudeHost.terminalCardsEnabled
+        // Koncluí: Orca sessions show in the notch unless turned off (KoncluiOrcaCards, KoncluiPageRules.swift).
+        let isTerminal = terminalHost != nil && KoncluiOrcaCards.showsInNotch(isOrca: isOrcaSession, otherTerminalsOn: ClaudeHost.terminalCardsEnabled)
         guard isCodexRequest || isCopilotRequest || isMuseRequest || isHermesRequest || isCursorEditor || isVSCodeEditor || isTerminal else {
             Task.detached { [weak self] in
                 self?.sendLine(fd: fd, text: #"{"permissionDecision":"ask"}"#)
@@ -884,6 +905,7 @@ final class HookServer: @unchecked Sendable {
         let toolInput = payload["tool_input"] as? [String: Any] ?? [:]
         let inputKey = Self.approvalInputKey(toolInput)
         nbLog("PermissionRequest \(tool) [\(pillId)]")
+        if isOrcaSession { noteOrcaTerminal(payload, session: sessionId) }
 
         // AskUserQuestion is now handled via the dedicated --ask PreToolUse hook.
         // If it still arrives here as a PermissionRequest, reply "ask" so Claude Code
@@ -906,7 +928,8 @@ final class HookServer: @unchecked Sendable {
         let entry = QueuedApproval(id: UUID(), fd: fd, sessionId: sessionId, pillId: pillId,
                                    projectName: projectName, cwd: cwd, tool: tool,
                                    command: command, inputKey: inputKey,
-                                   hostApp: terminalHost?.bundleId, bundleId: bundleId)
+                                   hostApp: terminalHost?.bundleId,
+                                   bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId)
         guard approvals.enqueue(entry) == .accepted else {
             nbLog("PermissionRequest \(tool): \(ApprovalQueue.maxPending) already waiting, asked in the terminal")
             Task.detached { [weak self] in
@@ -920,9 +943,10 @@ final class HookServer: @unchecked Sendable {
         upsertTask(pill: pillId,
                    display: PillSessionRegistry.Display(session: sessionId, projectName: projectName,
                                                         cwd: cwd, hostApp: terminalHost?.bundleId,
-                                                        bundleId: bundleId),
+                                                        bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId),
                    working: true, externalAgent: nil)
         state.updateTask(id: pillId, state: .approval)
+        if isOrcaSession { syncOrcaFocus() }
         SoundEngine.shared.play("approval")
 
         // Monitor fd: if the agent closes the connection (answered in its own UI), drop the
@@ -995,7 +1019,13 @@ final class HookServer: @unchecked Sendable {
         let recapDecision = ["plan_auto": "allow", "plan_default": "allow", "plan_change": "deny"][decision] ?? decision
         RecapStore.shared.recordDecision(pillId: head.pillId, decision: recapDecision)
         removeApproval(id: head.id, answer: json)
-        if decision == "plan_change" { ClaudeHost.activate(head.hostApp) }
+        if decision == "plan_change" {
+            if head.pillId == ClaudeHost.orcaPillId {
+                ClaudeHost.focusOrca(handle: OrcaTerminals.shared.terminal(session: head.sessionId)?.handle)
+            } else {
+                ClaudeHost.activate(head.hostApp)
+            }
+        }
     }
 
     /// The plan's first non-empty line without its Markdown heading marks, for the card.
@@ -1029,8 +1059,11 @@ final class HookServer: @unchecked Sendable {
         #else
         let isCodexRequest = false
         #endif
+        let isOrcaSession = ClaudeHost.isOrca(termProgram: termProgram, bundleId: bundleId)
         let pillId: String
-        if isCodexRequest {
+        if isOrcaSession {
+            pillId = ClaudeHost.orcaPillId
+        } else if isCodexRequest {
             pillId = "agent_codex"
         } else if isCursorEditor {
             pillId = "agent_cursor"
@@ -1040,7 +1073,8 @@ final class HookServer: @unchecked Sendable {
         // Terminal sessions: only when turned on in Settings, else the terminal asks itself.
         let terminalHost = isCursorEditor || isVSCodeEditor ? nil
             : ClaudeHost.terminal(termProgram: termProgram, bundleId: bundleId)
-        let isTerminal = terminalHost != nil && ClaudeHost.terminalCardsEnabled
+        // Koncluí: Orca sessions show in the notch unless turned off (KoncluiOrcaCards, KoncluiPageRules.swift).
+        let isTerminal = terminalHost != nil && KoncluiOrcaCards.showsInNotch(isOrca: isOrcaSession, otherTerminalsOn: ClaudeHost.terminalCardsEnabled)
         guard isCodexRequest || isCursorEditor || isVSCodeEditor || isTerminal else {
             Task.detached { [weak self] in
                 self?.sendLine(fd: fd, text: #"{"permissionDecision":"ask"}"#)
@@ -1069,9 +1103,13 @@ final class HookServer: @unchecked Sendable {
         upsertTask(pill: pillId,
                    display: PillSessionRegistry.Display(session: sessionId, projectName: projectName,
                                                         cwd: cwd, hostApp: terminalHost?.bundleId,
-                                                        bundleId: bundleId),
+                                                        bundleId: isOrcaSession ? ClaudeHost.orcaBundleId : bundleId),
                    working: true, externalAgent: nil)
         state.updateTask(id: pillId, state: .question)
+        if isOrcaSession {
+            noteOrcaTerminal(payload, session: sessionId)
+            syncOrcaFocus()
+        }
         state.pendingQuestion = parsed
         state.isPinned = true
         SoundEngine.shared.play("approval")
@@ -1103,6 +1141,20 @@ final class HookServer: @unchecked Sendable {
             }
             self.dismissQuestionCard(note: "")
         }
+    }
+
+    /// Remembers the Orca terminal (handle and worktree, sent by nb-hook) a session runs in.
+    private func noteOrcaTerminal(_ payload: [String: Any], session: String) {
+        OrcaTerminals.shared.note(session: session,
+                                  handle: payload["orca_terminal"] as? String,
+                                  worktree: payload["orca_worktree"] as? String)
+    }
+
+    /// The Orca pill opens the terminal of the session that owns its card (the oldest one at work,
+    /// else the one that worked last): follows the registry's choice, like the pill's name.
+    @MainActor
+    private func syncOrcaFocus() {
+        OrcaTerminals.shared.focus(session: sessions.displayOwner(of: ClaudeHost.orcaPillId)?.session)
     }
 
     /// "VS Code", "Warp"… — where the Claude Code pill's current session runs.
@@ -1420,7 +1472,7 @@ final class HookServer: @unchecked Sendable {
                 if let hookList = matcher["hooks"] as? [[String: Any]] {
                     for hook in hookList {
                         if let cmd = hook["command"] as? String,
-                           cmd.contains("NotchBuddy") || cmd.contains("coucou") {
+                           cmd.contains("Konclui") || cmd.contains("konclui") {
                             hasCoucouHooks = true
                             if let timeout = hook["timeout"] as? Int, timeout < 120 { return true }
                         }
@@ -1436,7 +1488,7 @@ final class HookServer: @unchecked Sendable {
                 (m["matcher"] as? String) == "AskUserQuestion"
                 && (m["hooks"] as? [[String: Any]])?.contains {
                     let cmd = $0["command"] as? String ?? ""
-                    return cmd.contains("NotchBuddy") || cmd.contains("coucou")
+                    return cmd.contains("Konclui") || cmd.contains("konclui")
                 } ?? false
             }
             if !hasAskEntry { return true }
@@ -1445,33 +1497,45 @@ final class HookServer: @unchecked Sendable {
     }
 
     // MARK: - Claude Code settings.json hook installer
+    // ~/.claude/settings.json, or the settings.json of another Claude Code config folder:
+    // Koncluí's klaude (~/.klaude, KoncluiAgentHooks.swift) gets the same hooks through the same code.
 
-    private var _pendingHooksData: Data?
-    /// The bytes of settings.json the pending preview was computed from.
-    private var _pendingHooksOriginal: Data?
+    /// ~/.claude/settings.json
+    static var claudeSettingsURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/settings.json")
+    }
+
+    /// What each preview computed, per settings file: the new bytes, and the bytes of the file
+    /// they were computed from.
+    private var _pendingHooks: [String: (data: Data, original: Data?)] = [:]
 
     /// Returns preview JSON without writing — call writeClaudeHooks() to confirm.
-    func previewClaudeHooks() throws -> String {
-        let (data, original) = try buildHooksData()
-        _pendingHooksData = data
-        _pendingHooksOriginal = original
-        return String(data: data, encoding: .utf8) ?? ""
+    /// `install: false` previews the file without Koncluí's entries.
+    func previewClaudeHooks(at settingsURL: URL = HookServer.claudeSettingsURL, install: Bool = true) throws -> String {
+        let result: (data: Data, original: Data?)
+        if install {
+            result = try buildHooksData(at: settingsURL)
+        } else {
+            guard let removal = try hooksDataWithoutKoncluiEntries(at: settingsURL) else {
+                throw NSError(domain: "CoucouNoop", code: 0, userInfo: [
+                    NSLocalizedDescriptionKey: String(localized: "No Koncluí hooks to remove.")
+                ])
+            }
+            result = removal
+        }
+        _pendingHooks[settingsURL.path] = result
+        return String(data: result.data, encoding: .utf8) ?? ""
     }
 
     /// Writes the hooks to disk (call after user confirms preview).
     /// Refused if settings.json changed since the preview, or cannot be backed up.
-    func writeClaudeHooks() throws {
-        guard let data = _pendingHooksData else { return }
-        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/settings.json")
-        try ClaudeSettingsFile.write(data, to: settingsURL, expecting: _pendingHooksOriginal)
-        _pendingHooksData = nil
-        _pendingHooksOriginal = nil
+    func writeClaudeHooks(at settingsURL: URL = HookServer.claudeSettingsURL) throws {
+        guard let pending = _pendingHooks[settingsURL.path] else { return }
+        try ClaudeSettingsFile.write(pending.data, to: settingsURL, expecting: pending.original)
+        _pendingHooks[settingsURL.path] = nil
     }
 
-    private func buildHooksData() throws -> (data: Data, original: Data?) {
-        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/settings.json")
+    private func buildHooksData(at settingsURL: URL) throws -> (data: Data, original: Data?) {
         // Unreadable or invalid settings must stop here, never count as empty.
         let snapshot = try ClaudeSettingsFile.read(at: settingsURL)
         var settings = snapshot.object
@@ -1495,7 +1559,7 @@ final class HookServer: @unchecked Sendable {
         var hooks = try ClaudeSettingsFile.hooks(in: settings, name: "settings.json")
         for (event, timeout) in events {
             var existing = try ClaudeSettingsFile.hookGroups(in: hooks, event: event, name: "settings.json")
-            existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains { ($0["command"] as? String)?.contains("NotchBuddy") == true || ($0["command"] as? String)?.contains("coucou") == true } ?? false }
+            existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains { KoncluiHook.owns($0["command"] as? String) } ?? false }
             existing.append(["hooks": [["type": "command", "command": quotedCmd, "timeout": timeout]]])
             hooks[event] = existing
         }
@@ -1511,28 +1575,36 @@ final class HookServer: @unchecked Sendable {
         return (data, snapshot.bytes)
     }
 
-    func uninstallClaudeHooks() throws {
-        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/settings.json")
+    func uninstallClaudeHooks(at settingsURL: URL = HookServer.claudeSettingsURL) throws {
+        guard let (data, original) = try hooksDataWithoutKoncluiEntries(at: settingsURL) else { return }
+        try ClaudeSettingsFile.write(data, to: settingsURL, expecting: original)
+    }
+
+    /// The settings without Koncluí's hook entries (KoncluiHook.owns): the new bytes and the bytes of the
+    /// file they come from. nil when none of Koncluí's entries is there. Other tools' entries stay as they are.
+    private func hooksDataWithoutKoncluiEntries(at settingsURL: URL) throws -> (data: Data, original: Data?)? {
         let snapshot = try ClaudeSettingsFile.read(at: settingsURL)
         var settings = snapshot.object
-        guard var hooks = settings["hooks"] as? [String: Any] else { return }
+        guard var hooks = settings["hooks"] as? [String: Any] else { return nil }
 
+        var removedAny = false
         for key in hooks.keys {
             if var matchers = hooks[key] as? [[String: Any]] {
+                let before = matchers.count
                 matchers.removeAll { matcher in
                     (matcher["hooks"] as? [[String: Any]])?.contains {
-                        ($0["command"] as? String)?.contains("NotchBuddy") == true ||
-                        ($0["command"] as? String)?.contains("coucou") == true
+                        KoncluiHook.owns($0["command"] as? String)
                     } ?? false
                 }
+                if matchers.count != before { removedAny = true }
                 if matchers.isEmpty { hooks.removeValue(forKey: key) }
                 else { hooks[key] = matchers }
             }
         }
+        guard removedAny else { return nil }
         settings["hooks"] = hooks
         let newData = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-        try ClaudeSettingsFile.write(newData, to: settingsURL, expecting: snapshot.bytes)
+        return (newData, snapshot.bytes)
     }
 
     // MARK: - Claude plan status line installer
@@ -1549,7 +1621,7 @@ final class HookServer: @unchecked Sendable {
               let settings = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let sl = settings["statusLine"] as? [String: Any],
               let cmd = sl["command"] as? String else { return false }
-        return cmd.contains("nb-hook")
+        return KoncluiHook.owns(cmd)
     }
 
     private var _pendingStatusLineData: Data?
@@ -1586,13 +1658,13 @@ final class HookServer: @unchecked Sendable {
             try? clCheck.run()
             clCheck.waitUntilExit()
             if clCheck.terminationStatus != 0 {
-                throw NSError(domain: "Coucou", code: 1,
+                throw NSError(domain: "Koncluí", code: 1,
                               userInfo: [NSLocalizedDescriptionKey:
                                   "Command Line Tools are required but not installed. Run: xcode-select --install"])
             }
 
             if let existing = oldSL,
-               let cmd = existing["command"] as? String, !cmd.contains("nb-hook") {
+               let cmd = existing["command"] as? String, !KoncluiHook.owns(cmd) {
                 // Keep existing object but swap command; save old for later restoration
                 var updated = existing
                 updated["command"] = quotedCmd
@@ -1600,7 +1672,7 @@ final class HookServer: @unchecked Sendable {
                 _pendingPreviousData = try? JSONSerialization.data(withJSONObject: existing,
                                                                    options: [.prettyPrinted, .sortedKeys])
             } else if let existing = oldSL,
-                      let cmd = existing["command"] as? String, cmd.contains("nb-hook") {
+                      let cmd = existing["command"] as? String, KoncluiHook.owns(cmd) {
                 // Already installed — rebuild to update path if needed, keep other fields
                 var updated = existing
                 updated["command"] = quotedCmd
@@ -1610,7 +1682,7 @@ final class HookServer: @unchecked Sendable {
             }
         } else {
             // Uninstall: only if it's ours
-            if let cur = oldSL, let cmd = cur["command"] as? String, cmd.contains("nb-hook") {
+            if let cur = oldSL, let cmd = cur["command"] as? String, KoncluiHook.owns(cmd) {
                 if let prevData = try? Data(contentsOf: statusLinePreviousURL),
                    let prevObj = (try? JSONSerialization.jsonObject(with: prevData)) as? [String: Any] {
                     newSL = prevObj
@@ -1674,7 +1746,7 @@ final class HookServer: @unchecked Sendable {
         let (data, original) = try buildHooksData(claudeURL: claudeURL)
 
         // Write nb-hook (shell wrapper) + nb-hook.py (Python relay) into ~/.claude/coucou/
-        let coucouDir = claudeURL.appendingPathComponent("coucou")
+        let coucouDir = claudeURL.appendingPathComponent("konclui")
         try FileManager.default.createDirectory(at: coucouDir, withIntermediateDirectories: true)
         let wrapperURL = coucouDir.appendingPathComponent("nb-hook")
         try nbHookShellWrapper.write(to: wrapperURL, atomically: true, encoding: .utf8)
@@ -1698,8 +1770,8 @@ final class HookServer: @unchecked Sendable {
             if var matchers = hooks[key] as? [[String: Any]] {
                 matchers.removeAll { matcher in
                     (matcher["hooks"] as? [[String: Any]])?.contains {
-                        ($0["command"] as? String)?.contains("coucou") == true ||
-                        ($0["command"] as? String)?.contains("NotchBuddy") == true
+                        ($0["command"] as? String)?.contains("konclui") == true ||
+                        ($0["command"] as? String)?.contains("Konclui") == true
                     } ?? false
                 }
                 if matchers.isEmpty { hooks.removeValue(forKey: key) }
@@ -1718,7 +1790,7 @@ final class HookServer: @unchecked Sendable {
         let snapshot = try ClaudeSettingsFile.read(at: settingsURL)
         var settings = snapshot.object
         // Derive hook path from the panel-selected claudeURL (real ~/.claude, not container)
-        let hookPath = claudeURL.appendingPathComponent("coucou/nb-hook").path
+        let hookPath = claudeURL.appendingPathComponent("konclui/nb-hook").path
         let quotedCmd = "/bin/sh \"\(hookPath.replacingOccurrences(of: "\"", with: "\\\""))\""
         let events: [(String, Int)] = [
             ("SessionStart", 10), ("SessionEnd", 10),
@@ -1734,8 +1806,8 @@ final class HookServer: @unchecked Sendable {
         for (event, timeout) in events {
             var existing = try ClaudeSettingsFile.hookGroups(in: hooks, event: event, name: "settings.json")
             existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains {
-                ($0["command"] as? String)?.contains("coucou") == true ||
-                ($0["command"] as? String)?.contains("NotchBuddy") == true
+                ($0["command"] as? String)?.contains("konclui") == true ||
+                ($0["command"] as? String)?.contains("Konclui") == true
             } ?? false }
             existing.append(["hooks": [["type": "command", "command": quotedCmd, "timeout": timeout]]])
             hooks[event] = existing
@@ -1793,12 +1865,12 @@ final class HookServer: @unchecked Sendable {
                 if let innerHooks = group["hooks"] as? [[String: Any]] {
                     for hook in innerHooks {
                         if let cmd = hook["command"] as? String,
-                           cmd.contains("nb-hook"), cmd.contains("--agent gemini") { return true }
+                           KoncluiHook.owns(cmd), cmd.contains("--agent gemini") { return true }
                     }
                 }
                 // Legacy flat entry
                 if let cmd = group["command"] as? String,
-                   cmd.contains("nb-hook"), cmd.contains("--agent gemini") { return true }
+                   KoncluiHook.owns(cmd), cmd.contains("--agent gemini") { return true }
             }
         }
         return false
@@ -1807,7 +1879,7 @@ final class HookServer: @unchecked Sendable {
     static func agyHooksInstalled() -> Bool {
         guard let data = try? Data(contentsOf: agyHooksURL),
               let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let coucou = root["coucou"] else { return false }
+              let coucou = root["konclui"] else { return false }
         let json = (try? JSONSerialization.data(withJSONObject: coucou))
             .flatMap { String(data: $0, encoding: .utf8) } ?? ""
         return json.contains("nb-hook")
@@ -1838,7 +1910,7 @@ final class HookServer: @unchecked Sendable {
         let url = Self.geminiSettingsURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "~/.gemini/settings.json changed since preview. Refresh and try again."
             ])
         }
@@ -1851,8 +1923,8 @@ final class HookServer: @unchecked Sendable {
         var settings = try Self.strictReadJSONObject(at: Self.geminiSettingsURL,
                                                      label: "~/.gemini/settings.json")
         if let raw = settings["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.gemini/settings.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.gemini/settings.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         let base = hookBase()
@@ -1868,8 +1940,8 @@ final class HookServer: @unchecked Sendable {
         var hooks = settings["hooks"] as? [String: Any] ?? [:]
         for (geminiEvent, normalizedEvent, timeout) in events {
             if let raw = hooks[geminiEvent], !(raw is [[String: Any]]) {
-                throw NSError(domain: "Coucou", code: 2, userInfo: [
-                    NSLocalizedDescriptionKey: "~/.gemini/settings.json: \"hooks\"[\"\(geminiEvent)\"] has an unexpected type — Coucou has not touched it."
+                throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                    NSLocalizedDescriptionKey: "~/.gemini/settings.json: \"hooks\"[\"\(geminiEvent)\"] has an unexpected type — Koncluí has not touched it."
                 ])
             }
             var groups = hooks[geminiEvent] as? [[String: Any]] ?? []
@@ -1892,8 +1964,8 @@ final class HookServer: @unchecked Sendable {
         var settings = try Self.strictReadJSONObject(at: Self.geminiSettingsURL,
                                                      label: "~/.gemini/settings.json")
         if let raw = settings["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.gemini/settings.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.gemini/settings.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         if var hooks = settings["hooks"] as? [String: Any] {
@@ -1934,7 +2006,7 @@ final class HookServer: @unchecked Sendable {
         let url = Self.agyHooksURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "~/.gemini/config/hooks.json changed since preview. Refresh and try again."
             ])
         }
@@ -1962,7 +2034,7 @@ final class HookServer: @unchecked Sendable {
                                        "timeout": 10]
             coucou[event] = [hook]
         }
-        root["coucou"] = coucou
+        root["konclui"] = coucou
         return try JSONSerialization.data(withJSONObject: root,
                                          options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     }
@@ -1970,7 +2042,7 @@ final class HookServer: @unchecked Sendable {
     private func withoutAgyHooks() throws -> Data {
         var root = try Self.strictReadJSONObject(at: Self.agyHooksURL,
                                                  label: "~/.gemini/config/hooks.json")
-        root.removeValue(forKey: "coucou")
+        root.removeValue(forKey: "konclui")
         return try JSONSerialization.data(withJSONObject: root,
                                          options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     }
@@ -1990,13 +2062,13 @@ final class HookServer: @unchecked Sendable {
         let data: Data
         do { data = try Data(contentsOf: url) }
         catch {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "\(label) cannot be read — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "\(label) cannot be read — Koncluí has not touched it."
             ])
         }
         guard let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "\(label) is not valid JSON — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "\(label) is not valid JSON — Koncluí has not touched it."
             ])
         }
         return obj
@@ -2013,7 +2085,7 @@ final class HookServer: @unchecked Sendable {
                 .appendingPathComponent("\(suffix).bak-\(fmt.string(from: Date()))")
             do { try fm.copyItem(at: url, to: backupURL) }
             catch {
-                throw NSError(domain: "Coucou", code: 3, userInfo: [
+                throw NSError(domain: "Koncluí", code: 3, userInfo: [
                     NSLocalizedDescriptionKey: "Could not back up \(url.lastPathComponent): \(error.localizedDescription)"
                 ])
             }
@@ -2022,16 +2094,16 @@ final class HookServer: @unchecked Sendable {
         try data.write(to: url, options: .atomic)
     }
 
-    /// Removes entries containing "nb-hook" from a Gemini-format groups array.
+    /// Removes Koncluí's own entries (KoncluiHook.owns) from a Gemini-format groups array.
     /// Handles both new group format (matcher + hooks[]) and legacy flat format (command at top level).
     /// Returns the cleaned array; empty groups (after inner-hook removal) are dropped.
     private func removeNbHookEntries(from groups: [[String: Any]]) -> [[String: Any]] {
         groups.compactMap { group -> [String: Any]? in
             // Legacy flat entry — command at group level
-            if let cmd = group["command"] as? String, cmd.contains("nb-hook") { return nil }
+            if let cmd = group["command"] as? String, KoncluiHook.owns(cmd) { return nil }
             // Group format — filter inner hooks
             if var innerHooks = group["hooks"] as? [[String: Any]] {
-                innerHooks.removeAll { ($0["command"] as? String)?.contains("nb-hook") == true }
+                innerHooks.removeAll { KoncluiHook.owns($0["command"] as? String) }
                 if innerHooks.isEmpty { return nil }
                 var updated = group
                 updated["hooks"] = innerHooks
@@ -2058,7 +2130,7 @@ final class HookServer: @unchecked Sendable {
                 if let innerHooks = group["hooks"] as? [[String: Any]] {
                     for hook in innerHooks {
                         if let cmd = hook["command"] as? String,
-                           cmd.contains("nb-hook"), cmd.contains("--agent codex") { return true }
+                           KoncluiHook.owns(cmd), cmd.contains("--agent codex") { return true }
                     }
                 }
             }
@@ -2089,7 +2161,7 @@ final class HookServer: @unchecked Sendable {
         let url = Self.codexHooksURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "~/.codex/hooks.json changed since preview. Refresh and try again."
             ])
         }
@@ -2101,8 +2173,8 @@ final class HookServer: @unchecked Sendable {
     private func buildCodexHooksData() throws -> Data {
         var root = try Self.strictReadJSONObject(at: Self.codexHooksURL, label: "~/.codex/hooks.json")
         if let raw = root["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.codex/hooks.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.codex/hooks.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         let base = hookBase()
@@ -2112,7 +2184,7 @@ final class HookServer: @unchecked Sendable {
             ("SessionStart",    10,  nil),
             ("UserPromptSubmit", 10, nil),
             ("PreToolUse",      10,  nil),
-            ("PermissionRequest", 120, "Waiting for your answer in the notch (Coucou)"),
+            ("PermissionRequest", 120, "Waiting for your answer in the notch (Koncluí)"),
             ("PostToolUse",     10,  nil),
             ("Stop",            10,  nil),
             ("SubagentStart",   10,  nil),
@@ -2123,8 +2195,8 @@ final class HookServer: @unchecked Sendable {
         var hooks = root["hooks"] as? [String: Any] ?? [:]
         for (event, timeout, statusMsg) in events {
             if let raw = hooks[event], !(raw is [[String: Any]]) {
-                throw NSError(domain: "Coucou", code: 2, userInfo: [
-                    NSLocalizedDescriptionKey: "~/.codex/hooks.json: \"hooks\"[\"\(event)\"] has an unexpected type — Coucou has not touched it."
+                throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                    NSLocalizedDescriptionKey: "~/.codex/hooks.json: \"hooks\"[\"\(event)\"] has an unexpected type — Koncluí has not touched it."
                 ])
             }
             var groups = hooks[event] as? [[String: Any]] ?? []
@@ -2147,8 +2219,8 @@ final class HookServer: @unchecked Sendable {
     private func withoutCodexHooks() throws -> Data {
         var root = try Self.strictReadJSONObject(at: Self.codexHooksURL, label: "~/.codex/hooks.json")
         if let raw = root["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.codex/hooks.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.codex/hooks.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         if var hooks = root["hooks"] as? [String: Any] {
@@ -2168,7 +2240,7 @@ final class HookServer: @unchecked Sendable {
 
     static var copilotHooksURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".copilot/hooks/coucou.json")
+            .appendingPathComponent(".copilot/hooks/konclui.json")
     }
 
     /// True when ~/.copilot/hooks/coucou.json already routes Copilot events to Coucou's nb-hook.
@@ -2180,7 +2252,7 @@ final class HookServer: @unchecked Sendable {
             guard let entries = value as? [[String: Any]] else { continue }
             for entry in entries {
                 if let cmd = entry["bash"] as? String,
-                   cmd.contains("nb-hook"), cmd.contains("--agent copilot") { return true }
+                   KoncluiHook.owns(cmd), cmd.contains("--agent copilot") { return true }
             }
         }
         return false
@@ -2214,12 +2286,12 @@ final class HookServer: @unchecked Sendable {
         let url = Self.copilotHooksURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "~/.copilot/hooks/coucou.json changed since preview. Refresh and try again."
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "~/.copilot/hooks/konclui.json changed since preview. Refresh and try again."
             ])
         }
         if let data = _pendingCopilotData {
-            try writeJSONFile(data, to: url, suffix: "coucou.json")
+            try writeJSONFile(data, to: url, suffix: "konclui.json")
         } else {
             // Uninstall: delete the file entirely
             try FileManager.default.removeItem(at: url)
@@ -2230,10 +2302,10 @@ final class HookServer: @unchecked Sendable {
 
     private func buildCopilotHooksData() throws -> Data {
         var root = try Self.strictReadJSONObject(at: Self.copilotHooksURL,
-                                                  label: "~/.copilot/hooks/coucou.json")
+                                                  label: "~/.copilot/hooks/konclui.json")
         if let raw = root["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.copilot/hooks/coucou.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.copilot/hooks/konclui.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         let base = hookBase()
@@ -2253,12 +2325,12 @@ final class HookServer: @unchecked Sendable {
         var hooks = root["hooks"] as? [String: Any] ?? [:]
         for (event, timeout) in events {
             if let raw = hooks[event], !(raw is [[String: Any]]) {
-                throw NSError(domain: "Coucou", code: 2, userInfo: [
-                    NSLocalizedDescriptionKey: "~/.copilot/hooks/coucou.json: \"hooks\"[\"\(event)\"] has an unexpected type — Coucou has not touched it."
+                throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                    NSLocalizedDescriptionKey: "~/.copilot/hooks/konclui.json: \"hooks\"[\"\(event)\"] has an unexpected type — Koncluí has not touched it."
                 ])
             }
             var entries = hooks[event] as? [[String: Any]] ?? []
-            entries.removeAll { ($0["bash"] as? String)?.contains("nb-hook") == true }
+            entries.removeAll { KoncluiHook.owns($0["bash"] as? String) }
             entries.append(["type": "command", "bash": "\(base) --agent copilot \(event)", "timeoutSec": timeout])
             hooks[event] = entries
         }
@@ -2270,11 +2342,11 @@ final class HookServer: @unchecked Sendable {
 
     private func withoutCopilotHooks() throws -> Data {
         var root = try Self.strictReadJSONObject(at: Self.copilotHooksURL,
-                                                  label: "~/.copilot/hooks/coucou.json")
+                                                  label: "~/.copilot/hooks/konclui.json")
         if var hooks = root["hooks"] as? [String: Any] {
             for key in hooks.keys {
                 if var entries = hooks[key] as? [[String: Any]] {
-                    entries.removeAll { ($0["command"] as? String)?.contains("nb-hook") == true }
+                    entries.removeAll { KoncluiHook.owns($0["command"] as? String) }
                     if entries.isEmpty { hooks.removeValue(forKey: key) } else { hooks[key] = entries }
                 }
             }
@@ -2302,11 +2374,11 @@ final class HookServer: @unchecked Sendable {
                 if let innerHooks = group["hooks"] as? [[String: Any]] {
                     for h in innerHooks {
                         if let cmd = h["command"] as? String,
-                           cmd.contains("nb-hook"), cmd.contains("--agent muse") { return true }
+                           KoncluiHook.owns(cmd), cmd.contains("--agent muse") { return true }
                     }
                 }
                 if let cmd = group["command"] as? String,
-                   cmd.contains("nb-hook"), cmd.contains("--agent muse") { return true }
+                   KoncluiHook.owns(cmd), cmd.contains("--agent muse") { return true }
             }
         }
         return false
@@ -2335,7 +2407,7 @@ final class HookServer: @unchecked Sendable {
         let url = Self.museSettingsURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "~/.config/muse/settings.json changed since preview. Refresh and try again."
             ])
         }
@@ -2348,8 +2420,8 @@ final class HookServer: @unchecked Sendable {
         var settings = try Self.strictReadJSONObject(at: Self.museSettingsURL,
                                                       label: "~/.config/muse/settings.json")
         if let raw = settings["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.config/muse/settings.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.config/muse/settings.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         let base = hookBase()
@@ -2367,8 +2439,8 @@ final class HookServer: @unchecked Sendable {
         var hooks = settings["hooks"] as? [String: Any] ?? [:]
         for (event, timeoutSec) in events {
             if let raw = hooks[event], !(raw is [[String: Any]]) {
-                throw NSError(domain: "Coucou", code: 2, userInfo: [
-                    NSLocalizedDescriptionKey: "~/.config/muse/settings.json: \"hooks\"[\"\(event)\"] has an unexpected type — Coucou has not touched it."
+                throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                    NSLocalizedDescriptionKey: "~/.config/muse/settings.json: \"hooks\"[\"\(event)\"] has an unexpected type — Koncluí has not touched it."
                 ])
             }
             var groups = hooks[event] as? [[String: Any]] ?? []
@@ -2391,8 +2463,8 @@ final class HookServer: @unchecked Sendable {
         var settings = try Self.strictReadJSONObject(at: Self.museSettingsURL,
                                                       label: "~/.config/muse/settings.json")
         if let raw = settings["hooks"], !(raw is [String: Any]) {
-            throw NSError(domain: "Coucou", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "~/.config/muse/settings.json: \"hooks\" has an unexpected type — Coucou has not touched it."
+            throw NSError(domain: "Koncluí", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "~/.config/muse/settings.json: \"hooks\" has an unexpected type — Koncluí has not touched it."
             ])
         }
         if var hooks = settings["hooks"] as? [String: Any] {
@@ -2415,7 +2487,7 @@ final class HookServer: @unchecked Sendable {
 
     static var openCodePluginURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/opencode/plugins/coucou.js")
+            .appendingPathComponent(".config/opencode/plugins/konclui.js")
     }
 
     static func openCodePluginInstalled() -> Bool {
@@ -2428,8 +2500,8 @@ final class HookServer: @unchecked Sendable {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'", with: "\\'")
         return """
-// Coucou hook plugin for OpenCode — generated by Coucou.app
-// Forwards every event to the Coucou notch (fire-and-forget, never blocks).
+// Koncluí hook plugin for OpenCode — generated by Konclui.app
+// Forwards every event to the Koncluí notch (fire-and-forget, never blocks).
 import { spawn } from 'node:child_process';
 
 const HOOK = '\(path)';
@@ -2509,8 +2581,8 @@ export const CoucouPlugin = async (_ctx) => ({
         let url = Self.openCodePluginURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "~/.config/opencode/plugins/coucou.js changed since preview. Refresh and try again."
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "~/.config/opencode/plugins/konclui.js changed since preview. Refresh and try again."
             ])
         }
         guard let content = _pendingOpenCodeContent else {
@@ -2523,7 +2595,7 @@ export const CoucouPlugin = async (_ctx) => ({
             fmt.locale = Locale(identifier: "en_US_POSIX")
             fmt.dateFormat = "yyyyMMdd-HHmmss"
             let backupURL = url.deletingLastPathComponent()
-                .appendingPathComponent("coucou.js.bak-\(fmt.string(from: Date()))")
+                .appendingPathComponent("konclui.js.bak-\(fmt.string(from: Date()))")
             try fm.copyItem(at: url, to: backupURL)
         }
         try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -2536,9 +2608,9 @@ export const CoucouPlugin = async (_ctx) => ({
         let url = Self.openCodePluginURL
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        guard content.contains("generated by Coucou") else {
-            throw NSError(domain: "Coucou", code: 3, userInfo: [
-                NSLocalizedDescriptionKey: "~/.config/opencode/plugins/coucou.js was not generated by Coucou — not deleting it."
+        guard content.contains("generated by Konclui") else {
+            throw NSError(domain: "Koncluí", code: 3, userInfo: [
+                NSLocalizedDescriptionKey: "~/.config/opencode/plugins/konclui.js was not generated by Konclui — not deleting it."
             ])
         }
         try FileManager.default.removeItem(at: url)
@@ -2551,7 +2623,7 @@ export const CoucouPlugin = async (_ctx) => ({
 
     static var ampPluginURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/amp/plugins/coucou.ts")
+            .appendingPathComponent(".config/amp/plugins/konclui.ts")
     }
 
     static func ampPluginInstalled() -> Bool {
@@ -2564,8 +2636,8 @@ export const CoucouPlugin = async (_ctx) => ({
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'", with: "\\'")
         return """
-// Coucou hook plugin for Amp — generated by Coucou.app
-// Forwards every event to the Coucou notch (display only, never blocks).
+// Koncluí hook plugin for Amp — generated by Konclui.app
+// Forwards every event to the Koncluí notch (display only, never blocks).
 import { spawn } from 'node:child_process';
 
 const HOOK = '\(path)';
@@ -2617,8 +2689,8 @@ export default function (amp: any): void {
         let url = Self.ampPluginURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "~/.config/amp/plugins/coucou.ts changed since preview. Refresh and try again."
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "~/.config/amp/plugins/konclui.ts changed since preview. Refresh and try again."
             ])
         }
         guard let content = _pendingAmpContent else {
@@ -2631,7 +2703,7 @@ export default function (amp: any): void {
             fmt.locale = Locale(identifier: "en_US_POSIX")
             fmt.dateFormat = "yyyyMMdd-HHmmss"
             let backupURL = url.deletingLastPathComponent()
-                .appendingPathComponent("coucou.ts.bak-\(fmt.string(from: Date()))")
+                .appendingPathComponent("konclui.ts.bak-\(fmt.string(from: Date()))")
             try fm.copyItem(at: url, to: backupURL)
         }
         try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -2644,9 +2716,9 @@ export default function (amp: any): void {
         let url = Self.ampPluginURL
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        guard content.contains("generated by Coucou") else {
-            throw NSError(domain: "Coucou", code: 3, userInfo: [
-                NSLocalizedDescriptionKey: "~/.config/amp/plugins/coucou.ts was not generated by Coucou — not deleting it."
+        guard content.contains("generated by Konclui") else {
+            throw NSError(domain: "Koncluí", code: 3, userInfo: [
+                NSLocalizedDescriptionKey: "~/.config/amp/plugins/konclui.ts was not generated by Konclui — not deleting it."
             ])
         }
         try FileManager.default.removeItem(at: url)
@@ -2661,7 +2733,7 @@ export default function (amp: any): void {
 
     static var hermesPluginDir: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".hermes/plugins/coucou")
+            .appendingPathComponent(".hermes/plugins/konclui")
     }
     static var hermesInitPyURL: URL { hermesPluginDir.appendingPathComponent("__init__.py") }
     static var hermesPluginYamlURL: URL { hermesPluginDir.appendingPathComponent("plugin.yaml") }
@@ -2761,8 +2833,8 @@ export default function (amp: any): void {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'", with: "\\'")
         return """
-# Coucou hook plugin for Hermes Agent — generated by Coucou.app
-# Session/tool events → Coucou notch (fire-and-forget, never blocks).
+# Koncluí hook plugin for Hermes Agent — generated by Konclui.app
+# Session/tool events → Koncluí notch (fire-and-forget, never blocks).
 # Approval transport: uses register_approval_transport when available (future Hermes),
 # falls back to pre_approval_request observer-only hook (hermes 0.15.x).
 import json, subprocess, threading
@@ -2851,7 +2923,7 @@ def register(ctx) -> None:
     ctx.register_hook('post_tool_call',   post_tool_call)
 
     if hasattr(ctx, 'register_approval_transport'):
-        # Hermes version supports transport API — Coucou shows a real Allow/Deny card
+        # Hermes version supports transport API — Koncluí shows a real Allow/Deny card
         # and returns the user's choice to Hermes.
         def _present(request) -> object:
             sid = (getattr(request, 'session_id', None)
@@ -2887,7 +2959,7 @@ def register(ctx) -> None:
                 # Fall back to Hermes' native prompt on any error.
                 return request.respond('deny')
 
-        ctx.register_approval_transport('coucou', _present)
+        ctx.register_approval_transport('konclui', _present)
     else:
         # Observer-only hook (hermes 0.15.x): Hermes still controls the decision.
         # Fire a PreToolUse-style step so the notch shows "⏳ Approval pending in Hermes"
@@ -2909,9 +2981,9 @@ def register(ctx) -> None:
     }
 
     private static let hermesPluginYaml = """
-name: coucou
+name: konclui
 version: "1.0"
-description: Coucou notch integration — generated by Coucou.app
+description: Koncluí notch integration — generated by Konclui.app
 """
 
     /// Merges Coucou keys into a Hermes config.yaml string without touching other settings.
@@ -2970,7 +3042,7 @@ description: Coucou notch integration — generated by Coucou.app
         }
 
         // --- security.approval ---
-        let transportLine = "\(ind2)transport: coucou"
+        let transportLine = "\(ind2)transport: konclui"
         let fallbackLine  = "\(ind2)transport_fallback: builtin"
 
         func ensureApprovalTransport() {
@@ -3015,7 +3087,7 @@ description: Coucou notch integration — generated by Coucou.app
             // Only remove exact Coucou-written transport keys; don't touch unrelated keys.
             lines.removeAll { line in
                 let t = line.trimmingCharacters(in: .whitespaces)
-                return t == "transport: coucou" || t == "transport_fallback: builtin"
+                return t == "transport: konclui" || t == "transport_fallback: builtin"
             }
         }
 
@@ -3035,36 +3107,36 @@ description: Coucou notch integration — generated by Coucou.app
                     let trimmed = enabledLine.trimmingCharacters(in: .whitespaces)
                     if trimmed.contains("[") && trimmed.contains("]") {
                         // Inline list: enabled: [x, y]  or  enabled: []
-                        if trimmed.contains("coucou") { return }   // already present
+                        if trimmed.contains("konclui") { return }   // already present
                         if trimmed == "enabled: []" || trimmed == "enabled:[]" {
                             // Empty inline list → expand to block entry
                             let prefix = enabledLine.prefix(while: { $0 == " " })
                             lines[enabledIdx] = "\(prefix)enabled:"
-                            lines.insert("\(prefix)\(ind)- coucou", at: enabledIdx + 1)
+                            lines.insert("\(prefix)\(ind)- konclui", at: enabledIdx + 1)
                         } else {
-                            lines[enabledIdx] = enabledLine.replacingOccurrences(of: "]", with: ", coucou]")
+                            lines[enabledIdx] = enabledLine.replacingOccurrences(of: "]", with: ", konclui]")
                         }
                     } else {
                         // Block list — check if coucou is already a child of this enabled:
                         let enabledRange = sectionRange(from: enabledIdx)
                         let alreadyPresent = (enabledRange.lowerBound + 1 ..< enabledRange.upperBound)
-                            .contains { lines[$0].trimmingCharacters(in: .whitespaces) == "- coucou" }
+                            .contains { lines[$0].trimmingCharacters(in: .whitespaces) == "- konclui" }
                         if alreadyPresent { return }
                         // Insert after enabled:
                         let prefix = enabledLine.prefix(while: { $0 == " " })
-                        lines.insert("\(prefix)\(ind)- coucou", at: enabledIdx + 1)
+                        lines.insert("\(prefix)\(ind)- konclui", at: enabledIdx + 1)
                     }
                 } else {
                     // No enabled: key under plugins: — insert after plugins:
                     lines.insert("\(ind)enabled:", at: pluginsIdx + 1)
-                    lines.insert("\(ind)\(ind)- coucou", at: pluginsIdx + 2)
+                    lines.insert("\(ind)\(ind)- konclui", at: pluginsIdx + 2)
                 }
             } else {
                 // No plugins: section — append
                 if lines.last != "" { lines.append("") }
                 lines.append("plugins:")
                 lines.append("\(ind)enabled:")
-                lines.append("\(ind)\(ind)- coucou")
+                lines.append("\(ind)\(ind)- konclui")
             }
         }
 
@@ -3081,9 +3153,9 @@ description: Coucou notch integration — generated by Coucou.app
             if trimmed.contains("[") && trimmed.contains("]") {
                 // Inline list: remove coucou from it
                 let cleaned = trimmed
-                    .replacingOccurrences(of: ", coucou", with: "")
-                    .replacingOccurrences(of: "coucou, ", with: "")
-                    .replacingOccurrences(of: "coucou",   with: "")
+                    .replacingOccurrences(of: ", konclui", with: "")
+                    .replacingOccurrences(of: "konclui, ", with: "")
+                    .replacingOccurrences(of: "konclui",   with: "")
                 let prefix = enabledLine.prefix(while: { $0 == " " })
                 lines[enabledIdx] = "\(prefix)\(cleaned)"
             } else {
@@ -3091,7 +3163,7 @@ description: Coucou notch integration — generated by Coucou.app
                 let enabledRange = sectionRange(from: enabledIdx)
                 // Collect indices to remove first, then remove in reverse to preserve indices.
                 let toRemove = (enabledRange.lowerBound + 1 ..< enabledRange.upperBound)
-                    .filter { lines[$0].trimmingCharacters(in: .whitespaces) == "- coucou" }
+                    .filter { lines[$0].trimmingCharacters(in: .whitespaces) == "- konclui" }
                 for i in toRemove.reversed() { lines.remove(at: i) }
             }
         }
@@ -3125,8 +3197,8 @@ description: Coucou notch integration — generated by Coucou.app
         let url = Self.hermesInitPyURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "~/.hermes/plugins/coucou/__init__.py changed since preview. Refresh and try again."
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "~/.hermes/plugins/konclui/__init__.py changed since preview. Refresh and try again."
             ])
         }
         let fm = FileManager.default
@@ -3144,7 +3216,7 @@ description: Coucou notch integration — generated by Coucou.app
             try Self.hermesPluginYaml.write(to: Self.hermesPluginYamlURL, atomically: true, encoding: .utf8)
             // Register the plugin with the Hermes CLI so it appears in plugins.enabled.
             // Best-effort — silently ignored if hermes is not on PATH.
-            try? Self.runHermesCLI(["plugins", "enable", "coucou"])
+            try? Self.runHermesCLI(["plugins", "enable", "konclui"])
         }
         _pendingHermesPluginContent = nil
         _pendingHermesPluginFingerprint = nil
@@ -3154,14 +3226,14 @@ description: Coucou notch integration — generated by Coucou.app
         let url = Self.hermesInitPyURL
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        guard content.contains("generated by Coucou") else {
-            throw NSError(domain: "Coucou", code: 3, userInfo: [
-                NSLocalizedDescriptionKey: "~/.hermes/plugins/coucou/__init__.py was not generated by Coucou — not deleting it."
+        guard content.contains("generated by Konclui") else {
+            throw NSError(domain: "Koncluí", code: 3, userInfo: [
+                NSLocalizedDescriptionKey: "~/.hermes/plugins/konclui/__init__.py was not generated by Konclui — not deleting it."
             ])
         }
         // Remove from hermes plugins.enabled first, then delete the files.
         // Best-effort — silently ignored if hermes is not on PATH.
-        try? Self.runHermesCLI(["plugins", "disable", "coucou"])
+        try? Self.runHermesCLI(["plugins", "disable", "konclui"])
         try FileManager.default.removeItem(at: Self.hermesPluginDir)
     }
 
@@ -3198,8 +3270,8 @@ description: Coucou notch integration — generated by Coucou.app
         let effectiveApprovals = enableApprovals && supportsTransport
         guard let merged = Self.mergedHermesConfig(base, enableApprovals: effectiveApprovals) else {
             _pendingHermesConfigContent = nil
-            throw NSError(domain: "Coucou", code: 4, userInfo: [
-                NSLocalizedDescriptionKey: "~/.hermes/config.yaml uses an unsupported structure (flow maps, YAML anchors, or multi-document). Edit it manually and add:\n  security:\n    approval:\n      transport: coucou\n      transport_fallback: builtin"
+            throw NSError(domain: "Koncluí", code: 4, userInfo: [
+                NSLocalizedDescriptionKey: "~/.hermes/config.yaml uses an unsupported structure (flow maps, YAML anchors, or multi-document). Edit it manually and add:\n  security:\n    approval:\n      transport: konclui\n      transport_fallback: builtin"
             ])
         }
         _pendingHermesConfigContent = merged
@@ -3212,7 +3284,7 @@ description: Coucou notch integration — generated by Coucou.app
         let url = Self.hermesConfigURL
         let current = (try? Data(contentsOf: url)) ?? Data()
         guard sha256Hex(current) == fp else {
-            throw NSError(domain: "Coucou", code: 1, userInfo: [
+            throw NSError(domain: "Koncluí", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "~/.hermes/config.yaml changed since preview. Refresh and try again."
             ])
         }
@@ -3253,7 +3325,7 @@ extension Notification.Name {
 
 private let nbHookShellWrapper = """
 #!/bin/sh
-# Coucou hook relay — always exits 0, never blocks Claude Code
+# Koncluí hook relay — always exits 0, never blocks Claude Code
 HOOK_DIR="$(dirname "$0")"
 out=""
 if xcode-select -p >/dev/null 2>&1; then
@@ -3289,8 +3361,8 @@ exit 0
 
 private let nbHookPythonGitHub = """
 #!/usr/bin/env python3
-# nb-hook.py — Coucou hook relay for Claude Code and third-party agents (GitHub version)
-# Reads JSON from stdin, forwards to Coucou via Unix socket, translates response.
+# nb-hook.py — Koncluí hook relay for Claude Code and third-party agents (GitHub version)
+# Reads JSON from stdin, forwards to Koncluí via Unix socket, translates response.
 import sys, json, os, socket
 
 def normalize_event(name):
@@ -3349,6 +3421,14 @@ def normalize_tool_fields(payload):
     if not payload.get('cwd') and payload.get('workdir'):
         payload['cwd'] = payload['workdir']
 
+def add_orca_context(payload):
+    # Orca's terminals: the terminal handle and the worktree id let a click on the Orca pill open
+    # this exact terminal. Only these two ORCA_* values are read, never the hook token.
+    for key, var in (('orca_terminal', 'ORCA_TERMINAL_HANDLE'), ('orca_worktree', 'ORCA_WORKTREE_ID')):
+        value = os.environ.get(var, '')
+        if value:
+            payload.setdefault(key, value)
+
 def add_session_name(payload):
     # Name the pill after the folder the session started in, not the current cwd (the
     # agent may cd into subfolders), or after the session's /rename title. Both come
@@ -3394,10 +3474,10 @@ def main():
             return
 
     socket_path = os.path.expanduser(
-        '~/Library/Application Support/NotchBuddy/nb.sock'
+        '~/Library/Application Support/Konclui/nb.sock'
     )
 
-    # --statusline mode: relay rate_limits to Coucou, then delegate to saved previous
+    # --statusline mode: relay rate_limits to Koncluí, then delegate to saved previous
     if '--statusline' in sys.argv[1:]:
         relay = {
             'coucou_kind': 'statusline',
@@ -3440,6 +3520,7 @@ def main():
         payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
         payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
         payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+        add_orca_context(payload)
         if 'cwd' not in payload or not payload['cwd']:
             paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
             if isinstance(paths, list) and paths:
@@ -3508,6 +3589,7 @@ def main():
     payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
     payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
     payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+    add_orca_context(payload)
     if 'cwd' not in payload or not payload['cwd']:
         paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
         if isinstance(paths, list) and paths:
@@ -3529,7 +3611,7 @@ def main():
     # socket_path is already defined above
 
     if event == 'PermissionRequest':
-        # Block and wait for Coucou's decision (Claude Code allows up to 120s)
+        # Block and wait for Koncluí's decision (Claude Code allows up to 120s)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.settimeout(118)
@@ -3582,7 +3664,7 @@ def main():
                     if agent in ('copilot', 'muse'):
                         out = {'permissionDecision': 'deny'}
                     else:
-                        out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from Coucou'}}}
+                        out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from Koncluí'}}}
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
@@ -3623,7 +3705,7 @@ def main():
         pass  # Always exit cleanly — never block the agent
 
     # Antigravity needs a decision on PreToolUse ({} reads as a denial). "ask" keeps its own
-    # permission prompt (and the user's Always Allow); Coucou never allows a tool by itself.
+    # permission prompt (and the user's Always Allow); Koncluí never allows a tool by itself.
     if agent == 'antigravity' and event == 'PreToolUse':
         sys.stdout.write('{"decision":"ask"}\\n')
         sys.stdout.flush()
@@ -3642,7 +3724,7 @@ sys.exit(0)
 
 private let nbHookPythonAppStore = """
 #!/usr/bin/env python3
-# nb-hook.py — Coucou (App Store) hook relay for Claude Code and third-party agents
+# nb-hook.py — Koncluí (App Store) hook relay for Claude Code and third-party agents
 # Socket lives inside the sandboxed container; script runs outside the sandbox.
 import sys, json, os, socket
 
@@ -3702,6 +3784,14 @@ def normalize_tool_fields(payload):
     if not payload.get('cwd') and payload.get('workdir'):
         payload['cwd'] = payload['workdir']
 
+def add_orca_context(payload):
+    # Orca's terminals: the terminal handle and the worktree id let a click on the Orca pill open
+    # this exact terminal. Only these two ORCA_* values are read, never the hook token.
+    for key, var in (('orca_terminal', 'ORCA_TERMINAL_HANDLE'), ('orca_worktree', 'ORCA_WORKTREE_ID')):
+        value = os.environ.get(var, '')
+        if value:
+            payload.setdefault(key, value)
+
 def add_session_name(payload):
     # Name the pill after the folder the session started in, not the current cwd (the
     # agent may cd into subfolders), or after the session's /rename title. Both come
@@ -3750,7 +3840,7 @@ def main():
         '~/Library/Containers/fr.louisraille.Coucou/Data/nb.sock'
     )
 
-    # --statusline mode: relay rate_limits to Coucou, then delegate to saved previous
+    # --statusline mode: relay rate_limits to Koncluí, then delegate to saved previous
     if '--statusline' in sys.argv[1:]:
         relay = {
             'coucou_kind': 'statusline',
@@ -3793,6 +3883,7 @@ def main():
         payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
         payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
         payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+        add_orca_context(payload)
         if 'cwd' not in payload or not payload['cwd']:
             paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
             if isinstance(paths, list) and paths:
@@ -3860,6 +3951,7 @@ def main():
     payload.setdefault('iterm_session_id', env.get('ITERM_SESSION_ID', ''))
     payload.setdefault('term_session_id', env.get('TERM_SESSION_ID', ''))
     payload.setdefault('bundle_id', env.get('__CFBundleIdentifier', ''))
+    add_orca_context(payload)
     if 'cwd' not in payload or not payload['cwd']:
         paths = payload.get('workspacePaths') or payload.get('workspace_roots', [])
         if isinstance(paths, list) and paths:
@@ -3881,7 +3973,7 @@ def main():
     # socket_path is already defined above
 
     if event == 'PermissionRequest':
-        # Block and wait for Coucou's decision (Claude Code allows up to 120s)
+        # Block and wait for Koncluí's decision (Claude Code allows up to 120s)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.settimeout(118)
@@ -3934,7 +4026,7 @@ def main():
                     if agent in ('copilot', 'muse'):
                         out = {'permissionDecision': 'deny'}
                     else:
-                        out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from Coucou'}}}
+                        out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from Koncluí'}}}
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
@@ -3974,7 +4066,7 @@ def main():
         pass  # Always exit cleanly — never block the agent
 
     # Antigravity needs a decision on PreToolUse ({} reads as a denial). "ask" keeps its own
-    # permission prompt (and the user's Always Allow); Coucou never allows a tool by itself.
+    # permission prompt (and the user's Always Allow); Koncluí never allows a tool by itself.
     if agent == 'antigravity' and event == 'PreToolUse':
         sys.stdout.write('{"decision":"ask"}\\n')
         sys.stdout.flush()

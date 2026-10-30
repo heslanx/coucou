@@ -225,7 +225,7 @@ final class MachineVitals: ObservableObject {
     private static func displayName(pid: pid_t) -> String {
         var name: String
         if let app = NSRunningApplication(processIdentifier: pid), let local = app.localizedName {
-            name = local
+            name = KoncluiTextRepair.unmangled(local)   // Koncluí: a name macOS garbled shows as written
         } else {
             var buffer = [CChar](repeating: 0, count: 256)
             proc_name(pid, &buffer, 256)

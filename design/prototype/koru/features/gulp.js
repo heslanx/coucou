@@ -36,10 +36,10 @@ const opening=g=>Math.max(g.h,BITE*chew(g));             // the slot, or the sma
 function file(g){ if(g.kind==='gulp'){ const e=(NOW()-g.at)/1000; return e<.46?[seg(e,.16,.46),smooth(seg(e,0,.08))]:null }
   if(g.kind!=='suck') return null; const t=tref(g); return t<T.suckOut?[seg(t,T.suckIn,T.suckOut),1]:null }
 
-function gulp(b){ const g=b.gulp; g.kind='gulp'; g.at=NOW(); g.to=OPEN; g.chewAt=null;
+function gulp(b){ const g=b.gulp; g.kind='gulp'; g.at=NOW(); g.to=OPEN; g.chewAt=null; b.sound('gulp');
   b.anim('sy',[[.78,80,E.out],[1.18,130,E.out],[1,220,E.back]]); b.anim('sx',[[1.28,80,E.out],[.92,130,E.out],[1,220,E.back]]); b.blink();
   b.after('gulp',460,()=>{ g.to=0; g.chewAt=NOW(); b.after('gulp',800,()=>{ g.kind=null; g.chewAt=null }) }) }
-function suck(b){ const g=b.gulp; g.kind='suck'; g.at=NOW(); g.to=OPEN; g.chewAt=null;
+function suck(b){ const g=b.gulp; g.kind='suck'; g.at=NOW(); g.to=OPEN; g.chewAt=null; b.sound('gulp');
   b.after('gulp',(T.eyes-T.locked)*1000,()=>{ g.kind=null; g.to=0 }) }
 
 // A symmetric path from its right half: cubic segments [c1x,c1y,c2x,c2y,x,y] from (0,y0) down to the centre line.

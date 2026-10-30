@@ -24,7 +24,8 @@ final class ClaudeVoiceBrain {
 
     /// Claude is Coucou's brain whenever an Anthropic key is saved (Settings → Chat).
     static var isActive: Bool {
-        !(ClaudeService.shared.apiKey ?? "").isEmpty
+        // Koncluí: only when the person turned Claude on and a source exists (KoncluiVoiceBrain.swift).
+        KoncluiVoiceBrainLive.shared.currentBrain().claudeSource != nil
     }
 
     private var messages: [[String: Any]] = []
@@ -52,6 +53,7 @@ final class ClaudeVoiceBrain {
                 // Leave the history coherent: drop the question that got no answer.
                 if let last = messages.last, last["role"] as? String == "user",
                    last["content"] is String { messages.removeLast() }
+                KoncluiVoiceBrainLive.shared.turnEnded(failed: true)   // Koncluí: Settings → Voice shows it
                 // Something already happened (a pill, the music, the mail card): the
                 // parser must not do it again. Say it's done.
                 return acted ? Reply(text: "", acted: true, failed: false) : nil
@@ -77,6 +79,7 @@ final class ClaudeVoiceBrain {
         }
 
         let text = VoiceQuery.spokenText(spoken)
+        KoncluiVoiceBrainLive.shared.turnEnded(failed: text.isEmpty && !acted)   // Koncluí
         return Reply(text: text, acted: acted, failed: text.isEmpty && !acted)
     }
 
@@ -110,16 +113,16 @@ final class ClaudeVoiceBrain {
     // MARK: Prompt
 
     private static func systemPrompt() -> String {
-        let fr = VoiceSettings.language == "fr"
+        let voiceLanguage = VoiceLanguage(code: VoiceSettings.language)   // Koncluí: French, English or Portuguese
         let today = Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year().hour().minute()
-            .locale(Locale(identifier: fr ? "fr_FR" : "en_US")))
+            .locale(voiceLanguage.locale))
         let state = AppState.shared
         let active = ([state.mainPillId] + Array(state.activeIntegrations))
             .compactMap { PillCatalog.definition(for: $0)?.name }
         let available = PillCatalog.available.map(\.name).joined(separator: ", ")
-        let language = fr ? "French" : "English"
+        let language = voiceLanguage.promptName
         return """
-        You are Coucou, a voice assistant living in the notch of the user's Mac, a bit like Jarvis: \
+        You are Koncluí, a voice assistant living in the notch of the user's Mac, a bit like Jarvis: \
         quick, warm, a little playful. It is \(today).
         Everything you write is read aloud: answer in \(language) (the user may speak French or English), \
         in one or two short sentences, no markdown, no lists, no emojis, no links.
@@ -135,7 +138,7 @@ final class ClaudeVoiceBrain {
         When you need an answer from the user, end with one short question. Otherwise never end \
         with a question.
         Pills in the notch (at most 4 besides the main one). Active: \(active.joined(separator: ", ")). \
-        Available: \(available).
+        Available: \(available).\(KoncluiVoicePrompts.claudeAddendum(for: voiceLanguage))
         """
     }
 
@@ -171,7 +174,7 @@ final class ClaudeVoiceBrain {
         ],
         [
             "name": "service_info",
-            "description": "Read the user's real data that Coucou already has: Stripe sales and balance, GitHub stars/PRs/CI, Vercel deployments, Resend emails, n8n runs, Notion pages, Cal.com bookings, agent sessions (Claude Code, Codex…), Claude or Codex plan usage, music now playing, active pills.",
+            "description": "Read the user's real data that Koncluí already has: Stripe sales and balance, GitHub stars/PRs/CI, Vercel deployments, Resend emails, n8n runs, Notion pages, Cal.com bookings, agent sessions (Claude Code, Codex…), Claude or Codex plan usage, music now playing, active pills.",
             "input_schema": [
                 "type": "object",
                 "properties": [

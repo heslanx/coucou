@@ -99,8 +99,9 @@ struct IslandContainer: View {
                 // Keep idle animations inside the resting strip. Expanded views
                 // retain the panel's full height for particles and hands.
                 .mask(alignment: .topLeading) {
+                    // Koncluí: an island taller than 320 pt (a long question) keeps the Koru whole at its middle
                     Rectangle().frame(width: islandWidth,
-                                      height: state.mode == .expanded ? 320 : islandHeight)
+                                      height: state.mode == .expanded ? max(320, islandHeight) : islandHeight)
                 }
                 .opacity(uploadActive || greetingActive ? 0 : 1)
                 .animation(.easeInOut(duration: 0.25), value: uploadActive || greetingActive)
@@ -496,6 +497,7 @@ struct IslandContentView: View {
                     // chat (prompt) is always flexible; mail is flexible only when active so
                     // it doesn't push the ZStack taller when inactive.
                     let isTall = v == .prompt || ((v == .mail || v == .whatsNew) && active)
+                        || (v == .question && active && KoncluiOverflowScroll.isTall(state.pendingQuestion))   // Koncluí: a long question gets the whole island
                     let anim: Animation = active
                         ? .spring(response: 0.4, dampingFraction: 0.8).delay(0.16)
                         : .easeIn(duration: 0.16)
