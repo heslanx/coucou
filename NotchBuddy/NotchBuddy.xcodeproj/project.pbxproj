@@ -287,6 +287,7 @@
 		89BC677F3ACB387A475FFFED /* ClaudeVoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFE8C8C843B4B30C547FF64A /* ClaudeVoiceBrain.swift */; };
 		8A6B3688D6B3BF728D106D8B /* UserIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A13AEE6E06F46CEC9D908C /* UserIdentity.swift */; };
 		8AC19BAF88822CB31519D447 /* CoucouIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 708E1FD9894461B4AD727DB1 /* CoucouIntents.swift */; };
+		8B045C93DCE0AF8002F07976 /* KoncluiAgentRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0390B9285F1FD3297D0661 /* KoncluiAgentRow.swift */; };
 		8B2492D8ACCE3E32555A8329 /* KoruShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48FA0E59BE7EBF1C11EB9A2A /* KoruShapes.swift */; };
 		8BD22E7123BDC3C5D7396667 /* KoruSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A598F0B4B87E2C4F42C051 /* KoruSheets.swift */; };
 		8C32A0C3EAF536D3836F61D5 /* GreetingCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C581F7B1A9F14B281B60063E /* GreetingCanvasView.swift */; };
@@ -372,6 +373,7 @@
 		B09E884B33A35FA34543C64B /* IntentParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39753CFF90B494D449CCD95 /* IntentParser.swift */; };
 		B0A44483E3128F1B5F09ED22 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D14C4D6FA9E2546B590FE8 /* ReminderModels.swift */; };
 		B0CE5AC8B579866A14BD61D0 /* DemoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF5BD66B00BB64BB80AF38C /* DemoEngine.swift */; };
+		B17AC602AB41E6F03945C63F /* KoncluiAgentRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DC91B11A8C9CA4048051978 /* KoncluiAgentRows.swift */; };
 		B18539A047478290941B880F /* KoncluiOrca.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA934C1F728B5D0810000857 /* KoncluiOrca.swift */; };
 		B1FB8C566645AC0A2AB34B24 /* WhatsAppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADD0D8C37F00BF1877153D8 /* WhatsAppModels.swift */; };
 		B2584220B877056366C8DCAE /* MochiWardrobe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A7807ADD0963FF260D1FAD /* MochiWardrobe.swift */; };
@@ -452,6 +454,7 @@
 		CE5EBAEC47402D4987EA86C7 /* MacStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B66D0C664FB9FF74517AAF5 /* MacStubs.swift */; };
 		CF3EB803E8ECEB069FC2E940 /* KoncluiChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA582813E87CFCB96E78B84 /* KoncluiChat.swift */; };
 		CF89B87E2E6E6D838ECE9B8F /* MachineVitals.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D4076443F9849FF25CCCFB /* MachineVitals.swift */; };
+		CFE2202ACA8E26A5A37CE30F /* KoncluiAgentRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0390B9285F1FD3297D0661 /* KoncluiAgentRow.swift */; };
 		D00A95A24714141AB82621BE /* FlowStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7124E98A85D75D3378F0AC8 /* FlowStore.swift */; };
 		D092D0D597D1CBCE6B775B5E /* ServicePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0C229BD085D76EB3DD94DF /* ServicePublisher.swift */; };
 		D19FA3394EE99B34184684ED /* MochiWardrobe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A7807ADD0963FF260D1FAD /* MochiWardrobe.swift */; };
@@ -493,6 +496,7 @@
 		E5F2FA35ADBC6E08BE2ABECD /* MacUpdateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3C36DE7C1DC055250C811D /* MacUpdateViews.swift */; };
 		E6C40D93A5FEB73A20CD8D97 /* KoruLayers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261BF2645496118A0C998760 /* KoruLayers.swift */; };
 		E701BC8996229D08362CA732 /* ServiceStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF705275522F99CAE7E1429 /* ServiceStatus.swift */; };
+		E76E6F0892BB9CD9D7AE1428 /* KoncluiAgentRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DC91B11A8C9CA4048051978 /* KoncluiAgentRows.swift */; };
 		E776C7D1DE5C62EA8D4BA3E3 /* FileDropView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3232F258523DD8D09B670363 /* FileDropView.swift */; };
 		E81575CE4433C6F88E424A8F /* LocalChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8790ACE9F73BD74640A0F20C /* LocalChat.swift */; };
 		E82CA1269BF4859EEDE322AE /* MochiStill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045E7300878138F0AC385920 /* MochiStill.swift */; };
@@ -599,6 +603,7 @@
 		097F57179CC066459E64303A /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		0B39C7E028471D8BF04832E1 /* KoruGulp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoruGulp.swift; sourceTree = "<group>"; };
 		0BFB4C9E1BBD89E2E6319DCC /* FlowHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHub.swift; sourceTree = "<group>"; };
+		0D0390B9285F1FD3297D0661 /* KoncluiAgentRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiAgentRow.swift; sourceTree = "<group>"; };
 		0D9CEB5655FCA197D6B10A91 /* CoucouPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoucouPhoneApp.swift; sourceTree = "<group>"; };
 		0DA582813E87CFCB96E78B84 /* KoncluiChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiChat.swift; sourceTree = "<group>"; };
 		0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiRecognition.swift; sourceTree = "<group>"; };
@@ -727,6 +732,7 @@
 		8ACB4350729C6513824D1ADF /* ColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorHex.swift; sourceTree = "<group>"; };
 		8BF22817EC70748F2D1FB2E7 /* ClaudePlanGauge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudePlanGauge.swift; sourceTree = "<group>"; };
 		8CB8B6E5E9DA6164F979E88F /* GithubPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GithubPoller.swift; sourceTree = "<group>"; };
+		8DC91B11A8C9CA4048051978 /* KoncluiAgentRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiAgentRows.swift; sourceTree = "<group>"; };
 		8F2F18663F42A246DACCD639 /* MailController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailController.swift; sourceTree = "<group>"; };
 		9048F743C068A2B40073C702 /* KoncluiWhatsAppPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiWhatsAppPreview.swift; sourceTree = "<group>"; };
 		914A792788D403F836BEB570 /* SpotifyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyViews.swift; sourceTree = "<group>"; };
@@ -927,6 +933,8 @@
 				FA02B08886939FF6FE0475DD /* IslandViewContent.swift */,
 				D710BD7834228045869D0184 /* IslandWindowController.swift */,
 				3E5A8CA07E1AD8AFD3F9DD79 /* KoncluiAgentHooks.swift */,
+				0D0390B9285F1FD3297D0661 /* KoncluiAgentRow.swift */,
+				8DC91B11A8C9CA4048051978 /* KoncluiAgentRows.swift */,
 				DEDB04294C7C184CC6351BDF /* KoncluiBrand.swift */,
 				0DA582813E87CFCB96E78B84 /* KoncluiChat.swift */,
 				486AC1436C89F554D57AB0B0 /* KoncluiChatAccess.swift */,
@@ -1495,6 +1503,8 @@
 				065FCE817315454DE3F85F25 /* IslandViewContent.swift in Sources */,
 				091EC3B2F1060D7EE1317E4E /* IslandWindowController.swift in Sources */,
 				2D5E6A8A808C588675CCBA67 /* KoncluiAgentHooks.swift in Sources */,
+				CFE2202ACA8E26A5A37CE30F /* KoncluiAgentRow.swift in Sources */,
+				B17AC602AB41E6F03945C63F /* KoncluiAgentRows.swift in Sources */,
 				E9723AAFC6137F30652BD230 /* KoncluiBrand.swift in Sources */,
 				FD12FD9DCB91EF43D4FA0D14 /* KoncluiChat.swift in Sources */,
 				1A2652A9947230FDA5CE1EFC /* KoncluiChatAccess.swift in Sources */,
@@ -1806,6 +1816,8 @@
 				68A950E3C23FD612639D9776 /* IslandViewContent.swift in Sources */,
 				C61DDE2EC5FDDB39E4AA3B34 /* IslandWindowController.swift in Sources */,
 				4F27A2768F87F0D7A80C8204 /* KoncluiAgentHooks.swift in Sources */,
+				8B045C93DCE0AF8002F07976 /* KoncluiAgentRow.swift in Sources */,
+				E76E6F0892BB9CD9D7AE1428 /* KoncluiAgentRows.swift in Sources */,
 				F6C3A4807C3F35AD61EB2726 /* KoncluiBrand.swift in Sources */,
 				CF3EB803E8ECEB069FC2E940 /* KoncluiChat.swift in Sources */,
 				308FC55948A52EE9115376BD /* KoncluiChatAccess.swift in Sources */,

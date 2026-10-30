@@ -154,6 +154,9 @@ struct SettingsView: View {
     @ObservedObject private var koncluiAdded = KoncluiAddedModel.shared
     @ObservedObject private var chatAccess = ChatAccess.shared
     @State private var koncluiTools: Set<KoncluiTool> = KoncluiRecognition.liveTools()
+    // Koncluí: the agent whose options popover is open (Agents) and the pill whose "not installed" door is open (Active pills).
+    @State private var koncluiOpenAgent: String? = KoncluiAgentsDebug.target?.id
+    @State private var koncluiDoorPill: String? = KoncluiAgentsDebug.doorPill
     #if PHONE_LINK
     @AppStorage("iPhoneSyncEnabled") private var iPhoneSyncEnabled = false
     @AppStorage("iPhoneLiveActivityEnabled") private var iPhoneLiveActivityEnabled = false
@@ -244,7 +247,7 @@ struct SettingsView: View {
                     .padding(.bottom, 16)
                     .frame(maxWidth: embeddedSection == nil ? .infinity : 1100, alignment: .leading)
                 }
-                if !statusMessage.isEmpty {
+                if !statusMessage.isEmpty && !koncluiPopoverOpen {   // Koncluí: an open popover shows the message itself
                     Divider()
                     Text(statusMessage)
                         .font(.system(size: 12))
@@ -260,6 +263,7 @@ struct SettingsView: View {
             #endif
             // Koncluí: look again at what this Mac has, and at the sign-ins.
             koncluiTools = KoncluiRecognition.liveTools(maxAge: 0)
+            koncluiDebugPreview()   // Koncluí: DEBUG only, `-konclui.debug.agentPopover <id>:preview`
             Task { await chatAccess.refresh() }
             guard fetchedModels.isEmpty,
                   let key = KeychainStore.shared.get("anthropic-api-key"), !key.isEmpty else { return }
@@ -622,7 +626,7 @@ struct SettingsView: View {
         // Koncluí: klaude's hooks (unit K11); then only the agents this Mac has, hooked up or added.
         KlaudeHooksSection()
 
-        GroupBox(String(localized: "hooks.claude-code.title")) {
+        koncluiAgentRow(.claudeCode, .hooks, installed: HookServer.claudeHooksInstalled(), outdated: hookNeedsUpdate) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 if hookNeedsUpdate {
                     HStack(spacing: 6) {
@@ -693,7 +697,7 @@ struct SettingsView: View {
         ClaudeDesktopChatSettingsSection()
             .koncluiShown(koncluiAgentShown(.claudeDesktop))
 
-        GroupBox(String(localized: "hooks.gemini.title")) {
+        koncluiAgentRow(.gemini, .hooks, installed: geminiHooksInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(geminiHooksInstalled
                      ? String(localized: "hooks.gemini.installed")
@@ -727,7 +731,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.gemini))
 
-        GroupBox(String(localized: "hooks.antigravity.title")) {
+        koncluiAgentRow(.antigravity, .hooks, installed: agyHooksInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(agyHooksInstalled
                      ? String(localized: "hooks.antigravity.installed")
@@ -761,7 +765,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.antigravity))
 
-        GroupBox(String(localized: "hooks.codex.title")) {
+        koncluiAgentRow(.codex, .hooks, installed: codexHooksInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(codexHooksInstalled
                      ? String(localized: "hooks.codex.installed")
@@ -795,7 +799,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.codex))
 
-        GroupBox(String(localized: "hooks.copilot.title")) {
+        koncluiAgentRow(.copilot, .hooks, installed: copilotHooksInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(copilotHooksInstalled
                      ? String(localized: "hooks.copilot.installed")
@@ -829,7 +833,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.copilot))
 
-        GroupBox(String(localized: "hooks.muse.title")) {
+        koncluiAgentRow(.muse, .hooks, installed: museHooksInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(museHooksInstalled
                      ? String(localized: "hooks.muse.installed")
@@ -863,7 +867,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.muse))
 
-        GroupBox(String(localized: "plugin.opencode.title")) {
+        koncluiAgentRow(.opencode, .plugin, installed: openCodePluginInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(openCodePluginInstalled
                      ? String(localized: "plugin.opencode.installed")
@@ -897,7 +901,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.opencode))
 
-        GroupBox(String(localized: "plugin.amp.title")) {
+        koncluiAgentRow(.amp, .plugin, installed: ampPluginInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(ampPluginInstalled
                      ? String(localized: "plugin.amp.installed")
@@ -931,7 +935,7 @@ struct SettingsView: View {
         }
         .koncluiShown(koncluiAgentShown(.amp))
 
-        GroupBox(String(localized: "plugin.hermes.title")) {
+        koncluiAgentRow(.hermes, .plugin, installed: hermesPluginInstalled) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(hermesPluginInstalled
                      ? String(localized: "plugin.hermes.installed")
@@ -1013,7 +1017,7 @@ struct SettingsView: View {
         #endif
         .koncluiShown(koncluiAgentShown(.hermes))
 
-        GroupBox(String(localized: "plan.title")) {
+        koncluiAgentRow(.plan, .toggle, installed: state.showPlanInNotch || state.showCodexPlanInNotch) {   // Koncluí: row + popover
             VStack(alignment: .leading, spacing: 10) {
                 Text(String(localized: "plan.description"))
                     .font(.system(size: 11))
@@ -2331,9 +2335,7 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             } else {
                 if let h = hint {
-                    Text(h)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                    koncluiHint(h, for: def)   // Koncluí: "Hooks not installed" is a door to the install (KoncluiAgentRow.swift)
                 }
                 Toggle("", isOn: Binding(
                     get: { isOn },
@@ -2626,6 +2628,142 @@ extension SettingsView {
     private func koncluiAgentShown(_ block: KoncluiRecognition.AgentBlock) -> Bool {
         KoncluiRecognition.agentRecognized(block, tools: koncluiTools, active: koncluiActiveAgents)
             || koncluiAdded.contains(.agents, block.rawValue)
+            || KoncluiAgentsDebug.opens(block.rawValue)   // DEBUG screenshots only
+    }
+
+    // MARK: Agent rows and doors (KoncluiAgentRow.swift, KoncluiAgentRows.swift)
+
+    /// One agent in Settings → Agents: a calm row with its status in words; the block's own component is the popover.
+    private func koncluiAgentRow<Content: View>(_ block: KoncluiRecognition.AgentBlock, _ kind: KoncluiAgentRows.Kind,
+                                                installed: Bool, outdated: Bool = false,
+                                                @ViewBuilder content: @escaping () -> Content) -> some View {
+        KoncluiAgentRow(id: block.rawValue, name: block.title,
+                        colorHex: KoncluiAgentRows.colorHex(for: block, custom: state.pillColors),
+                        status: KoncluiAgentRows.status(kind, installed: installed, outdated: outdated),
+                        note: statusMessage, isOpen: koncluiPopoverBinding(block.rawValue, open: $koncluiOpenAgent),
+                        content: content)
+    }
+
+    /// Opening a popover starts from a clean message, so the one it shows is about what was done in it.
+    private func koncluiPopoverBinding(_ id: String, open: Binding<String?>) -> Binding<Bool> {
+        Binding(get: { open.wrappedValue == id },
+                set: { on in
+                    if on {
+                        statusMessage = ""
+                        open.wrappedValue = id
+                    } else if open.wrappedValue == id {
+                        open.wrappedValue = nil
+                    }
+                })
+    }
+
+    /// While a popover is open the message shows inside it; the window's bottom line would repeat it.
+    private var koncluiPopoverOpen: Bool { koncluiOpenAgent != nil || koncluiDoorPill != nil }
+
+    /// The hint on an Active pills row: plain text, or for an agent whose hooks or plugin are missing, a door to the install.
+    @ViewBuilder
+    private func koncluiHint(_ text: String, for def: PillDefinition) -> some View {
+        #if !APPSTORE
+        if let door = KoncluiAgentRows.door(forPill: def.id) {
+            koncluiDoor(text, def, door)
+        } else {
+            Text(text).font(.system(size: 11)).foregroundColor(.secondary)
+        }
+        #else
+        Text(text).font(.system(size: 11)).foregroundColor(.secondary)
+        #endif
+    }
+
+    #if !APPSTORE
+    private func koncluiDoor(_ text: String, _ def: PillDefinition, _ door: KoncluiAgentRows.Door) -> some View {
+        let open = koncluiPopoverBinding(def.id, open: $koncluiDoorPill)
+        return Button {
+            open.wrappedValue.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Text(verbatim: text)
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold)).accessibilityHidden(true)
+            }
+            .font(.system(size: 11))
+            .foregroundColor(.secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .pointerStyle(.link)
+        .popover(isPresented: open, arrowEdge: .bottom) { koncluiDoorPopover(def, door) }
+        .accessibilityLabel(Text(verbatim: KoncluiAgentRows.spoken(name: def.name, status: text)))
+        .accessibilityHint(Text(verbatim: String(format: String(localized: "konclui.agents.door.hint %@"), def.name)))
+        // Installed from the popover: the hint is gone, and the popover must not wait to reopen if it comes back.
+        .onDisappear { open.wrappedValue = false }
+    }
+
+    private func koncluiDoorPopover(_ def: PillDefinition, _ door: KoncluiAgentRows.Door) -> some View {
+        let wiring = koncluiHookWiring(door.block)
+        return KoncluiHookDoorPopover(
+            name: def.name,
+            colorHex: PillColors.color(for: def.id, catalogColor: def.defaultColor, in: state.pillColors),
+            kind: door.kind, showDiff: wiring?.showDiff ?? false, pending: wiring?.pending ?? "", note: statusMessage,
+            install: { wiring?.start() }, confirm: { wiring?.confirm() }, cancel: { wiring?.cancel() })
+    }
+
+    /// An agent's own install state and steps, so the door runs the very preview and confirmation of the Agents page.
+    private struct KoncluiHookWiring {
+        var showDiff: Bool
+        var pending: String
+        var start: () -> Void
+        var confirm: () -> Void
+        var cancel: () -> Void
+    }
+
+    private func koncluiHookWiring(_ block: KoncluiRecognition.AgentBlock) -> KoncluiHookWiring? {
+        switch block {
+        case .gemini:
+            return KoncluiHookWiring(showDiff: showGeminiDiff, pending: pendingGeminiJSON,
+                                     start: { triggerGeminiPreview(install: true) }, confirm: { confirmGeminiOp() },
+                                     cancel: { showGeminiDiff = false; pendingGeminiJSON = "" })
+        case .antigravity:
+            return KoncluiHookWiring(showDiff: showAgyDiff, pending: pendingAgyJSON,
+                                     start: { triggerAgyPreview(install: true) }, confirm: { confirmAgyOp() },
+                                     cancel: { showAgyDiff = false; pendingAgyJSON = "" })
+        case .codex:
+            return KoncluiHookWiring(showDiff: showCodexDiff, pending: pendingCodexJSON,
+                                     start: { triggerCodexPreview(install: true) }, confirm: { confirmCodexOp() },
+                                     cancel: { showCodexDiff = false; pendingCodexJSON = "" })
+        case .copilot:
+            return KoncluiHookWiring(showDiff: showCopilotDiff, pending: pendingCopilotJSON,
+                                     start: { triggerCopilotPreview(install: true) }, confirm: { confirmCopilotOp() },
+                                     cancel: { showCopilotDiff = false; pendingCopilotJSON = "" })
+        case .muse:
+            return KoncluiHookWiring(showDiff: showMuseDiff, pending: pendingMuseJSON,
+                                     start: { triggerMusePreview(install: true) }, confirm: { confirmMuseOp() },
+                                     cancel: { showMuseDiff = false; pendingMuseJSON = "" })
+        case .opencode:
+            return KoncluiHookWiring(showDiff: showOpenCodeDiff, pending: pendingOpenCodeContent,
+                                     start: { triggerOpenCodePreview(install: true) }, confirm: { confirmOpenCodeOp() },
+                                     cancel: { showOpenCodeDiff = false; pendingOpenCodeContent = "" })
+        case .amp:
+            return KoncluiHookWiring(showDiff: showAmpDiff, pending: pendingAmpContent,
+                                     start: { triggerAmpPreview(install: true) }, confirm: { confirmAmpOp() },
+                                     cancel: { showAmpDiff = false; pendingAmpContent = "" })
+        case .hermes:
+            return KoncluiHookWiring(showDiff: showHermesPluginDiff, pending: pendingHermesPluginContent,
+                                     start: { triggerHermesPluginPreview(install: true) }, confirm: { confirmHermesPluginOp() },
+                                     cancel: { showHermesPluginDiff = false; pendingHermesPluginContent = "" })
+        case .claudeCode, .claudeDesktop, .plan:
+            return nil
+        }
+    }
+    #endif
+
+    /// DEBUG screenshots: `-konclui.debug.agentPopover <id>:preview` builds that agent's install preview (a read; nothing is written).
+    private func koncluiDebugPreview() {
+        #if DEBUG
+        guard KoncluiAgentsDebug.previews, let id = KoncluiAgentsDebug.target?.id else { return }
+        if id == KoncluiRecognition.AgentBlock.claudeCode.rawValue { installHooks(); return }
+        #if !APPSTORE
+        if let block = KoncluiRecognition.AgentBlock(rawValue: id) { koncluiHookWiring(block)?.start() }
+        #endif
+        #endif
     }
 
     // MARK: Chat

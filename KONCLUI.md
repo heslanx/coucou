@@ -65,6 +65,21 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   Parakeet, Record is blocked as before, with the reason beside it. Files: `App/KoncluiNoteSpeechChoice.swift` (the choice
   and the words, pure, `scripts/konclui/test-note-speech.sh`), `KoncluiNoteSpeech.swift` (the Speech framework),
   `KoncluiNoteSpeechState.swift` (the glue), `KoncluiNoteSpeechCard.swift` (the engine row under Record and its popover).
+- Settings → Agents is one calm row per agent (Claude Code, Claude Desktop chats, klaude, Gemini CLI, Antigravity, Codex, Copilot
+  CLI, Muse Code, OpenCode, Amp, Hermes, the plan gauges): the agent's colour dot, its name, its status in words ("Hooks
+  instalados", "Hooks não instalados", "Hooks desatualizados", "Plugin instalado", "Ativado", "Precisa de permissão") and a
+  chevron. The whole row opens a subtle popover that holds the agent's old block unchanged: the path line, Install, Uninstall,
+  the JSON preview, "Confirm and write", Cancel (Uninstall stays the undo of Install). The result or error of the last action
+  shows at the bottom of that popover (the window's bottom line is hidden meanwhile, so it is not said twice), and the row's
+  words change at once after an install. On Active pills, "Hooks not installed" / "Plugin not installed" beside Gemini
+  CLI, Antigravity, Codex, Copilot CLI, Muse Code, OpenCode and Amp is a door: it opens a popover with one line on what the
+  install does and "Install hooks" (or "Install plugin"), then the same preview and "Confirm and write" through the Agents
+  page's own state; installed, the hint is gone. Files: `App/KoncluiAgentRows.swift` (pure: the words, the doors, the
+  DEBUG flag; `scripts/konclui/test-agent-rows.sh`), `App/KoncluiAgentRow.swift` (`KoncluiAgentRow`,
+  `KoncluiHookDoorPopover`). DEBUG only, for screenshots: `-konclui.debug.agentPopover <id>` (`claudeCode`, `claudeDesktop`,
+  `gemini`, `antigravity`, `codex`, `copilot`, `muse`, `opencode`, `amp`, `hermes`, `plan` or `klaude`) opens that popover and
+  shows the row even without the agent on this Mac (on Active pills it opens the door of that agent when its hint shows);
+  `<id>:preview` also builds the install preview in it. The flag reads and previews only: it never writes a hook file.
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -249,6 +264,11 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `activePillsSection`, `agentsSection`, `chatSection`, `integrationsSection` | recognized-only lists and the "Add…" menu; `KlaudeHooksSection()` and `KoncluiChatSubscriptionsSection()` at the top of Agents and Chat |
 | | `extension SettingsView` at the end | the signals the screens feed `KoncluiRecognition` |
 | | `KoncluiWhatsAppSection()` in place of `WhatsAppSettingsSection()` in `integrationsSection`, shown also when `KoncluiWhatsAppDebug.forcesBlock` | the new WhatsApp block (one line, popover, notch preview). `WhatsAppViews.swift` is untouched and still holds the old block, the notch card and the rows the preview reuses (`WhatsAppRow`, `WhatsAppStatus`); the new block repeats the old one's Advanced fields and save logic, and the preview repeats `WhatsAppCardView`'s header and status layout: after an upstream merge, mirror changes to those two places. DEBUG only, for screenshots: `-konclui.debug.whatsappState` with `fresh`, `installing`, `qr`, `connected`, `stopped`, `unauthorized`, `failed`, `connecting`, `off` or `noroom` draws that state (no setting, Keychain item or gateway is read or written), and `-konclui.debug.whatsappPopover` with `options`, `ignored` or `advanced` opens the popover |
+| | `agentsSection`: each block's `GroupBox(String(localized: "hooks.<agent>.title")) {` line (Claude Code, Gemini, Antigravity, Codex, Copilot, Muse, OpenCode, Amp, Hermes, Plan usage: 10 lines, each marked `// Koncluí: row + popover`) is `koncluiAgentRow(.<block>, .<kind>, installed: …) {`; the content closures, the `@State` and the install methods are untouched | every agent is a row with a popover (`KoncluiAgentRow`); a merge that brings a `GroupBox` back is caught by `test-agent-rows.sh` |
+| | `pillRow`: the three-line `Text(h)…` hint became `koncluiHint(h, for: def)`; the hint computation above it is untouched | "Hooks not installed" and "Plugin not installed" are doors for the seven agent pills that have one (`KoncluiAgentRows.door(forPill:)`) |
+| | `body`: `&& !koncluiPopoverOpen` on the bottom message; `onAppear` calls `koncluiDebugPreview()`; two `@State` (`koncluiOpenAgent`, `koncluiDoorPill`) | the open popover shows the message itself; the DEBUG `:preview` flag; which popover is open |
+| | `extension SettingsView` (Agents part): `koncluiAgentRow`, `koncluiPopoverBinding`, `koncluiPopoverOpen`, `koncluiHint`, `koncluiDoor`, `koncluiDoorPopover`, `KoncluiHookWiring` / `koncluiHookWiring` (each agent's preview, confirm and cancel by block), `koncluiDebugPreview`; `koncluiAgentShown` also true for the DEBUG flag's agent | the row helper and the door; no logic of the old blocks is copied |
+| `App/ClaudeDesktopChatWatcher.swift` | `ClaudeDesktopChatSettingsSection`: its `GroupBox(String(localized: "claude-desktop.chat.title")) {` line is `KoncluiAgentRow(id: "claudeDesktop", …) {` | the only upstream line outside `SettingsView` for the rows; `KlaudeHooksSection` is Koncluí's own file and builds its row the same way |
 | | `FlowHubView.body`: `.disclosureGroupStyle(KoncluiDisclosureStyle())` | every disclosure in the window opens from its whole label (`App/KoncluiDisclosureStyle.swift`) |
 | `App/IslandViewContent.swift` | `AgentPill.displayName` and `MusicPill`'s title go through `KoncluiTabLabel.short` | a tab's name fits in 11 characters: "Claude Desk" (`App/KoncluiTabLabel.swift`, `scripts/konclui/test-tab-label.sh`) |
 | `App/Voice/ClaudeVoiceBrain.swift` | `isActive` returns `KoncluiVoiceBrainLive.shared.currentBrain().claudeSource != nil`; `respond` calls `turnEnded(failed:)` at both exits | Claude is the brain only when the person turned it on and a source exists (not "a key is saved"); the outcome of each turn feeds the failure notice in Settings → Voice |
@@ -261,7 +281,7 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `process`: `apple`, `asr: AsrManager?`, `diarize` closure; `words(in:asr:)` takes an optional and starts with `guard let asr else { return try await KoncluiNoteSpeech.words(in: url) }` | Apple's words, no Parakeet load, no diarizer (turns are empty, so `NoteBuilder` keeps the others as one speaker); with Parakeet the lines are the old ones |
 | `App/FlowHubNotes.swift` | `HubNotesPage`: setup card only when `engine == .needsDownload`; `HubNotesList`: `KoncluiNoteSpeechRow()`; `HubRecordButton`: `.disabled(KoncluiNoteSpeech.engine == .needsDownload && !taker.isRecording)`; `HubLiveNote`: `KoncluiNoteSpeechProgress()` | the Record button is on; the engine in use and the Parakeet upgrade sit in one row with a popover; the language install shows under the live call |
 | `App/FlowHubHome.swift` | Home's "Record a call": `KoncluiNoteSpeech.engine != .needsDownload` instead of `Parakeet.shared.isReady` | same gate |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
@@ -308,6 +328,17 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
   `agent_codex`/`agent_copilot`/`agent_muse`); the relay answers it as a plain allow for those agents.
 - The hook command is `<Application Support>/Konclui/nb-hook`, written at launch by `installHookScript()`; klaude's
   hooks point to it, so klaude hooks work only while that file exists.
+
+- Settings → Agents rows and the Active pills door were built and tested (`test-agent-rows.sh`), not walked in the running app
+  (the unit may not launch Koncluí): the popovers' sizes with the longest Claude Code content, the focus ring around a row, the
+  popover reopening when the row itself is clicked while it is open (the same behaviour as the WhatsApp Options button), and
+  VoiceOver reading the row (name, status, hint) still need a look.
+- The popovers hold the old blocks unchanged, so their sentences keep upstream's dashes ("Hooks installed — restart Codex…",
+  `hooks.*.installed`, `hooks.outdated`, `status.*-hooks-installed`, the Hermes and plan texts): UX.md asks for none; rewriting
+  those catalog entries is left to the copy pass (they are upstream's multi-line entries, so each rewrite is a merge conflict
+  to re-apply).
+- Uninstalling an agent whose tool is not on this Mac removes its row (a row shows while the tool is there or the hooks are
+  installed), and the popover with it; the status message then shows in the window's bottom line.
 
 ## Orca and klaude, as found on this Mac (read-only)
 

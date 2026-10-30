@@ -2,7 +2,8 @@ import SwiftUI
 
 // Koncluí: klaude runs Claude Code with its own config (~/.klaude), so it gets Koncluí's hooks too and
 // its sessions reach the notch; sessions in Orca terminals go to the Orca pill (agent_orca) and a click
-// opens that terminal. Owned by unit K11. Settings → Agents (unit K9) shows this section.
+// opens that terminal. Owned by unit K11. Settings → Agents (unit K9) shows this section, as a row with an options
+// popover like every agent (KoncluiAgentRow.swift, unit K16).
 
 // MARK: - KlaudeHooks
 
@@ -35,7 +36,7 @@ enum KlaudeHooks {
 
 // MARK: - KlaudeHooksSection
 
-/// The klaude block of Settings → Agents, built like the Codex one: where the hooks go, Install and
+/// The klaude row of Settings → Agents, built like the Codex one: where the hooks go, Install and
 /// Uninstall each previewing the file, and nothing written until the user confirms.
 struct KlaudeHooksSection: View {
     #if !APPSTORE
@@ -44,10 +45,14 @@ struct KlaudeHooksSection: View {
     @State private var pendingJSON = ""
     @State private var pendingInstall = true
     @State private var statusMessage = ""
+    @State private var open = KoncluiAgentsDebug.opens("klaude")
 
     var body: some View {
-        if KlaudeHooks.exists() {
-            GroupBox(String(localized: "hooks.klaude.title")) {
+        if KlaudeHooks.exists() || KoncluiAgentsDebug.opens("klaude") {
+            // Opening starts from a clean message: the row's note is about what was done in this popover.
+            KoncluiAgentRow(id: "klaude", name: "klaude", colorHex: KoncluiAgentRows.colorHex(for: .claudeCode),
+                            status: KoncluiAgentRows.status(.hooks, installed: hooksInstalled), note: statusMessage,
+                            isOpen: Binding(get: { open }, set: { on in if on { statusMessage = "" }; open = on })) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(hooksInstalled
                          ? String(localized: "hooks.klaude.installed")
@@ -76,14 +81,11 @@ struct KlaudeHooksSection: View {
                                 .buttonStyle(.bordered)
                         }
                     }
-                    if !statusMessage.isEmpty {
-                        Text(statusMessage)
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
                 .padding(6)
+            }
+            .onAppear {
+                if KoncluiAgentsDebug.opens("klaude") && KoncluiAgentsDebug.previews { preview(install: true) }   // DEBUG only
             }
         }
     }

@@ -135,7 +135,10 @@ struct ClaudeDesktopChatSettingsSection: View {
     @State private var trusted = AXIsProcessTrusted()
 
     var body: some View {
-        GroupBox(String(localized: "claude-desktop.chat.title")) {
+        // Koncluí: a row with an options popover in place of the GroupBox (KoncluiAgentRow.swift)
+        KoncluiAgentRow(id: "claudeDesktop", name: String(localized: "claude-desktop.chat.title"),
+                        colorHex: KoncluiAgentRows.colorHex(for: .claudeDesktop),
+                        status: KoncluiAgentRows.status(.toggle, installed: on, needsPermission: on && !trusted)) {
             VStack(alignment: .leading, spacing: 10) {
                 Toggle(String(localized: "claude-desktop.chat.toggle"), isOn: $on)
                     .onChange(of: on) { _, v in
