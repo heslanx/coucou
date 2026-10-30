@@ -29,7 +29,21 @@ enum KoncluiGreetingAmbient {
         }
     }()
 
+    /// The card itself is a band: the same navy well (`KoncluiPalette.sunken`), so the glow reads as on the window's bands
+    /// and not as a light patch over a grey.
+    static let cardFill = color(KoncluiPalette.sunken, 1)
+
     static func draw(_ ctx: CGContext, card: CGRect, radius: CGFloat, t: Double, alpha: Double) {
+        // The bands' edge, mint at 16 %, from the card's first frame.
+        if alpha > 0.01 {
+            ctx.saveGState()
+            ctx.addPath(CGPath(roundedRect: card.insetBy(dx: 0.5, dy: 0.5), cornerWidth: radius - 0.5, cornerHeight: radius - 0.5,
+                               transform: nil))
+            ctx.setStrokeColor(mint(0.16 * CGFloat(alpha)))
+            ctx.setLineWidth(1)
+            ctx.strokePath()
+            ctx.restoreGState()
+        }
         let k = min(1, max(0, (t - arrival.start) / (arrival.end - arrival.start)))
         let shown = CGFloat(alpha * (1 - pow(1 - k, 3)))   // ease-out
         guard shown > 0.01 else { return }
@@ -80,8 +94,10 @@ enum KoncluiGreetingAmbient {
         ctx.restoreGState()
     }
 
-    private static func mint(_ alpha: CGFloat) -> CGColor {
-        let c = KoncluiContrast.channels(KoncluiPalette.accent)
+    private static func mint(_ alpha: CGFloat) -> CGColor { color(KoncluiPalette.accent, alpha) }
+
+    private static func color(_ hex: String, _ alpha: CGFloat) -> CGColor {
+        let c = KoncluiContrast.channels(hex)
         return CGColor(srgbRed: c.r / 255, green: c.g / 255, blue: c.b / 255, alpha: alpha)
     }
 

@@ -618,7 +618,11 @@ private func drawGreeting(_ ctx: CGContext, size: CGSize, t: Double,
         ctx.saveGState()
         ctx.setAlpha(CGFloat(p.card))
         gRR(ctx, GCARD.minX, GCARD.minY, GCARD.width, GCARD.height, GCARD_R)
+        #if APPSTORE
         ctx.setFillColor(gHex("#141518")); ctx.fillPath()
+        #else
+        ctx.setFillColor(KoncluiGreetingAmbient.cardFill); ctx.fillPath()   // Koncluí: the bands' navy well, not a grey
+        #endif
         ctx.restoreGState()
         #if !APPSTORE
         // Koncluí: the bands' life behind the Koru once she lands (KoncluiGreetingAmbient.swift)
