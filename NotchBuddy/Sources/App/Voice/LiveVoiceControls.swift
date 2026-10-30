@@ -94,6 +94,7 @@ extension VoiceActionRunner {
         info  = LiveVoiceInfo.shared
         onLanguageSwitch = { lang in
             VoiceSettings.language = lang          // Settings picker follows (same key)
+            ElevenLabsTTS.shared.reset()           // Koncluí: the ElevenLabs voice depends on the language
             VoiceBrain.shared.endConversation()    // next session gets the new instructions
         }
     }

@@ -105,6 +105,41 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   switch (Atalhos); the updater is behind a flag that ships off; a card "Conecte seus agentes" names the agents found and
   not connected; "Remover integrações…" previews and removes every file Koncluí wrote. Reminders is a page of the window.
   Orca has its own row; its approvals ship on (see Functional ties, "Orca approvals").
+- "OK Koru" listens, understands and answers in Brazilian Portuguese. Settings → Voice → Language offers
+  Português next to Français and English, in both pickers ("Você fala", "Koncluí responde em"). Until the person picks
+  one, Koru answers in the Mac's language when it is Portuguese, French or English (`VoiceLanguage.macDefault`).
+  Automatic listening already follows the Mac's dictation languages, so Portuguese comes first on a Brazilian Mac.
+  The phrase parser reads natural Brazilian phrasings (tabs, music, volume, apps, questions about the services,
+  weather, e-mail, web search, several commands in one sentence; accents never matter), the spoken answers exist in
+  Portuguese for every topic, the Apple Intelligence and Claude prompts answer in pt-BR, and the Mac voice is chosen
+  region first (Luciana or Felipe, never a premium voice from Portugal). The wake word stays "OK Koru"; the
+  recognizer's Brazilian spellings of it ("okei Kôru") are accepted too.
+  Files: `App/KoncluiVoiceLanguage.swift`, `App/KoncluiVoicePhrases.swift`, `App/KoncluiVoiceParserPT.swift`,
+  `App/KoncluiVoicePrompts.swift`; tests `scripts/konclui/test-voice-pt.sh`; coverage check
+  `scripts/konclui/voice-pt-templates.py`.
+  How it stays mergeable after an upstream merge:
+  Upstream says every answer as `t("<French>", "<English>")` with a two-way `Bool`. The wide change (a third argument at
+  about 100 call sites) was not made. `t` now takes `VoiceText`, a string-interpolation type that remembers the English
+  sentence with a `{}` for each `\( )`; French and English render exactly what is written at the call site (byte for
+  byte), Portuguese is looked up by the English sentence in `KoncluiVoicePhrases.table`. The call sites are upstream's
+  lines, untouched. A sentence upstream adds or rewords has no Portuguese until someone writes it, and is said in English
+  meanwhile; `scripts/konclui/voice-pt-templates.py --check` finds it (it also runs first in `test-voice-pt.sh`).
+
+  The parser is the same idea: `KoncluiVoicePT.parse` answers nil unless a Portuguese word is in the phrase, so French and
+  English reach upstream's tables unchanged, and nothing of upstream's tables is edited.
+
+  ### After `git merge upstream/main` (voice files)
+
+  1. Conflicts in `App/Voice/*`, `ClaudeService.swift`, `IslandWindowController.swift`: take upstream's side of the
+     hunk, then re-apply the marked hooks listed below (`grep -rn "Koncluí" NotchBuddy/Sources/App/Voice` finds them;
+     each is one to five lines).
+  2. `python3 scripts/konclui/voice-pt-templates.py --check`. For each sentence it lists, run `--missing`, paste the
+     lines into the table in `KoncluiVoicePhrases.swift` (the French is printed next to the English), write the
+     Portuguese (`{1}`, `{2}`… are the values in the order of the English `{}`), run it again until it reports 0 problems.
+  3. `./scripts/konclui/test-voice-pt.sh`, the 12 `scripts/test-voice-*.sh`, `scripts/test-conversation-context.sh`,
+     `scripts/test-turn-end-policy.sh`, `scripts/konclui/test-voice-brain.sh`. A voice test script that upstream adds and
+     that compiles `IntentParser`, `VoiceQuery` or `VoiceActionRunner` needs the three pure files on its `swiftc` line
+     (`KoncluiVoiceLanguage.swift`, `KoncluiVoicePhrases.swift`, `KoncluiVoiceParserPT.swift`).
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -215,6 +250,9 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Updater | `AppDelegate` (`MacUpdater.shared.start()`), the "Atualizações" block (`UpdateSettingsSection`), flag `block_updates` | ships off; the code and its fail-closed signature check are untouched | `MacUpdate` asks the releases of `heslanx/coucou` and `MacUpdater` verifies every download against Louis's team `256AUJ9555`, so no download can pass until Koncluí has a Developer ID and a release channel (A3-13) |
 | Remove integrations | `KoncluiRemoveIntegrations` (end of Geral) | goes through the installers' own removal steps (preview, the same fingerprint check and dated backup, only Koncluí's entries), one file at a time, and says what happened to each file | UX.md 1.5 and CLAUDE.md: another app's settings file is never written without a preview and a confirmation |
 | Key `hub.notch.reminders` | `Localizable.xcstrings`, `HubPage.reminders` | added with the owner's own key name (from the owner's main checkout), the one new key outside the `konclui.` namespace | the later merge of that checkout is a no-op; its catalog line has the key itself as the English text: replace it with this one |
+| Answer language | UserDefaults `voiceLanguage` | "pt" is a third value; absent means the Mac's language (pt, fr or en), else English | "OK Koru" in Portuguese (the owner speaks pt-BR) |
+| Listen language | UserDefaults `voiceListenLanguage` | "pt" is a fourth value (`auto`, `en`, `fr`, `pt`) | "OK Koru" in Portuguese (the owner speaks pt-BR) |
+| Catalog `voice.*` strings | `Localizable.xcstrings` | untouched: the runner already read them in the answer language's lproj, and pt-BR was complete | "OK Koru" in Portuguese (the owner speaks pt-BR) |
 
 ## Feature flags
 
@@ -364,6 +402,25 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/HookServer.swift` | `processPermissionRequest` and `processQuestionRequest`: `isTerminal` uses `KoncluiOrcaCards.showsInNotch(isOrca:otherTerminalsOn:)` | Orca sessions' approvals and questions show in the notch by default (switch on the Orca row); other terminals keep their own switch |
 | `App/AppDelegate.swift` | `MacUpdater.shared.start()` only when `KoncluiFeatures.isOn("block_updates")` | the updater stays off until Koncluí has its own Developer ID and release channel |
 | `App/FlowHubHome.swift` | `KoncluiConnectAgentsHome(router:)` at the top of the home content | agents found but not connected |
+| `App/Voice/IntentParser.swift` | first line of `parse`, first line of `parseMultiAction` | Portuguese phrases first (`KoncluiVoicePT.parse`, `parseMulti`); nil for anything else |
+| `App/Voice/VoiceQuery.swift` | `VoiceAnswer.text(_:_:language:)` (the `french:` overload forwards); `stateText` / `weatherText` calls take the language; the lead-in lists of the guided e-mail (`recipientAnswer`, `subjectAnswer`, `bodyAnswer`, `instructionText`, `attachmentAnswer`) get `+ KoncluiVoicePT.…Leads`; `contactCandidates`, `spokenEmail` ("arroba", "ponto"), `cleanFreeText`, `simpleMail`, `looksLikeQuestion` | Portuguese answers and Portuguese answers to the e-mail questions |
+| `App/Voice/VoiceActionRunner.swift` | `t` takes `VoiceText`; `answerLanguage` replaces `answersFrench`; `webAnswer(…language:)` in the protocol, with a default that calls the `french:` one; the language offer and its answers call `VoiceLanguageSwitch`; `isYes`, `isNo`, `cancelsMail`, `askIfIncomplete`, playlist prefixes get Portuguese words | the runner speaks fr, en or pt; an older provider (upstream's test double) keeps working |
+| `App/Voice/VoiceDataSources.swift` | `fr: Bool` became `language: VoiceLanguage` in `answer`, `snapshot`, `money`, `ago`, `duration`, `when`, `plan`, `WeatherSource.forecast`, `geocode`; `openApp` says its two sentences with `voiceSay`; `webAnswer(…language:)` | formats, Open-Meteo place names and answers follow the answer language |
+| `App/Voice/VoiceSettings.swift` | `language` defaults to `VoiceLanguage.macDefault()`; `answerLocale` is `VoiceLanguage(code:).locale` | "pt" is a language; the Mac's language is the default |
+| `App/Voice/VoiceEngine.swift` | `suitableLocale`: `case "pt"` | Settings → "Você fala: Português" listens with pt-BR (pt-PT second) |
+| `App/Voice/VoiceBrain.swift` | `instructions()` returns `KoncluiVoicePrompts.appleIntelligence` for "pt"; `draftMail` writes in Portuguese when the instruction is; `ServiceTool` uses `VoiceSettings.answerLocale` | the on-device model answers and writes e-mails in pt-BR |
+| `App/Voice/ClaudeVoiceBrain.swift` | `systemPrompt`: language from `VoiceLanguage`, `+ KoncluiVoicePrompts.claudeAddendum` (empty for fr and en) | Claude answers in pt-BR |
+| `App/ClaudeService.swift` | `voiceAnswer(…language:)` (was `french: Bool`); `let system = language == .pt ? KoncluiVoicePrompts.webAnswer(…) : french ? …` | the web answer prompt in pt-BR |
+| `App/Voice/ElevenLabsTTS.swift` | the cached voice is keyed by language too; `pick(…language:)` prefers a voice labelled Portuguese (the model `eleven_flash_v2_5` is multilingual: an English-labelled voice still speaks it) | ElevenLabs keeps working in Portuguese |
+| `App/Voice/VoiceSpeaker.swift` | `rank` calls `KoncluiVoicePick.rank` | Portuguese ranks the region first, then Luciana and Felipe |
+| `App/Voice/VoiceGenderNames.swift` | `luciana`, `joana`, `catarina`, `felipe` | "female" and "male" find the Brazilian system voices |
+| `App/Voice/LiveVoiceControls.swift` | `onLanguageSwitch` also resets the ElevenLabs voice | the voice follows a language change made by speaking |
+| `App/Voice/TurnEndPolicy.swift` | Portuguese end phrases ("obrigado", "valeu", "deixa pra lá"…) and mid-sentence words ("e", "o", "adiciona"…) | the conversation ends, and the mic waits, in Portuguese |
+| `App/Voice/ConversationContext.swift` | `resolveRelative` reads `KoncluiVoicePT.relativeForm(norm)` | "e o Vercel também", "igual para o Stripe", "desfaz" |
+| `App/Voice/WakePhrase.swift` | `normWord`: "okei", "oquei" → "ok"; "kôru", "côru" → "koru" | how a Brazilian recognizer writes the wake word |
+| `App/IslandWindowController.swift` | 4 sentences through `voiceSay`; the language offer accepts "pt" | "Deixa eu ver.", "Pronto.", the attachment line and the offer in Portuguese |
+| `App/SettingsView.swift` | `voiceSection`: both language pickers get `Português` (tag "pt"); `voiceLanguage` defaults to `VoiceLanguage.macDefault().rawValue`; `speakVoiceSample` and the Mac voice name follow the language | the choice is offered and the sample speaks it |
+| `scripts/test-voice-{entity,intent,query,runner}.sh`, `scripts/test-conversation-context.sh` | three `swiftc` lines (the pure Koncluí files) | the unchanged upstream tests still compile |
 | `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
@@ -371,6 +428,17 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 
 ## Open items
 
+- The wake word in Portuguese was tested as text ("okei Kôru adiciona…"), never with a real voice. If the recognizer
+  writes it in another way, add the spelling to `WakePhrase.normWord` (the Portuguese line above the upstream one).
+- The "Pronto"/"Zera"-style sentences are written for a Brazilian ear but have not been read aloud by Luciana or
+  Felipe yet; listen to the sample in Settings → Voice before shipping.
+- `voice.mac-voices-help` still names English voices only ("Ava para mulher, Jamie para homem"). A pt-BR line
+  for Luciana and Felipe would be a catalog copy rule (U2's domain).
+- The catalog message after "adiciona o Stripe e o Notion" reads "Stripe, Notion adicionado" (upstream's
+  `voice.pill-added`, singular): a copy rule for the plural would fix it.
+- Approving or denying a permission by voice does not exist upstream (never without a click); nothing was added.
+- ElevenLabs: `language_code` is not sent; the model detects Portuguese from the text. If an account's voice is
+  heavily accented, label a Portuguese voice in the account (it is picked first).
 - `HubSetupCard` (FlowHubHome.swift) is unused; delete it with the next Ditado change.
 - A2-34 (is the panel's 20 pt corner concentric with the macOS 26 window?): not changed. A concentric radius is the window's radius minus the
   10 pt inset; the window's radius cannot be read from SwiftUI, and 20 is already the floor. Measure on a Mac with a ruler before touching it.

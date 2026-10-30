@@ -18,16 +18,21 @@ final class LiveVoiceInfo: VoiceInfoProviding {
     // MARK: Questions
 
     func answer(_ topic: VoiceTopic, locale: Locale?) async -> String {
-        let fr = Self.isFrench(locale)
-        let snap = await snapshot(for: topic, french: fr)
-        return VoiceAnswer.text(topic, snap, french: fr)
+        let language = Self.language(of: locale)
+        let snap = await snapshot(for: topic, language: language)
+        return VoiceAnswer.text(topic, snap, language: language)
+    }
+
+    /// Koncluí: French, English or Portuguese; no locale means the Mac's own.
+    static func language(of locale: Locale?) -> VoiceLanguage {
+        VoiceLanguage(locale: locale ?? Locale.current)
     }
 
     static func isFrench(_ locale: Locale?) -> Bool {
         (locale ?? Locale.current).language.languageCode?.identifier == "fr"
     }
 
-    private func snapshot(for topic: VoiceTopic, french fr: Bool) async -> VoiceSnapshot {
+    private func snapshot(for topic: VoiceTopic, language: VoiceLanguage) async -> VoiceSnapshot {
         let app = AppState.shared
         var s = VoiceSnapshot()
         func key(_ k: String) -> Bool { KeychainStore.shared.get(k) != nil }
@@ -36,13 +41,13 @@ final class LiveVoiceInfo: VoiceInfoProviding {
         case .stripe:
             guard key("stripe-api-key") else { s.configured = false; break }
             let cur = app.stripeCurrency
-            var st = VoiceSnapshot.Stripe(balance: Self.money(app.stripeBalance, cur, fr: fr))
+            var st = VoiceSnapshot.Stripe(balance: Self.money(app.stripeBalance, cur, language: language))
             st.last = app.stripePayments.prefix(3).map {
-                .init(amount: Self.money($0.amount, $0.currency, fr: fr), description: $0.description,
-                      ago: Self.ago($0.createdAt, fr: fr), succeeded: $0.isSuccess)
+                .init(amount: Self.money($0.amount, $0.currency, language: language), description: $0.description,
+                      ago: Self.ago($0.createdAt, language: language), succeeded: $0.isSuccess)
             }
             if let today = await StripeToday.fetch() {
-                st.today = Self.money(today.cents, today.currency ?? cur, fr: fr)
+                st.today = Self.money(today.cents, today.currency ?? cur, language: language)
                 st.todayCount = today.count
             }
             s.stripe = st
@@ -61,7 +66,7 @@ final class LiveVoiceInfo: VoiceInfoProviding {
         case .vercel:
             guard key("vercel-token") else { s.configured = false; break }
             s.deploys = app.vercelDeployments.map {
-                .init(project: $0.projectName, state: $0.state, ago: Self.ago($0.createdAt, fr: fr), commit: $0.commitMessage)
+                .init(project: $0.projectName, state: $0.state, ago: Self.ago($0.createdAt, language: language), commit: $0.commitMessage)
             }
 
         case .resend:
@@ -71,11 +76,11 @@ final class LiveVoiceInfo: VoiceInfoProviding {
 
         case .n8n:
             guard key("n8n-api-key") else { s.configured = false; break }
-            s.runs = app.n8nRuns.map { (workflow: $0.workflow, ok: $0.success, ago: Self.ago($0.date, fr: fr)) }
+            s.runs = app.n8nRuns.map { (workflow: $0.workflow, ok: $0.success, ago: Self.ago($0.date, language: language)) }
 
         case .notion:
             guard key("notion-api-key") else { s.configured = false; break }
-            s.pages = app.notionPages.map { (title: $0.title, ago: Self.ago($0.lastEditedAt, fr: fr)) }
+            s.pages = app.notionPages.map { (title: $0.title, ago: Self.ago($0.lastEditedAt, language: language)) }
 
         case .calcom:
             guard key("calcom-api-key") else { s.configured = false; break }
@@ -83,7 +88,7 @@ final class LiveVoiceInfo: VoiceInfoProviding {
             s.bookings = app.calcomBookings
                 .filter { $0.isActive && $0.endTime > now }
                 .sorted { $0.startTime < $1.startTime }
-                .map { .init(title: $0.title, when: Self.when($0.startTime, fr: fr), with: $0.attendeeName) }
+                .map { .init(title: $0.title, when: Self.when($0.startTime, language: language), with: $0.attendeeName) }
 
         case .agents:
             s.approvalPending = app.pendingApproval?.tool
@@ -96,10 +101,10 @@ final class LiveVoiceInfo: VoiceInfoProviding {
                 }
 
         case .claudePlan:
-            s.plan = Self.plan(app.claudePlanUsage, fr: fr)
+            s.plan = Self.plan(app.claudePlanUsage, language: language)
 
         case .codexPlan:
-            s.plan = Self.plan(app.codexPlanUsage?.planUsage, fr: fr)
+            s.plan = Self.plan(app.codexPlanUsage?.planUsage, language: language)
 
         case .music:
             if app.musicPlaying, let title = MusicController.shared.trackTitle {
@@ -116,52 +121,52 @@ final class LiveVoiceInfo: VoiceInfoProviding {
             guard VoiceSettings.weatherEnabled else { s.weatherOff = true; break }
             let city = VoiceSettings.weatherCity.trimmingCharacters(in: .whitespaces)
             guard !city.isEmpty else { s.weatherNoCity = true; break }
-            s.weather = await WeatherSource.shared.forecast(city: city, tomorrow: topic == .weatherTomorrow, french: fr)
+            s.weather = await WeatherSource.shared.forecast(city: city, tomorrow: topic == .weatherTomorrow, language: language)
         }
         return s
     }
 
     // MARK: Formatting
 
-    static func money(_ cents: Int, _ currency: String, fr: Bool) -> String {
+    static func money(_ cents: Int, _ currency: String, language: VoiceLanguage) -> String {
         let f = NumberFormatter()
         f.numberStyle  = .currency
         f.currencyCode = currency.uppercased()
-        f.locale       = Locale(identifier: fr ? "fr_FR" : "en_US")
+        f.locale       = language.locale
         return f.string(from: NSNumber(value: Double(cents) / 100)) ?? "\(cents / 100) \(currency.uppercased())"
     }
 
-    static func ago(_ date: Date, fr: Bool) -> String {
+    static func ago(_ date: Date, language: VoiceLanguage) -> String {
         let secs = max(60, Date().timeIntervalSince(date))
-        return duration(secs, fr: fr, units: 1)
+        return duration(secs, language: language, units: 1)
     }
 
-    static func duration(_ secs: TimeInterval, fr: Bool, units: Int) -> String {
+    static func duration(_ secs: TimeInterval, language: VoiceLanguage, units: Int) -> String {
         let f = DateComponentsFormatter()
         f.unitsStyle = .full
         f.maximumUnitCount = units
         f.allowedUnits = [.day, .hour, .minute]
         var cal = Calendar.current
-        cal.locale = Locale(identifier: fr ? "fr_FR" : "en_US")
+        cal.locale = language.locale
         f.calendar = cal
         return f.string(from: secs) ?? ""
     }
 
-    static func when(_ date: Date, fr: Bool) -> String {
+    static func when(_ date: Date, language: VoiceLanguage) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: fr ? "fr_FR" : "en_US")
+        f.locale = language.locale
         f.doesRelativeDateFormatting = true
         f.dateStyle = .medium
         f.timeStyle = .short
         return f.string(from: date)
     }
 
-    static func plan(_ u: PlanUsage?, fr: Bool) -> VoiceSnapshot.Plan? {
+    static func plan(_ u: PlanUsage?, language: VoiceLanguage) -> VoiceSnapshot.Plan? {
         guard let u else { return nil }
         let reset = [u.fiveHour?.resetsAt, u.sevenDay?.resetsAt].compactMap { $0 }.filter { $0 > Date() }.min()
         return .init(fiveHourPct: u.fiveHour.map { Int($0.usedPct.rounded()) },
                      sevenDayPct: u.sevenDay.map { Int($0.usedPct.rounded()) },
-                     resetsIn: reset.map { duration($0.timeIntervalSinceNow, fr: fr, units: 2) })
+                     resetsIn: reset.map { duration($0.timeIntervalSinceNow, language: language, units: 2) })
     }
 
     // MARK: Guided email — the island's mail card, sent only on the user's click
@@ -192,20 +197,25 @@ final class LiveVoiceInfo: VoiceInfoProviding {
     var hasWebKey: Bool { KoncluiVoiceBrainLive.shared.claudeSource() != nil }   // Koncluí: the subscription counts too
 
     func webAnswer(_ question: String, history: [VoiceWebTurn], french: Bool) async -> String? {
-        await ClaudeService.shared.voiceAnswer(question, history: history, french: french)
+        await webAnswer(question, history: history, language: french ? .fr : .en)
+    }
+
+    // Koncluí: Portuguese answers too.
+    func webAnswer(_ question: String, history: [VoiceWebTurn], language: VoiceLanguage) async -> String? {
+        await ClaudeService.shared.voiceAnswer(question, history: history, language: language)
     }
 
     // MARK: Apps
 
     func openApp(_ name: String, locale: Locale?) -> VoiceActionResult {
-        let fr = Self.isFrench(locale)
+        let language = Self.language(of: locale)
         guard let url = AppLookup.find(name) else {
             return .init(outcome: .failure,
-                         message: fr ? "Je ne trouve pas l'app \(name)." : "I can't find the app \(name).")
+                         message: voiceSay(language, "Je ne trouve pas l'app \(name).", "I can't find the app \(name)."))
         }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
         let shown = url.deletingPathExtension().lastPathComponent
-        return .init(outcome: .success, message: fr ? "J'ouvre \(shown)." : "Opening \(shown).")
+        return .init(outcome: .success, message: voiceSay(language, "J'ouvre \(shown).", "Opening \(shown)."))
     }
 }
 
@@ -247,8 +257,8 @@ final class WeatherSource {
     private var place: (query: String, name: String, lat: Double, lon: Double)?
     private var cache: (key: String, at: Date, json: [String: Any])?
 
-    func forecast(city: String, tomorrow: Bool, french fr: Bool) async -> VoiceSnapshot.Weather? {
-        guard let p = await geocode(city, fr: fr) else { return nil }
+    func forecast(city: String, tomorrow: Bool, language: VoiceLanguage) async -> VoiceSnapshot.Weather? {
+        guard let p = await geocode(city, language: language) else { return nil }
         let key = "\(p.lat),\(p.lon)"
         var json: [String: Any]
         if let c = cache, c.key == key, Date().timeIntervalSince(c.at) < 900 {
@@ -288,11 +298,11 @@ final class WeatherSource {
                      wind: (current?["wind_speed_10m"] as? Double).map { Int($0.rounded()) })
     }
 
-    private func geocode(_ city: String, fr: Bool) async -> (name: String, lat: Double, lon: Double)? {
+    private func geocode(_ city: String, language: VoiceLanguage) async -> (name: String, lat: Double, lon: Double)? {
         if let p = place, p.query == city { return (p.name, p.lat, p.lon) }
         var comps = URLComponents(string: "https://geocoding-api.open-meteo.com/v1/search")!
         comps.queryItems = [.init(name: "name", value: city), .init(name: "count", value: "1"),
-                            .init(name: "language", value: fr ? "fr" : "en")]
+                            .init(name: "language", value: language.rawValue)]
         guard let url = comps.url,
               let (data, _) = try? await URLSession.shared.data(for: URLRequest(url: url, timeoutInterval: 6)),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

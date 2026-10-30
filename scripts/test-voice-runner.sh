@@ -9,5 +9,8 @@ swiftc -o /tmp/voice-runner-tests \
   NotchBuddy/Sources/App/Voice/VoiceQuery.swift \
   NotchBuddy/Sources/App/Voice/EntityResolver.swift \
   NotchBuddy/Sources/App/Voice/VoiceActionRunner.swift \
+  NotchBuddy/Sources/App/KoncluiVoiceLanguage.swift \
+  NotchBuddy/Sources/App/KoncluiVoicePhrases.swift \
+  NotchBuddy/Sources/App/KoncluiVoiceParserPT.swift \
   tests/VoiceActionRunnerTests.swift
 /tmp/voice-runner-tests

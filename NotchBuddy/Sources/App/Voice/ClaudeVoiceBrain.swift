@@ -113,14 +113,14 @@ final class ClaudeVoiceBrain {
     // MARK: Prompt
 
     private static func systemPrompt() -> String {
-        let fr = VoiceSettings.language == "fr"
+        let voiceLanguage = VoiceLanguage(code: VoiceSettings.language)   // Koncluí: French, English or Portuguese
         let today = Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year().hour().minute()
-            .locale(Locale(identifier: fr ? "fr_FR" : "en_US")))
+            .locale(voiceLanguage.locale))
         let state = AppState.shared
         let active = ([state.mainPillId] + Array(state.activeIntegrations))
             .compactMap { PillCatalog.definition(for: $0)?.name }
         let available = PillCatalog.available.map(\.name).joined(separator: ", ")
-        let language = fr ? "French" : "English"
+        let language = voiceLanguage.promptName
         return """
         You are Koncluí, a voice assistant living in the notch of the user's Mac, a bit like Jarvis: \
         quick, warm, a little playful. It is \(today).
@@ -138,7 +138,7 @@ final class ClaudeVoiceBrain {
         When you need an answer from the user, end with one short question. Otherwise never end \
         with a question.
         Pills in the notch (at most 4 besides the main one). Active: \(active.joined(separator: ", ")). \
-        Available: \(available).
+        Available: \(available).\(KoncluiVoicePrompts.claudeAddendum(for: voiceLanguage))
         """
     }
 

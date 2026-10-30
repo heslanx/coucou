@@ -232,7 +232,8 @@ enum VoiceQuery {
                                 "mon pote", "ma pote", "mon frère", "ma sœur", "ma soeur",
                                 "his name is", "her name is", "their name is", "the name is", "name is",
                                 "his email is", "her email is", "it's called", "called",
-                                "c'est pour", "c'est", "c est", "it's", "its", "to", "à", "a", "pour", "for", "the", "le", "la"])
+                                "c'est pour", "c'est", "c est", "it's", "its", "to", "à", "a", "pour", "for", "the", "le", "la"]
+                               + KoncluiVoicePT.recipientLeads)   // Koncluí: Portuguese
         t = t.trimmingCharacters(in: CharacterSet(charactersIn: " .,;:!?"))
         return spokenEmail(t) ?? t
     }
@@ -254,9 +255,10 @@ enum VoiceQuery {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
         guard !trimmed.isEmpty else { return [] }
         let words = trimmed.split(separator: " ").map(String.init)
-        let stop: Set<String> = ["le", "la", "les", "l", "de", "du", "des", "mon", "ma", "mes", "ami", "amie", "pote",
+        var stop: Set<String> = ["le", "la", "les", "l", "de", "du", "des", "mon", "ma", "mes", "ami", "amie", "pote",
                                  "c", "est", "il", "elle", "s", "appelle", "the", "my", "friend", "is", "name", "his",
                                  "her", "a", "à", "et", "and"]
+        stop.formUnion(KoncluiVoicePT.contactStopWords)   // Koncluí: Portuguese
         var out = [trimmed]
         let caps = words.filter { $0.first?.isUppercase == true && !stop.contains(IntentParser.normalise($0)) }
         if !caps.isEmpty { out.append(caps.joined(separator: " ")) }
@@ -268,9 +270,10 @@ enum VoiceQuery {
     /// "l'objet c'est Voilà votre image" → "Voilà votre image"; "pas d'objet" / "no subject" → "".
     static func subjectAnswer(_ raw: String) -> String {
         let n = IntentParser.normalise(raw)
-        if ["pas d objet", "aucun objet", "sans objet", "no subject", "none", "rien", "nothing", "pas d objet merci"].contains(n) { return "" }
+        if ["pas d objet", "aucun objet", "sans objet", "no subject", "none", "rien", "nothing", "pas d objet merci"].contains(n)
+            || KoncluiVoicePT.noSubject.contains(n) { return "" }   // Koncluí: Portuguese
         return stripLead(raw, ["l'objet c'est", "l'objet est", "l'objet", "objet", "en objet", "the subject is", "subject is",
-                               "subject", "c'est", "it's", "mets", "put", "write"])
+                               "subject", "c'est", "it's", "mets", "put", "write"] + KoncluiVoicePT.subjectLeads)
             .trimmingCharacters(in: CharacterSet(charactersIn: " .,;:!?\"«»“”"))
     }
 
@@ -279,7 +282,7 @@ enum VoiceQuery {
     /// word for word …" dictates the exact text.
     static func bodyAnswer(_ raw: String) -> (body: String?, instruction: String?) {
         let literalLeads = ["mot pour mot", "texte exact", "le texte exact c'est", "écris exactement", "ecris exactement",
-                            "exactement", "word for word", "verbatim", "exactly", "write exactly", "the exact text is"]
+                            "exactement", "word for word", "verbatim", "exactly", "write exactly", "the exact text is"] + KoncluiVoicePT.literalLeads
         let literal = stripLead(raw, literalLeads)
         if literal.count < raw.trimmingCharacters(in: .whitespacesAndNewlines).count {
             return (literal.trimmingCharacters(in: CharacterSet(charactersIn: " :;\"«»“”")), nil)
@@ -300,7 +303,8 @@ enum VoiceQuery {
                         "préviens-le que", "préviens-la", "préviens-le", "le message c'est", "le message", "c'est",
                         "write her that", "write him that", "write them that", "write that", "write", "tell her that",
                         "tell him that", "tell them that", "tell her", "tell him", "tell them", "say that", "say",
-                        "let her know that", "let him know that", "let them know that", "draft", "the message is", "that"])
+                        "let her know that", "let him know that", "let them know that", "draft", "the message is", "that"]
+                        + KoncluiVoicePT.instructionLeads)
             .trimmingCharacters(in: CharacterSet(charactersIn: " :;\"«»“”"))
     }
 
@@ -324,6 +328,7 @@ enum VoiceQuery {
         guard let first = t.first else { return instruction }
         t = first.uppercased() + t.dropFirst()
         if let last = t.last, !".!?".contains(last) { t += "." }
+        if KoncluiVoicePT.looksPortuguese(instruction) { return "Olá,\n\n\(t)\n\nAbraço," }   // Koncluí
         return looksFrench(instruction) ? "Bonjour,\n\n\(t)\n\nBonne journée !" : "Hi,\n\n\(t)\n\nBest,"
     }
 
@@ -331,13 +336,14 @@ enum VoiceQuery {
     static func attachmentAnswer(_ raw: String) -> String? {
         var t = stripLead(raw, ["oui", "ouais", "yes", "yeah", "c'est", "it's", "le fichier qui s'appelle", "l'image qui s'appelle",
                                 "le fichier", "l'image", "la photo", "the file called", "the image called", "the file", "the image",
-                                "attach", "joins", "joint"])
+                                "attach", "joins", "joint"] + KoncluiVoicePT.attachmentLeads)
         t = t.trimmingCharacters(in: CharacterSet(charactersIn: " ,;:!?"))
         if t.hasSuffix(".") && !t.dropLast().contains(".") { t.removeLast() }
         // "goku point png" → "goku.png"
         for ext in ["png", "jpg", "jpeg", "pdf", "heic", "gif", "mov", "mp4", "docx", "zip", "txt"] {
             t = t.replacingOccurrences(of: " point \(ext)", with: ".\(ext)", options: .caseInsensitive)
                  .replacingOccurrences(of: " dot \(ext)", with: ".\(ext)", options: .caseInsensitive)
+                 .replacingOccurrences(of: " ponto \(ext)", with: ".\(ext)", options: .caseInsensitive)   // Koncluí
         }
         return t.isEmpty ? nil : t
     }
@@ -363,7 +369,9 @@ enum VoiceQuery {
     static func spokenEmail(_ s: String) -> String? {
         var t = " " + s.lowercased() + " "
         for (a, b) in [(" arobase ", "@"), (" at ", "@"), (" point ", "."), (" dot ", "."), (" tiret ", "-"),
-                       (" underscore ", "_"), (" dash ", "-")] {
+                       (" underscore ", "_"), (" dash ", "-"),
+                       (" arroba ", "@"), (" ponto ", "."), (" traço ", "-"), (" traco ", "-"),
+                       (" sublinhado ", "_")] {   // Koncluí: Portuguese
             t = t.replacingOccurrences(of: a, with: b)
         }
         t = t.replacingOccurrences(of: " ", with: "").trimmingCharacters(in: CharacterSet(charactersIn: ".,;:!?"))
@@ -373,7 +381,8 @@ enum VoiceQuery {
 
     private static func isSpelledEmail(_ words: [String]) -> Bool {
         let n = words.map { IntentParser.normalise($0) }
-        return n.contains("arobase") || (n.contains("at") && (n.contains("dot") || n.contains("point")))
+        return n.contains("arobase") || n.contains("arroba")
+            || (n.contains("at") && (n.contains("dot") || n.contains("point")))
     }
 
     private static func firstMarker(_ markers: [String], in raw: String) -> (range: Range<String.Index>, marker: String)? {
@@ -400,7 +409,8 @@ enum VoiceQuery {
     /// ": tu écris : Voilà votre image." → "Voilà votre image"
     private static func cleanFreeText(_ s: String) -> String? {
         var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lead = ["tu écris", "tu ecris", "tu mets", "écris", "ecris", "mets", "write", "put", "it's", "is", "c'est", "ce sera"]
+        let lead = ["tu écris", "tu ecris", "tu mets", "écris", "ecris", "mets", "write", "put", "it's", "is", "c'est", "ce sera",
+                    "você escreve", "voce escreve", "escreve", "coloca", "põe", "é"]   // Koncluí: Portuguese
         var changed = true
         while changed {
             changed = false
@@ -410,7 +420,7 @@ enum VoiceQuery {
             }
         }
         t = t.trimmingCharacters(in: CharacterSet(charactersIn: " .,;\"«»“”").union(.whitespacesAndNewlines))
-        for tail in [" et", " and", " puis"] where t.lowercased().hasSuffix(tail) { t = String(t.dropLast(tail.count)) }
+        for tail in [" et", " and", " puis", " e", " depois"] where t.lowercased().hasSuffix(tail) { t = String(t.dropLast(tail.count)) }
         return t.isEmpty ? nil : t
     }
 
@@ -483,6 +493,9 @@ enum VoiceQuery {
         }
         guard let first = n.first else { return false }
         let joined = n.joined(separator: " ")
+        if let portuguese = KoncluiVoicePT.looksLikeQuestion(n, endsWithQuestionMark: trimmed.hasSuffix("?")) {
+            return portuguese   // Koncluí: Portuguese
+        }
         let requests = ["tu peux", "peux tu", "est ce que tu peux", "est ce que tu pourrais", "tu pourrais",
                         "pourrais tu", "can you", "could you", "would you", "will you", "please"]
         if requests.contains(where: { joined == $0 || joined.hasPrefix($0 + " ") }) { return false }
@@ -610,7 +623,12 @@ struct VoiceSnapshot {
 enum VoiceAnswer {
 
     static func text(_ topic: VoiceTopic, _ s: VoiceSnapshot, french fr: Bool) -> String {
-        func t(_ f: String, _ e: String) -> String { fr ? f : e }
+        text(topic, s, language: fr ? .fr : .en)
+    }
+
+    /// Koncluí: the same answers in French, English or Portuguese; the call sites of `t` are upstream's.
+    static func text(_ topic: VoiceTopic, _ s: VoiceSnapshot, language: VoiceLanguage) -> String {
+        func t(_ f: VoiceText, _ e: VoiceText) -> String { voiceSay(language, f, e) }
         if !s.configured {
             return t("\(serviceName(topic)) n'est pas connecté dans les réglages de Koncluí.",
                      "\(serviceName(topic)) isn't connected in Koncluí's settings.")
@@ -695,7 +713,7 @@ enum VoiceAnswer {
             let busy = s.sessions.filter { $0.state != "idle" && $0.state != "sleeping" }
             guard !busy.isEmpty else { return t("Aucun agent ne travaille en ce moment.", "No agent is working right now.") }
             return busy.prefix(3).map { a in
-                let st = stateText(a.state, fr: fr)
+                let st = stateText(a.state, language: language)
                 return a.detail.map { "\(a.name) \(st) : \($0)." } ?? "\(a.name) \(st)."
             }.joined(separator: " ")
 
@@ -725,7 +743,7 @@ enum VoiceAnswer {
             if s.weatherOff { return t("Active la météo dans les réglages de Koncluí, section Voix.", "Turn on weather in Koncluí's settings, Voice section.") }
             if s.weatherNoCity { return t("Indique ta ville dans les réglages de Koncluí, section Voix.", "Set your city in Koncluí's settings, Voice section.") }
             guard let w = s.weather else { return t("Je n'arrive pas à avoir la météo pour l'instant.", "I can't get the weather right now.") }
-            let sky = weatherText(w.code, fr: fr)
+            let sky = weatherText(w.code, language: language)
             var out: String
             if topic == .weatherTomorrow {
                 out = t("Demain à \(w.city) : \(sky), de \(w.min) à \(w.max) degrés.", "Tomorrow in \(w.city): \(sky), \(w.min) to \(w.max) degrees.")

@@ -704,6 +704,7 @@ final class VoiceEngine: ObservableObject {
         switch VoiceSettings.listenLanguage {
         case "fr": candidates = [Locale(identifier: "fr-FR"), Locale(identifier: "fr-CA")]
         case "en": candidates = [Locale(identifier: "en-US"), Locale(identifier: "en-GB"), Locale(identifier: "en-AU")]
+        case "pt": candidates = VoiceLanguage.pt.listenLocaleIdentifiers.map { Locale(identifier: $0) }   // Koncluí
         default:   candidates = []
         }
         candidates += MacDictation.automaticLocales()

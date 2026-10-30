@@ -88,6 +88,9 @@ enum WakePhrase {
     /// Normalise a single word token for wake-phrase matching.
     private static func normWord(_ w: String) -> String {
         var t = normalise(w)
+        // Koncluí: how a Brazilian Portuguese recognizer writes "OK" and "Koru".
+        if ["okei", "oquei", "oquê", "oke"].contains(t) { t = "ok" }
+        if ["kôru", "côru", "córu", "kóru"].contains(t) { t = "koru" }
         t = t
             .replacingOccurrences(of: "cuckoo", with: "coucou")
             .replacingOccurrences(of: "kuku",   with: "coucou")

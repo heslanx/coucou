@@ -208,6 +208,7 @@ half-converted.
 | The WhatsApp gateway | gateway | gateway | "GOWA" only under Details (Advanced fields, the install progress); never in the sentences of a failed install |
 | Where a Koncluí subscription is meant | assinatura | subscription | "Conectado pela sua assinatura Koncluí"; "Koncluí Proxy" only as a product name in Chat's list |
 | Quotes around a name or phrase | “…” | “…” | per language: es, ru, ar «…»; fr « … »; de „…“; zh-Hant 「…」. Never French guillemets in pt-BR or en. |
+| What Koru says aloud | "você", short sentences, "aba" for a pill, "e-mail" | | Spoken pt-BR is informal Brazilian ("Pronto.", "Deixa eu ver."); never "tu", never European forms |
 
 Add a row whenever a new concept reaches the interface.
 
@@ -257,6 +258,9 @@ Add a row whenever a new concept reaches the interface.
 - [ ] Every new string exists in all 14 languages (`python3 scripts/test-localization.py`).
 - [ ] The changed path was walked in the running app, including blocked, error and recovery states, and with the keyboard
       (a screenshot or a unit test alone does not prove an interaction).
+- Both pickers list the three languages the parser, the answers and the voice support; adding a fourth language means
+  adding it to `VoiceLanguage`, the parser, the sentence table and the two prompts (`KoncluiVoicePrompts.swift`) first,
+  never a picker entry alone (a language that cannot be understood would be a silent blocked control).
 
 ---
 

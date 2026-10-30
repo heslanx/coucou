@@ -586,14 +586,15 @@ final class ClaudeService {
     /// A short answer Coucou can say aloud, with web search, in the answer language.
     /// `history` holds the previous exchanges of this voice conversation (memory only).
     /// nil on any failure: no key, network, quota.
-    func voiceAnswer(_ question: String, history: [VoiceWebTurn], french: Bool) async -> String? {
+    func voiceAnswer(_ question: String, history: [VoiceWebTurn], language: VoiceLanguage) async -> String? {
+        let french = language == .fr   // Koncluí: French, English or Portuguese (KoncluiVoicePrompts.swift)
         // Koncluí: the key is only needed when the Koncluí Proxy is not the source.
         let viaProxy = KoncluiVoiceBrainLive.shared.claudeSource() == .proxy
         let key = apiKey ?? ""
         guard viaProxy || !key.isEmpty else { return nil }
         let today = Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year()
-            .locale(Locale(identifier: french ? "fr_FR" : "en_US")))
-        let system = french
+            .locale(language.locale))
+        let system = language == .pt ? KoncluiVoicePrompts.webAnswer(today: today) : french
             ? """
               Tu es Koncluí, un assistant vocal dans le notch du Mac. Nous sommes le \(today). \
               Ta réponse est lue à voix haute : 2 à 4 phrases courtes, en français, sans markdown, sans liste, \

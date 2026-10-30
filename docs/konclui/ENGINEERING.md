@@ -26,6 +26,10 @@ what it costs at the next `git merge upstream/main`.
   raw values and hook markers are **stable contract values**: never rename one that shipped.
 - New features ship behind a feature flag (`CoucouKit/KoncluiFeatures.swift`); deleting a feature for good is "delete its code
   and its registry line" (`KONCLUI.md`, "Feature flags").
+- **Spoken answers keep upstream's call sites.** Every spoken sentence upstream writes as `t("<French>", "<English>")`
+  stays that line. Koncluí's Portuguese lives in `App/KoncluiVoicePhrases.swift`, found by the English sentence
+  (`VoiceText` records the blanks), never as a third argument at the call site. After a merge,
+  `python3 scripts/konclui/voice-pt-templates.py --check` lists the sentences that have no Portuguese yet.
 
 ## 2. Clean code
 

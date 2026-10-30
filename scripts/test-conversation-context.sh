@@ -11,6 +11,9 @@ swiftc -swift-version 6 -strict-concurrency=complete \
     "$ROOT/NotchBuddy/Sources/App/Voice/VoiceQuery.swift" \
     "$ROOT/NotchBuddy/Sources/App/Voice/EntityResolver.swift" \
     "$ROOT/NotchBuddy/Sources/App/Voice/ConversationContext.swift" \
+    "$ROOT/NotchBuddy/Sources/App/KoncluiVoiceLanguage.swift" \
+    "$ROOT/NotchBuddy/Sources/App/KoncluiVoicePhrases.swift" \
+    "$ROOT/NotchBuddy/Sources/App/KoncluiVoiceParserPT.swift" \
     "$ROOT/tests/ConversationContextTests.swift" \
     -o "$OUT"
 "$OUT"

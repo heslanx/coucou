@@ -110,6 +110,7 @@ final class VoiceBrain {
 
     /// Instructions in the language Coucou speaks (Settings → Voice, English by default).
     static func instructions() -> String {
+        if VoiceSettings.language == "pt" { return KoncluiVoicePrompts.appleIntelligence }   // Koncluí
         if VoiceSettings.language == "fr" {
             return """
             Tu es Koncluí, un assistant dans le notch du MacBook. L'utilisateur peut parler anglais ou français : réponds toujours en français.
@@ -142,6 +143,14 @@ final class VoiceBrain {
             let fr = VoiceQuery.looksFrench(instruction)
             // An address is not a name to greet: a plain greeting then.
             let name = recipient.contains("@") ? "" : recipient
+            if KoncluiVoicePT.looksPortuguese(instruction) {   // Koncluí: Brazilian Portuguese
+                let session = LanguageModelSession(instructions: KoncluiVoicePrompts.mailWriter)
+                let box = SessionContainer(session: session, collector: IntentCollector())
+                let prompt = KoncluiVoicePrompts.mailRequest(to: name, about: instruction)
+                do {
+                    return try await withBrainTimeout(seconds: 8) { try await box.session.respond(to: prompt).content }
+                } catch { return nil }
+            }
             let session = LanguageModelSession(instructions: fr
                 ? "Tu écris des mails courts et naturels à la place de l'utilisateur : une salutation, 1 à 3 phrases qui disent ce qu'il veut dire, sans rien inventer, sans objet ni signature. Réponds uniquement avec le texte du mail."
                 : "You write short, natural emails for the user: a greeting, 1 to 3 sentences saying what they want to say, inventing nothing, no subject line or signature. Reply with the email text only.")
@@ -454,7 +463,7 @@ struct ServiceTool: Tool, @unchecked Sendable {
         guard let topic = VoiceTopic(rawValue: arguments.topic) else {
             return "unknown topic: \(arguments.topic)"
         }
-        return await LiveVoiceInfo.shared.answer(topic, locale: Locale(identifier: VoiceSettings.language == "fr" ? "fr-FR" : "en-US"))
+        return await LiveVoiceInfo.shared.answer(topic, locale: VoiceSettings.answerLocale)   // Koncluí: fr, en or pt
     }
 }
 
