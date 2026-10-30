@@ -9,6 +9,8 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
 
 - [docs/konclui/UX.md](docs/konclui/UX.md): usability, microcopy, accessibility, the review gate and the UI polish pass.
 - [docs/konclui/ENGINEERING.md](docs/konclui/ENGINEERING.md): code rules and how to stay mergeable with upstream.
+- [docs/konclui/WORKFLOW.md](docs/konclui/WORKFLOW.md): branches, remotes, pull requests, Coucou syncs, pushes and releases,
+  with the commands; why it is so: [ADR-001](docs/konclui/decisions/ADR-001-branches-and-flow.md).
 
 ## What changes
 
@@ -218,8 +220,8 @@ Day to day: `./scripts/konclui/dev-install.sh` builds Debug and installs `/Appli
 
 ## Upstream workflow
 
-Branches, remotes, pull requests and releases: [ADR-001](docs/konclui/decisions/ADR-001-branches-and-flow.md). Upstream
-comes in on a `sync/upstream-<date>` branch from `main` of `konclui/konclui-notch`:
+Branches, remotes, pull requests and releases: [WORKFLOW.md](docs/konclui/WORKFLOW.md). Upstream comes in on a
+`sync/upstream-<date>` branch from `main` of `konclui/konclui-notch` ("Coucou updates" there), then:
 
 ```
 git fetch upstream
@@ -626,6 +628,9 @@ Today only this Mac can run Koncluí: Debug builds are signed with the owner's A
 4. A public release channel (releases of a public repository or a feed of Koncluí's own), then `MacUpdater` pointed at it
    with Koncluí's team in its signature check, and only then `block_updates` switched on by default.
 5. `FORK` in `rebrand.py` set to that public repository, so the weekly recap image links to it.
+6. A release script of Koncluí's own. `scripts/release.sh` is upstream's: it asks for Coucou's provisioning profile and notary
+   profile, builds `Coucou.zip` and publishes to `Louis-CFM/coucou` (`gh release create`). Do not run it as it is. How a
+   release is cut from `main`: [WORKFLOW.md](docs/konclui/WORKFLOW.md), "Releases".
 
 ## Orca and klaude, as found on this Mac (read-only)
 

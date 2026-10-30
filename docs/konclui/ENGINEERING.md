@@ -9,7 +9,7 @@ a preview and a confirmation) still apply. Product and interface rules are in [U
 
 Koncluí is a fork of Coucou and keeps pulling its updates (`KONCLUI.md`, "Upstream workflow"). Every change is judged by
 what it costs at the next `git merge upstream/main`. Which branch is the product, how a change reaches it and where it may be
-pushed: [ADR-001](decisions/ADR-001-branches-and-flow.md).
+pushed: [WORKFLOW.md](WORKFLOW.md) (the why: [ADR-001](decisions/ADR-001-branches-and-flow.md)).
 
 - Koncluí's code lives in **new files** named `Konclui*.swift` (and `Koru*.swift` for the character).
 - An upstream file gets only a **small hook**: one call, one filter, one `if`, marked with a `// Koncluí:` comment and listed
