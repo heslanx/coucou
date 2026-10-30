@@ -91,7 +91,7 @@ what it costs at the next `git merge upstream/main`.
   certificate when the Mac has one (`scripts/konclui/signing.sh`), so macOS keeps Koncluí's Keychain and privacy
   permissions across builds; without one it builds ad hoc and macOS asks again after each build.
 - The tests of what you touched: `scripts/test-*.sh`, `scripts/konclui/test-*.sh`, `python3 scripts/test-localization.py`,
-  `python3 scripts/test-whats-new.py`, `python3 scripts/konclui/test-copy.py`, `scripts/konclui/test-key-name.sh`, and
+  `python3 scripts/test-whats-new.py`, `python3 scripts/konclui/test-copy.py`, `scripts/konclui/test-key-name.sh`, `scripts/konclui/test-flow-pages.sh`, and
   `python3 scripts/konclui/rebrand.py --check`.
 - A screen or interaction change is walked in the running app (UX.md, section 7). The Debug build accepts
   `-konclui.debug.page <page>` to open the Koncluí window on a given page for screenshots.

@@ -4,6 +4,7 @@ import SwiftUI
 /// Coucou Flow → Statistics: what you dictated, how fast, and where.
 struct HubInsightsPage: View {
     @ObservedObject private var store = FlowStore.shared
+    @ObservedObject private var flow = FlowDictation.shared   // Koncluí: the empty chart leads to turning dictation on
     @State private var period: Period = .month
 
     enum Period: String, CaseIterable, Identifiable {
@@ -40,23 +41,30 @@ struct HubInsightsPage: View {
             .labelsHidden()
             .fixedSize()
         } content: {
+            // Koncluí: every number is a door to the days behind it (KoncluiStatDoor), and speed reads "unavailable" until
+            // there is a dictation to measure (UX.md 2.1, 3).
             HStack(spacing: 14) {
-                HubStatCard(label: String(localized: "hub.stat.words"),
-                            value: FlowText.shortCount(totals.words), note: nil)
-                HubStatCard(label: String(localized: "hub.stat.saved"),
+                HubStatCard(kind: .words, label: String(localized: "hub.stat.words"),
+                            value: FlowText.shortCount(totals.words), note: nil, period: period)
+                HubStatCard(kind: .saved, label: String(localized: "hub.stat.saved"),
                             value: Self.duration(minutes: FlowText.minutesSaved(words: totals.words, seconds: totals.seconds)),
-                            note: String(localized: "hub.stat.saved-note"))
-                HubStatCard(label: String(localized: "hub.stat.speed"),
-                            value: "\(FlowText.wordsPerMinute(words: totals.words, seconds: totals.seconds))",
-                            note: String(localized: "hub.wpm"))
-                HubStatCard(label: String(localized: "hub.stat.dictations"),
-                            value: "\(totals.dictations)", note: nil)
+                            note: String(localized: "hub.stat.saved-note"), period: period)
+                HubStatCard(kind: .speed, label: String(localized: "hub.stat.speed"),
+                            value: KoncluiStats.speed(words: totals.words, seconds: totals.seconds).map { "\($0)" },
+                            note: String(localized: "hub.wpm"), period: period)
+                HubStatCard(kind: .dictations, label: String(localized: "hub.stat.dictations"),
+                            value: "\(totals.dictations)", note: nil, period: period)
             }
             HStack(alignment: .top, spacing: 14) {
                 HubCard(padding: 20) {
                     Text("hub.stat.per-day").font(.system(size: 14, weight: .bold))
-                    HubBars(days: store.dailyWords(last: period.chartDays))
-                        .frame(height: 200)
+                    let days = store.dailyWords(last: period.chartDays)
+                    if days.allSatisfy({ $0.words == 0 }) {
+                        chartEmpty
+                    } else {
+                        HubBars(days: days)
+                            .frame(height: 200)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 HubCard(padding: 20) {
@@ -69,6 +77,24 @@ struct HubInsightsPage: View {
                 .font(.system(size: 12))
                 .foregroundColor(HubTheme.muted)
         }
+        .koncluiUndoBar()
+    }
+
+    /// Koncluí: an empty chart says why and leads to the next step: turn dictation on, give it the permission, or dictate (A1-24).
+    private var chartEmpty: some View {
+        VStack(spacing: 4) {
+            HubEmptyState(text: String(localized: "konclui.stat.none"))
+            if flow.koncluiState == .ready {
+                Text(String(format: String(localized: "konclui.stat.next-on %@"), flow.key.label))
+                    .koncluiType(.detail)
+                    .foregroundColor(HubTheme.secondary)
+                    .multilineTextAlignment(.center)
+            } else {
+                KoncluiDictationNextStep(prominent: true)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 200)
     }
 
     /// "3 h 52" or "18 min".
@@ -80,31 +106,42 @@ struct HubInsightsPage: View {
 }
 
 private struct HubStatCard: View {
+    let kind: KoncluiStatKind
     let label: String
-    let value: String
+    /// nil reads "unavailable".
+    let value: String?
     let note: String?
+    let period: HubInsightsPage.Period
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(HubTheme.secondary)
-            Text(value)
-                .font(.system(size: 28, weight: .bold))
-                .tracking(-0.6)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(note ?? " ")
-                .font(.system(size: 12))
-                .foregroundColor(HubTheme.secondary)
-                .lineLimit(1)
+        let shown = value ?? String(localized: "konclui.stat.unavailable")
+        KoncluiStatDoor(kind: kind, value: shown, label: label, period: period.label, since: period.start, cornerRadius: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundColor(HubTheme.secondary)
+                    .padding(.trailing, 14)
+                Text(shown)
+                    .font(value == nil ? .system(size: 15, weight: .semibold) : .system(size: 28, weight: .bold))
+                    .foregroundColor(value == nil ? KoncluiTheme.textSecondary : HubTheme.text)
+                    .tracking(value == nil ? 0 : -0.6)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .frame(minHeight: 34, alignment: .leading)
+                // Two lines kept for the note, so a longer language never cuts it mid-word and the four cards stay level.
+                Text(note ?? " ")
+                    .font(.system(size: 12))
+                    .foregroundColor(HubTheme.secondary)
+                    .lineLimit(2, reservesSpace: true)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(HubTheme.card))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(HubTheme.line))
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(HubTheme.card))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(HubTheme.line))
     }
 }
 

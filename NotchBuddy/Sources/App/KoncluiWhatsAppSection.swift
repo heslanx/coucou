@@ -46,7 +46,7 @@ struct KoncluiWhatsAppSection: View {
     @State private var simulateFocus = false
     @State private var ignoreMessage: String?
     @FocusState private var ignoreFocused: Bool
-    @State private var undoNotice: UndoNotice?
+    @State private var undoNotice: KoncluiUndoNotice?
     /// Screenshots only (KoncluiWhatsAppDebug): the options and ignored chats of a simulated block never reach the settings.
     @State private var simulatedMute = true
     @State private var simulatedIgnored = KoncluiWhatsAppDebug.sampleIgnored
@@ -56,13 +56,6 @@ struct KoncluiWhatsAppSection: View {
     private static let muted = KoncluiTheme.textSecondary
     private static let ink = KoncluiTheme.textPrimary
     private static let body = KoncluiTheme.textBody
-
-    /// What "Undo" does for the last change, for ten seconds (UX.md, 1.5).
-    private struct UndoNotice: Identifiable {
-        let id = UUID()
-        let text: String
-        let undo: @MainActor () -> Void
-    }
 
     // MARK: - What the block is in
 
@@ -741,23 +734,9 @@ struct KoncluiWhatsAppSection: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func undoBar(_ notice: UndoNotice) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.uturn.backward.circle").font(.system(size: 12)).accessibilityHidden(true)
-            Text(verbatim: notice.text).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 4)
-            Button("konclui.whatsapp.undo") {
-                notice.undo()
-                undoNotice = nil
-            }
-            .buttonStyle(.koncluiSecondary)
-            .controlSize(.small)
-        }
-        .font(.system(size: 11))
-        .foregroundColor(Self.body)
-        .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-        .accessibilityElement(children: .contain)
+    /// What "Undo" does for the last change, for ten seconds (UX.md, 1.5); the bar is shared (KoncluiUndo.swift).
+    private func undoBar(_ notice: KoncluiUndoNotice) -> some View {
+        KoncluiUndoBar(notice: notice) { undoNotice = nil }
     }
 
     private func color(_ dot: KoncluiWADot) -> Color {
@@ -803,7 +782,7 @@ struct KoncluiWhatsAppSection: View {
     }
 
     private func offerUndo(_ text: String, _ undo: @escaping @MainActor () -> Void) {
-        undoNotice = UndoNotice(text: text, undo: undo)
+        undoNotice = KoncluiUndoNotice(text: text, undo: undo)
         AccessibilityNotification.Announcement(text).post()
     }
 

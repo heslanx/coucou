@@ -124,6 +124,8 @@ final class FlowStore: ObservableObject {
     }
 
     private var loading = false
+    /// Koncluí: screenshots only (KoncluiFlowDebug): the sample data never reaches the files.
+    private var readOnly = false
 
     static var folder: URL { HookServer.supportDir.appendingPathComponent("Flow", isDirectory: true) }
 
@@ -137,8 +139,17 @@ final class FlowStore: ObservableObject {
         }
         snippets = load([FlowSnippet].self, from: "snippets.json") ?? []
         appStyles = load([FlowAppStyle].self, from: "styles.json") ?? Self.defaultAppStyles
+        #if DEBUG
+        // Koncluí: `-konclui.debug.flow-data empty|sample` shows the pages with no data or with sample data, and nothing is saved.
+        if let sample = KoncluiFlowDebug.data {
+            history = sample.history
+            stats = sample.stats
+            readOnly = true
+        }
+        #endif
         loading = false
         prune()
+        seedInstalledAppStyles()   // Koncluí: Orca, Warp and Ghostty, once each, when this Mac has them
     }
 
     /// Apps that get a style from the start: mails polished, chats natural, code and AI chats verbatim.
@@ -212,6 +223,18 @@ final class FlowStore: ObservableObject {
         save(stats, to: "stats.json")
     }
 
+    // Koncluí: what Undo puts back after a deletion (KoncluiFlowUndo.swift). The history stays newest first.
+    func restoreHistory(_ entries: [FlowEntry]) {
+        let known = Set(history.map(\.id))
+        history = (history + entries.filter { !known.contains($0.id) }).sorted { $0.date > $1.date }
+        saveHistory()
+    }
+
+    func restoreStats(_ restored: FlowStats) {
+        stats = restored
+        save(stats, to: "stats.json")
+    }
+
     private func prune() {
         guard !loading else { return }
         let before = history.count
@@ -273,7 +296,7 @@ final class FlowStore: ObservableObject {
     private func saveWords() { save(WordsFile(words: words, replacements: replacements), to: "words.json") }
 
     private func save<T: Encodable>(_ value: T, to name: String) {
-        guard !loading else { return }
+        guard !loading, !readOnly else { return }
         do {
             try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
             let encoder = JSONEncoder()

@@ -395,6 +395,13 @@ Upstream's settings views reach this look without being rewritten: `FlowHubView`
 `scripts/konclui/rebrand.py` (`HUB_STYLES`) turns `.borderedProminent`, `.bordered` and `.pickerStyle(.segmented)` into the three
 names above. Outside the hub (the standalone Settings window) the same names draw upstream's own styles, so that window is
 unchanged.
+- **Undo bar**: `KoncluiUndoBar` (a notice, one button "Desfazer", ten seconds). Inline in a card (the WhatsApp block) it keeps the quiet
+  look; on a Flow page it floats at the bottom, opaque, and lives in `KoncluiUndoCenter`, so a notice survives a move to another page.
+  A removal calls the store's `...WithUndo` method; the page only carries `.koncluiUndoBar()`.
+- **Stat door**: `KoncluiStatDoor` wraps a number (hover fill, chevron, pointing hand). Its sheet says where the number comes from, how it
+  is calculated, and the days behind it (day, words, dictations, speaking time, and a total), zero included; a value that cannot be
+  computed reads "indisponível" and the sheet says when it appears.
+- **Style picker**: `KoncluiStylePicker` is a popover of rows, each with the style's name and what it does (a menu cannot carry a second line).
 
 ### 11.4 Where glass is allowed
 

@@ -5,6 +5,7 @@ import SwiftUI
 /// Coucou Flow → Dictionary: the words Coucou must always spell right, and the replacements.
 struct HubDictionaryPage: View {
     @ObservedObject private var store = FlowStore.shared
+    @ObservedObject private var flow = FlowDictation.shared   // Koncluí: an empty dictionary leads to turning dictation on
     @State private var newWord = ""
     @State private var from = ""
     @State private var to = ""
@@ -23,10 +24,11 @@ struct HubDictionaryPage: View {
                 }
                 if store.words.isEmpty {
                     HubEmptyState(text: String(localized: "hub.words-empty"), state: .idle, color: "#A78BFA")
+                    if flow.koncluiState != .ready { KoncluiDictationNextStep(centered: true) }   // Koncluí: A3-39
                 } else {
                     HubWrap(spacing: 8) {
                         ForEach(store.words, id: \.self) { word in
-                            HubChip(text: word) { store.words.removeAll { $0 == word } }
+                            HubChip(text: word) { store.removeWordWithUndo(word) }   // Koncluí: Undo (UX.md 1.5)
                         }
                     }
                 }
@@ -63,12 +65,13 @@ struct HubDictionaryPage: View {
                             .font(.system(size: 13, weight: .semibold))
                         Spacer()
                         HubIconButton(symbol: "trash", help: String(localized: "hub.delete")) {
-                            store.replacements.removeAll { $0.id == replacement.id }
+                            store.removeReplacementWithUndo(replacement)   // Koncluí: Undo
                         }
                     }
                 }
             }
         }
+        .koncluiUndoBar()
         // Koncluí: the line under a field goes away as soon as the person starts to fix it.
         .onChange(of: newWord) { _, _ in if missing == .word { missing = nil } }
         .onChange(of: from) { _, _ in if missing == .heard { missing = nil } }
@@ -128,6 +131,7 @@ private struct HubChip: View {
 /// Coucou Flow → Snippets: say the trigger, Coucou pastes the whole text.
 struct HubSnippetsPage: View {
     @ObservedObject private var store = FlowStore.shared
+    @ObservedObject private var flow = FlowDictation.shared   // Koncluí: an empty list leads to turning dictation on
     @State private var trigger = ""
     @State private var text = ""
     @State private var editing: UUID?
@@ -175,6 +179,7 @@ struct HubSnippetsPage: View {
             }
             if store.snippets.isEmpty {
                 HubEmptyState(text: String(localized: "hub.snippets-empty"), color: "#F7B32B")
+                if flow.koncluiState != .ready { KoncluiDictationNextStep(centered: true) }   // Koncluí: A3-39
             }
             ForEach(store.snippets) { snippet in
                 HubCard {
@@ -195,7 +200,7 @@ struct HubSnippetsPage: View {
                             text = snippet.text
                         }
                         HubIconButton(symbol: "trash", help: String(localized: "hub.delete")) {
-                            store.snippets.removeAll { $0.id == snippet.id }
+                            store.removeSnippetWithUndo(snippet)   // Koncluí: Undo
                             if editing == snippet.id { reset() }
                         }
                     }
@@ -208,7 +213,8 @@ struct HubSnippetsPage: View {
                 }
             }
         }
-        .onChange(of: trigger) { _, _ in if missing == .trigger { missing = nil } }   // Koncluí
+        .koncluiUndoBar()   // Koncluí
+        .onChange(of: trigger) { _, _ in if missing == .trigger { missing = nil } }
         .onChange(of: text) { _, _ in if missing == .text { missing = nil } }
     }
 
@@ -240,6 +246,8 @@ struct HubSnippetsPage: View {
 struct HubStylesPage: View {
     @ObservedObject var router: HubRouter
     @ObservedObject private var store = FlowStore.shared
+    // Koncluí: which apps this Mac has, asked once per visit (KoncluiInstalledApps).
+    @StateObject private var installed = KoncluiInstalledApps()
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.styles"),
@@ -267,11 +275,13 @@ struct HubStylesPage: View {
                     }
                 }
                 HubDivider()
-                HubRow(title: String(localized: "hub.style-default"), detail: store.defaultStyle.detail) {
-                    stylePicker($store.defaultStyle)
+                // Koncluí: with the clean-up off a style changes nothing, so the row is disabled and says so where the style is.
+                HubRow(title: String(localized: "hub.style-default"),
+                       detail: store.cleanupEnabled ? store.defaultStyle.detail : String(localized: "konclui.hub.styles-off")) {
+                    KoncluiStylePicker(selection: $store.defaultStyle)
+                        .disabled(!store.cleanupEnabled)
                 }
             }
-            .opacity(1)
 
             HStack {
                 HubLabel(String(localized: "hub.style-apps"))
@@ -289,51 +299,60 @@ struct HubStylesPage: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)   // Koncluí: the "+" already says it opens; the text then ends on the card's edge
                 .fixedSize()
+                .disabled(!store.cleanupEnabled)
             }
+            if !store.cleanupEnabled { stylesOff }
             HubCard {
-                ForEach(Array(store.appStyles.enumerated()), id: \.element.id) { index, app in
+                ForEach(Array(visibleApps.enumerated()), id: \.element.id) { index, app in
                     if index > 0 { HubDivider() }
                     HStack(spacing: 12) {
                         HubAppIcon(bundleID: app.bundleID)
-                        Text(app.name).font(.system(size: 13.5, weight: .medium))
+                        Text(installed.name(app.bundleID, fallback: app.name)).font(.system(size: 13.5, weight: .medium))
                         Spacer()
-                        stylePicker(Binding(
+                        KoncluiStylePicker(selection: Binding(
                             get: { store.appStyles.first(where: { $0.id == app.id })?.style ?? .natural },
                             set: { value in
                                 if let i = store.appStyles.firstIndex(where: { $0.id == app.id }) { store.appStyles[i].style = value }
                             }))
                         HubIconButton(symbol: "xmark", help: String(localized: "hub.delete")) {
-                            store.appStyles.removeAll { $0.id == app.id }
+                            store.removeAppStyleWithUndo(app)   // Koncluí: Undo
                         }
                     }
                 }
             }
+            // Koncluí: dimmed means disabled, and it is (the list above says why); it was dimmed but fully live.
+            .disabled(!store.cleanupEnabled)
             .opacity(store.cleanupEnabled ? 1 : 0.55)
 
-            HubCard {
-                ForEach(FlowStyle.allCases) { style in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(style.label).font(.system(size: 13, weight: .semibold))
-                        Text(style.detail)
-                            .font(.system(size: 12.5))
-                            .foregroundColor(HubTheme.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Text("hub.cleanup-privacy")
-                    .font(.system(size: 12))
-                    .foregroundColor(HubTheme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Koncluí: what each style does is in the picker's popover, next to the choice; only the privacy line stays here.
+            Text("hub.cleanup-privacy")
+                .font(.system(size: 12))
+                .foregroundColor(HubTheme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .koncluiUndoBar()
+    }
+
+    /// Koncluí: why the lists below do nothing, and the way out, in the same click when the key is there (UX.md 1.1).
+    private var stylesOff: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "info.circle").foregroundColor(KoncluiTheme.textSecondary).accessibilityHidden(true)
+            Text("konclui.hub.styles-off")
+                .koncluiType(.detail)
+                .foregroundColor(KoncluiTheme.textBody)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            if FlowCleanup.hasKey {
+                Button(String(localized: "konclui.hub.styles-turn-on")) { store.cleanupEnabled = true }
+                    .buttonStyle(HubButtonStyle())
             }
         }
     }
 
-    private func stylePicker(_ selection: Binding<FlowStyle>) -> some View {
-        Picker("", selection: selection) {
-            ForEach(FlowStyle.allCases) { Text($0.label).tag($0) }
-        }
-        .labelsHidden()
-        .fixedSize()
+    /// Koncluí: the apps this Mac has (A1-39); what the person added always shows.
+    private var visibleApps: [FlowAppStyle] {
+        KoncluiStyleApps.visible(store.appStyles, id: \.bundleID, defaults: KoncluiFlowStyles.defaultIDs,
+                                 installed: installed.isInstalled)
     }
 
     /// Running apps with windows that have no style of their own yet.

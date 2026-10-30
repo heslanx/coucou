@@ -344,6 +344,9 @@ private struct HubSidebar: View {
         .frame(width: 228)
         .frame(maxHeight: .infinity)
         .background(HubTheme.sidebar)
+        // Koncluí: remember that macOS once trusted Koncluí for Accessibility (KoncluiAccessibilityMemory), A3-24.
+        .onAppear { KoncluiAccessibilityMemory.note(trusted: flow.trusted) }
+        .onChange(of: flow.trusted) { _, now in KoncluiAccessibilityMemory.note(trusted: now) }
     }
 
     // Koncluí: the status is a door with a popover (KoncluiDictationDoor.swift), not a label that only jumped to Ajustes.

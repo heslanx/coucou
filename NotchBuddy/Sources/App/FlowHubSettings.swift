@@ -15,6 +15,12 @@ struct HubSettingsPage: View {
         HubPageScaffold(title: String(localized: "hub.page.settings"), subtitle: String(localized: "konclui.settings.sub")) {   // Koncluí: a band with one word had no subtitle
             HubLabel(String(localized: "hub.settings.keys"))
             HubCard {
+                // Koncluí: the permission shows only while dictation is on and macOS does not trust Koncluí yet, first, with its
+                // button (A2-19). It was a card of its own that also showed while dictation was off.
+                if flow.koncluiState == .needsAccess {
+                    accessibilityRow
+                    HubDivider()
+                }
                 HubRow(title: String(localized: "flow.enable")) {
                     Toggle("", isOn: $flow.isEnabled).toggleStyle(.switch).labelsHidden()
                 }
@@ -51,6 +57,15 @@ struct HubSettingsPage: View {
                 HubRow(title: String(localized: "hub.settings.cancel")) {
                     HubKeyCap(text: String(localized: "hub.key-esc"))
                 }
+                // Koncluí: the dictation keys are listed in Atalhos too (KoncluiDictationShortcuts); this links the two (A1-38).
+                HubDivider()
+                Button { FlowHubController.shared.show(.shortcuts) } label: {
+                    Text("konclui.settings.all-shortcuts")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(HubTheme.accent)
+                }
+                .buttonStyle(.plain)
+                .koncluiPointer()
             }
 
             HubLabel(String(localized: "flow.ai.title"))
@@ -94,22 +109,6 @@ struct HubSettingsPage: View {
                     .font(.system(size: 12))
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HubLabel(String(localized: "hub.settings.permission"))
-            HubCard {
-                if flow.trusted {
-                    Label(String(localized: "flow.access-ok"), systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundColor(HubTheme.green)
-                } else {
-                    Text("flow.accessibility")
-                        .font(.system(size: 13))
-                        .foregroundColor(KoncluiTheme.textBody)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }
-                        .buttonStyle(HubButtonStyle(primary: true))
-                }
             }
 
             HubLabel(String(localized: "hub.settings.recognition"))
@@ -161,7 +160,7 @@ struct HubSettingsPage: View {
                 }
                 HubDivider()
                 HStack(spacing: 8) {
-                    Button(String(localized: "hub.settings.clear-history")) { store.clearHistory() }
+                    Button(String(localized: "hub.settings.clear-history")) { store.clearHistoryWithUndo() }   // Koncluí: Undo
                         .buttonStyle(HubButtonStyle())
                     Button(String(localized: "hub.settings.clear-all")) { confirmClear = true }
                         .buttonStyle(HubButtonStyle())
@@ -173,9 +172,37 @@ struct HubSettingsPage: View {
             }
         }
         .onAppear { flow.recheckTrust() }
+        .koncluiUndoBar()
         .alert(String(localized: "hub.settings.clear-all-confirm"), isPresented: $confirmClear) {
-            Button(String(localized: "hub.settings.clear-all"), role: .destructive) { store.clearEverything() }
+            Button(String(localized: "hub.settings.clear-all"), role: .destructive) { store.clearEverythingWithUndo() }
             Button(String(localized: "hub.cancel"), role: .cancel) {}
+        }
+    }
+
+    /// Koncluí: what is missing, what to do, and the advice to remove and add Koncluí again only when macOS once trusted it (A3-24).
+    private var accessibilityRow: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(KoncluiTheme.attention)
+                    .padding(.top, 2)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("hub.setup-access-title").koncluiType(.bodyStrong)
+                    Text("konclui.flow.accessibility")
+                        .koncluiType(.detail)
+                        .foregroundColor(KoncluiTheme.textBody)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if KoncluiAccessibilityMemory.suggestsRemoveAndAdd(for: flow) {
+                        Text("konclui.flow.accessibility-stale")
+                            .koncluiType(.detail)
+                            .foregroundColor(KoncluiTheme.textBody)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }
+                .buttonStyle(HubButtonStyle(primary: true))
         }
     }
 }

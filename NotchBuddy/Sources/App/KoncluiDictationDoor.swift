@@ -11,18 +11,22 @@ struct KoncluiDictationStatus: View {
     @State private var hover = false
     @Environment(\.colorSchemeContrast) private var contrast
 
-    private var ready: Bool { flow.isEnabled && flow.trusted }
+    // The state comes from KoncluiFlowState.swift, so a screenshot can show each of the three (`-konclui.debug.dictation`).
+    private var ready: Bool { flow.koncluiState == .ready }
 
     private var words: String {
-        ready ? String(format: String(localized: "hub.status-ready %@"), flow.key.label)
-              : (flow.isEnabled ? String(localized: "hub.status-access") : String(localized: "hub.status-off"))
+        switch flow.koncluiState {
+        case .ready:       return String(format: String(localized: "hub.status-ready %@"), flow.key.label)
+        case .needsAccess: return String(localized: "hub.status-access")
+        case .off:         return String(localized: "hub.status-off")
+        }
     }
 
     var body: some View {
         Button { open.toggle() } label: {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(ready ? KoncluiTheme.ok : (flow.isEnabled ? KoncluiTheme.attention : KoncluiTheme.textSecondary))
+                    .fill(ready ? KoncluiTheme.ok : (flow.koncluiState == .needsAccess ? KoncluiTheme.attention : KoncluiTheme.textSecondary))
                     .frame(width: 8, height: 8)
                 Text(words)
                     .koncluiType(.detail)
@@ -50,13 +54,13 @@ struct KoncluiDictationStatus: View {
 
     private var actions: some View {
         VStack(alignment: .leading, spacing: 2) {
-            if !flow.isEnabled {
-                action("power", String(localized: "hub.setup-enable"), first: true) { flow.isEnabled = true }
-            } else if !flow.trusted {
+            if flow.koncluiState == .off {
+                action("power", String(localized: "hub.setup-enable"), first: true) { KoncluiDictation.turnOn() }
+            } else if flow.koncluiState == .needsAccess {
                 action("lock.shield", String(localized: "flow.accessibility-open"), first: true) { flow.openAccessibilitySettings() }
             }
             action("slider.horizontal.3", String(localized: "konclui.status.open-settings"), first: ready) { router.page = .settings }
-            if flow.isEnabled {
+            if flow.koncluiState != .off {
                 action("power", String(localized: "konclui.status.turn-off"), first: false) { flow.isEnabled = false }
             }
         }
