@@ -58,6 +58,10 @@ what it costs at the next `git merge upstream/main`.
   until the first read ends. Anything that parses a user's file to build a view goes through it.
 - When the same popover content serves several entry points (the Agents row, the Active pills door), it is one component fed
   by one state (`KoncluiHookControls`), not a copy per entry point.
+- **One door per service.** A service reached from several features (Claude for clean-up, prompt mode, translation and the
+  Notetaker) has one pure file for the choice of source and the request (`KoncluiClaudeAccess.swift`), one sender with no app
+  dependency (`KoncluiClaudeSender.swift`, tested with a stub network) and one live type (`KoncluiClaudeLive.swift`); an upstream
+  call site keeps its prompt and its reply handling and replaces only the transport with one call.
 
 ## 4. Pragmatic programming
 

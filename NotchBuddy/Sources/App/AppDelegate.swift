@@ -373,6 +373,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MailController.shared.start()
         WhatsAppController.shared.start()
         if KoncluiFeatures.isOn("block_updates") { MacUpdater.shared.start() }   // Koncluí: no update channel yet (KONCLUI.md)
+        Task { await KoncluiVoiceBrainLive.shared.refreshProxy() }   // Koncluí: find klaude early, so the pages name the right source
         ClaudeDesktopChatWatcher.shared.start()
         #endif
         CryptoController.shared.start()

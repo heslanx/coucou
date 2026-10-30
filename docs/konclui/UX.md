@@ -141,6 +141,10 @@ come from?".
 - **Granular operational states**, told apart in the interface: *Done*, *Waiting*, *Retrying*, *Skipped by a rule* (saying
   which rule), *No matching record*, *Delivery unknown*, *Failed*.
 - **Failure memory.** When an operation fails and then recovers on a retry, its history keeps the earlier failure.
+- **A fallback is told once.** When a background feature falls back (dictation clean-up pastes the words as heard because Claude
+  refused, was busy or took too long), the person is told on the pill what happened, what it means and what to do, once per
+  streak of the same kind of failure; the Settings page of that feature keeps the last one under its switch until a call succeeds.
+  A failure the person must fix (a refused key, nothing connected) offers the button to the page that fixes it.
 - **Inspection has no side effect.** Opening the details of an error, log or metric only reads; retrying or fixing are
   separate buttons.
 - **Every number is clickable, zero included.** Any metric, total or counter (Statistics: words dictated, words per minute,

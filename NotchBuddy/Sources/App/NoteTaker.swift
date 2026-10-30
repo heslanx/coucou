@@ -9,7 +9,7 @@ import FoundationModels
 
 /// Who writes the summary of a call.
 enum NoteSummaryEngine: String, CaseIterable, Identifiable {
-    /// The Claude key of Settings → Chat (the transcript goes to Anthropic).
+    /// Claude: the subscription (klaude) or the key of Chat; the transcript goes to Claude, never the audio.
     case claude
     /// Apple Intelligence, on the Mac (macOS 26).
     case apple
@@ -17,9 +17,12 @@ enum NoteSummaryEngine: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    // Koncluí: the picker names where Claude comes from (the subscription or the key), so it is `@MainActor`.
+    @MainActor var label: String {
         switch self {
-        case .claude: return String(localized: "notes.engine.claude")
+        case .claude:
+            return String(localized: String.LocalizationValue(
+                KoncluiClaudeAccess.notesEngineKey(KoncluiClaudeLive.shared.claudeSource())))
         case .apple:  return String(localized: "notes.engine.apple")
         case .off:    return String(localized: "notes.engine.off")
         }
@@ -73,10 +76,12 @@ final class NoteTaker: ObservableObject {
         if let saved = UserDefaults.standard.string(forKey: Self.engineKey), let engine = NoteSummaryEngine(rawValue: saved) {
             summaryEngine = engine
         } else {
-            summaryEngine = FlowCleanup.hasKey ? .claude : (Self.appleModelAvailable ? .apple : .off)
+            summaryEngine = Self.defaultEngine
         }
         load()
         loadVocabulary()
+        // Koncluí: klaude is found a moment after launch; with no saved choice the engine follows what the Mac has.
+        if UserDefaults.standard.string(forKey: Self.engineKey) == nil { Task { await self.followDefaultEngine() } }
         appObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { note in
@@ -88,6 +93,19 @@ final class NoteTaker: ObservableObject {
     }
 
     var isRecording: Bool { recording != nil }
+
+    /// Claude when the Mac can reach it (subscription or key), else Apple Intelligence, else no summary.
+    private static var defaultEngine: NoteSummaryEngine {
+        FlowCleanup.hasKey ? .claude : (appleModelAvailable ? .apple : .off)
+    }
+
+    /// Koncluí: the default once klaude is found. It is not saved, so a Mac that loses klaude falls back by itself.
+    private func followDefaultEngine() async {
+        await KoncluiVoiceBrainLive.shared.refreshProxy(maxAge: 60)
+        guard UserDefaults.standard.string(forKey: Self.engineKey) == nil, summaryEngine != Self.defaultEngine else { return }
+        summaryEngine = Self.defaultEngine
+        UserDefaults.standard.removeObject(forKey: Self.engineKey)
+    }
 
     /// The pill's record button: starts or stops, and says what is missing.
     func toggleFromPill() {
@@ -385,15 +403,13 @@ final class NoteTaker: ObservableObject {
     Put only the lines you changed.
     """
 
-    /// Claude fixes the words the speech recognition got wrong (with the Claude key of Settings,
+    /// Claude fixes the words the speech recognition got wrong (through the subscription or the key,
     /// when Claude writes the summaries). What was heard stays in each line's `raw`.
     func correct(_ id: UUID) async {
-        guard summaryEngine == .claude, let note = self.note(id), !note.lines.isEmpty else { return }
-        let key = KeychainStore.shared.get("anthropic-api-key") ?? ""
-        guard !key.isEmpty else { return }
+        // Koncluí: the subscription counts, not only the key.
+        guard summaryEngine == .claude, FlowCleanup.hasKey, let note = self.note(id), !note.lines.isEmpty else { return }
         working.insert(id)
         defer { working.remove(id) }
-        let model = AppState.shared.claudeModel.isEmpty ? AppState.defaultClaudeModel : AppState.shared.claudeModel
         var seen = Set<String>()
         let terms = (vocabulary + FlowStore.shared.words).filter { seen.insert($0.lowercased()).inserted }.prefix(400)
         var total = NoteBuilder.Correction(lines: [:], speakers: [:])
@@ -401,8 +417,8 @@ final class NoteTaker: ObservableObject {
             var request = ""
             if !terms.isEmpty { request += "<vocabulary>\n" + terms.joined(separator: ", ") + "\n</vocabulary>\n" }
             request += "<transcript>\n" + NoteBuilder.numberedTranscript(note, range: range) + "\n</transcript>"
-            guard let reply = await Self.claude(system: Self.correctionInstructions, user: request, key: key,
-                                                model: model, maxTokens: 8_000),
+            guard let reply = await Self.claude(.correction, system: Self.correctionInstructions, user: request,
+                                                maxTokens: 8_000),
                   let correction = NoteBuilder.parseCorrection(reply) else { continue }
             total.lines.merge(correction.lines.filter { range.contains($0.key) }) { $1 }
             total.speakers.merge(correction.speakers) { first, _ in first }
@@ -415,32 +431,11 @@ final class NoteTaker: ObservableObject {
         appendAppLog("nb.log", "[Notetaker] correction: \(result.fixed) of \(note.lines.count) lines fixed")
     }
 
-    nonisolated private static func claude(system: String, user: String, key: String, model: String, maxTokens: Int) async -> String? {
-        func call(_ model: String) async -> String? {
-            var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
-            request.httpMethod = "POST"
-            request.timeoutInterval = 180
-            request.setValue(key, forHTTPHeaderField: "x-api-key")
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            request.setValue("application/json", forHTTPHeaderField: "content-type")
-            let body: [String: Any] = [
-                "model": model,
-                "max_tokens": maxTokens,
-                "system": system,
-                "messages": [["role": "user", "content": user]],
-            ]
-            guard let data = try? JSONSerialization.data(withJSONObject: body) else { return nil }
-            request.httpBody = data
-            guard let result = try? await URLSession.shared.data(for: request),
-                  (result.1 as? HTTPURLResponse)?.statusCode == 200,
-                  let json = try? JSONSerialization.jsonObject(with: result.0) as? [String: Any],
-                  let content = json["content"] as? [[String: Any]] else { return nil }
-            let text = content.compactMap { $0["text"] as? String }.joined()
-            return text.isEmpty ? nil : text
-        }
-        if let text = await call(model) { return text }
-        if model == FlowCleanup.model { return nil }
-        return await call(FlowCleanup.model)
+    /// Koncluí: one call to Claude through the subscription or the key (KoncluiClaudeLive.swift picks the route and the
+    /// models: the one chosen for the chat, then the fast one). Was an inline request with the key and two tries.
+    private static func claude(_ feature: KoncluiClaudeAccess.Feature, system: String, user: String,
+                               maxTokens: Int) async -> String? {
+        await KoncluiClaudeLive.shared.complete(feature, system: system, user: user, maxTokens: maxTokens, timeout: 180)
     }
 
     // MARK: - Summary
@@ -461,9 +456,7 @@ final class NoteTaker: ObservableObject {
         let reply: String?
         switch summaryEngine {
         case .claude:
-            let key = KeychainStore.shared.get("anthropic-api-key") ?? ""
-            let model = AppState.shared.claudeModel.isEmpty ? AppState.defaultClaudeModel : AppState.shared.claudeModel
-            reply = key.isEmpty ? nil : await Self.claudeSummary(transcript, key: key, model: model)
+            reply = await Self.claudeSummary(transcript)
         case .apple:
             reply = await Self.appleSummary(transcript)
         case .off:
@@ -491,9 +484,9 @@ final class NoteTaker: ObservableObject {
     "key_points": ["up to 6 short points"], "todos": [{"text": "the task", "owner": "the person's name as written in the transcript, or null", "due": "the deadline as said, or null"}]}
     """
 
-    nonisolated private static func claudeSummary(_ transcript: String, key: String, model: String) async -> String? {
-        await claude(system: summaryInstructions, user: "<transcript>\n\(transcript.prefix(400_000))\n</transcript>",
-                     key: key, model: model, maxTokens: 2048)
+    private static func claudeSummary(_ transcript: String) async -> String? {
+        await claude(.summary, system: summaryInstructions,
+                     user: "<transcript>\n\(transcript.prefix(400_000))\n</transcript>", maxTokens: 2048)
     }
 
     /// Apple's on-device model has a small context: a long call is first noted in parts, then the

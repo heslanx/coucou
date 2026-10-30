@@ -140,6 +140,19 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
      `scripts/test-turn-end-policy.sh`, `scripts/konclui/test-voice-brain.sh`. A voice test script that upstream adds and
      that compiles `IntentParser`, `VoiceQuery` or `VoiceActionRunner` needs the three pure files on its `swiftc` line
      (`KoncluiVoiceLanguage.swift`, `KoncluiVoicePhrases.swift`, `KoncluiVoiceParserPT.swift`).
+- **Claude for dictation and call notes without an API key.** "Limpar com o Claude", "Modo prompt", "Traduzir para" and the
+  Notetaker's Claude summary and transcript correction reach Claude through the Koncluí Proxy (the subscription behind klaude)
+  when klaude is set up, else through the Anthropic key of Chat. Clean-up (not the others) falls back to Apple Intelligence on
+  the Mac. The order is one pure rule (`App/KoncluiClaudeAccess.swift`, tested by `scripts/konclui/test-claude-access.sh`); the
+  sending is `App/KoncluiClaudeSender.swift`; the live inputs, the failure notice and the Apple route are
+  `App/KoncluiClaudeLive.swift`. Dictation keeps the fast model (haiku) and its timeouts (4 s clean-up, 8 s translation, 12 s
+  prompt). When a call fails the words are still pasted as heard, and the pill now says once per streak what failed and what to
+  do (A3-27); `KoncluiClaudeLive.shared.lastFailure(_:)` keeps the last one per feature for the Settings pages. The klaude token
+  is read from the Keychain item `klaude-api-key` for each call, held in one local variable and never stored, logged or shown;
+  a failure keeps its HTTP status only, never a body.
+  `scripts/konclui/claude-live-check.sh` makes one real clean-up through the proxy ("eh tipo assim né vamo testar" becomes
+  "É tipo assim, né? Vamos testar.") and prints only the words, the source, the model and the time.
+  DEBUG: `-konclui.debug.claudeFail <kind>` shows a sample clean-up failure on the pill 1.5 s after the first page reads the source (the
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -399,6 +412,7 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `generalSection`: `KoncluiConnectAgentsCard`, `demoBox(quiet:)` (first or last), `.koncluiShown(embeddedSection == nil)` on the Hotkey box, `UpdateSettingsSection().koncluiShown(isOn("block_updates"))`, `KoncluiRemoveIntegrations` at the end | Geral for a Mac that is set up |
 | `App/KoncluiFeatureRegistry.swift` | `HubPage.featureId` for `.reminders`; `block_updates` in `blocks` | flags |
 | `CoucouKit/KoncluiFeatures.swift` | `"block_updates"` in `shippedOff` | ships off |
+| `App/AppDelegate.swift` | a `Task` warming `KoncluiVoiceBrainLive.shared.refreshProxy()` at launch | the pages name the right Claude source on first read |
 | `App/HookServer.swift` | `processPermissionRequest` and `processQuestionRequest`: `isTerminal` uses `KoncluiOrcaCards.showsInNotch(isOrca:otherTerminalsOn:)` | Orca sessions' approvals and questions show in the notch by default (switch on the Orca row); other terminals keep their own switch |
 | `App/AppDelegate.swift` | `MacUpdater.shared.start()` only when `KoncluiFeatures.isOn("block_updates")` | the updater stays off until Koncluí has its own Developer ID and release channel |
 | `App/FlowHubHome.swift` | `KoncluiConnectAgentsHome(router:)` at the top of the home content | agents found but not connected |
@@ -421,13 +435,39 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/IslandWindowController.swift` | 4 sentences through `voiceSay`; the language offer accepts "pt" | "Deixa eu ver.", "Pronto.", the attachment line and the offer in Portuguese |
 | `App/SettingsView.swift` | `voiceSection`: both language pickers get `Português` (tag "pt"); `voiceLanguage` defaults to `VoiceLanguage.macDefault().rawValue`; `speakVoiceSample` and the Mac voice name follow the language | the choice is offered and the sample speaks it |
 | `scripts/test-voice-{entity,intent,query,runner}.sh`, `scripts/test-conversation-context.sh` | three `swiftc` lines (the pure Koncluí files) | the unchanged upstream tests still compile |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover |
+| `App/FlowCleanup.swift` | `hasKey` is `@MainActor` and reads `KoncluiClaudeLive.shared.claudeSource() != .none`; new `canClean` | "a Claude is reachable" is the subscription or the key (was the key alone); clean-up alone also counts Apple Intelligence |
+| | `clean` and `transform`: the inline request (headers, body, status check, parse) is one `KoncluiClaudeLive.shared.complete(...)` call; the prompts, the tag stripping and `plausible`/`plausibleTransform` are upstream's | one place picks the source, sends, tells the person once, answers nil on any failure (the words are pasted as heard) |
+| | `model` is `KoncluiClaudeAccess.fastModel`; the type's doc comment has one Koncluí line | one name for the fast model |
+| `App/NoteTaker.swift` | `NoteSummaryEngine.label` is `@MainActor` and names the source ("Claude (sua assinatura)" for the subscription, upstream's "Claude (sua chave)" for the key); `claude` case doc | the picker says where Claude comes from; the raw values are unchanged |
+| | `init`: `Self.defaultEngine` (Claude when a source exists, else Apple, else off), `followDefaultEngine()` | the default engine follows what the Mac has once klaude is found a moment after launch; it is not saved, so a Mac that loses klaude falls back by itself |
+| | `correct`: `FlowCleanup.hasKey` guard instead of reading the key; `claude(.correction, …)` | the transcript correction works with the subscription |
+| | `claude(_:system:user:maxTokens:)`, `claudeSummary(_:)`, `summarize` `.claude` case | the inline request with the key and its two tries is one `complete` call (the chosen model, then the fast one, as before) |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover; 16 `konclui.claude.*` keys (U3a: the source line, privacy, failures) |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
 
 ## Open items
 
+- `FlowCleanup.hasKey` now answers "Claude through the subscription or the key" and is `@MainActor` (the pages read it in `body`).
+  Prompt mode, translation and the correction need it; clean-up should read the new `FlowCleanup.canClean` (Apple Intelligence
+  counts). `FlowHubWords.swift:252` and `:254` still read `hasKey`, so a Mac with only Apple Intelligence keeps the switch
+  disabled until the Styles page reads `canClean` (U3b).
+- The Settings pages (U3b's files) still show the old key sentences. The one-liners to use are
+  `KoncluiClaudeLive.shared.connectLine(for:)`, `.privacyLine(for:)`, `.notesDetail` and `.lastFailure(_:)`; observe
+  `KoncluiClaudeLive.shared` so the line redraws when klaude is found. Until then the old key line is shown (and hidden as soon
+  as `hasKey` is true), which is wrong only on a Mac with neither klaude nor a key.
+- `hub.cleanup-key` ("Add your Claude key in Chat") and `flow.ai-privacy` / `hub.cleanup-privacy` / `notes.engine-detail` stay
+  as the key-only wording; the subscription and Apple wordings are the new `konclui.claude.*` keys.
+- Latency measured on the owner's Mac (6 runs of the live check, clean-up of a 13-word sentence through the proxy, haiku): 1.9
+  to 2.2 s, once 3.4 s, against the 4 s timeout. About 0.3 s of it is reading klaude's token from the Keychain for the call
+  (`security` takes 0.3 s on this Mac). The direct API answered in about 1 s. A slower proxy day shows up as the "took too long"
+  notice, once per streak.
+- A call's summary or correction that fails is logged (`[Claude] summary via subscription failed: HTTP 529`) and kept in
+  `lastFailure(.summary)` / `(.correction)`; the pill does not announce it (the "notes are ready" notice follows at once and a
+  second message would replace it). The Notetaker page should show it (U3b).
+- Prompt mode and translation have no Apple Intelligence route on purpose (a small on-device model is not good at a structured
+  prompt or a translation); the "connect" line says so.
 - The wake word in Portuguese was tested as text ("okei Kôru adiciona…"), never with a real voice. If the recognizer
   writes it in another way, add the spelling to `WakePhrase.normWord` (the Portuguese line above the upstream one).
 - The "Pronto"/"Zera"-style sentences are written for a Brazilian ear but have not been read aloud by Luciana or
