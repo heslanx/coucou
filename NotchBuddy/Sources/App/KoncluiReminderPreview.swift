@@ -210,7 +210,8 @@ struct KoncluiReminderPreview: View {
         alertColumn(big: false)
             .padding(.horizontal, 8).padding(.top, 15).padding(.bottom, 7)
             .frame(width: cardSize.width)
-            .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color(hex: "#0B0B0D")))
+            .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(KoncluiTheme.panel)
+                .overlay { KoncluiGrain().clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous)) })
             .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.white.opacity(0.12)))
             .overlay(alignment: .top) { koru(26).offset(y: -Self.perch) }
             .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
@@ -271,7 +272,7 @@ struct KoncluiReminderPreview: View {
                 .font(.system(size: big ? 36 : 25, weight: .ultraLight).monospacedDigit())
                 .foregroundColor(.white)
                 .lineLimit(1)
-            (Text("konclui.reminders.alert.now").foregroundColor(.orange).bold()
+            (Text("konclui.reminders.alert.now").foregroundColor(KoncluiTheme.accent).bold()
              + Text(verbatim: " · " + String(localized: String.LocalizationValue(KoncluiReminderRules.repeatKey(draft.repeats))))
                 .foregroundColor(.white.opacity(0.55)))
                 .font(.system(size: big ? 7.5 : 6.5, weight: .medium))
@@ -298,9 +299,9 @@ struct KoncluiReminderPreview: View {
                         .font(.system(size: big ? 8 : 7, weight: .semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                        .foregroundColor(primary ? Color(hex: "#170C04") : .white.opacity(0.9))
+                        .foregroundColor(primary ? KoncluiTheme.onAccent : .white.opacity(0.9))
                         .frame(maxWidth: .infinity, minHeight: big ? 17 : 15)
-                        .background(Capsule().fill(primary ? Color.orange.opacity(pressed ? 0.75 : 1) : Color.white.opacity(0.1)))
+                        .background(Capsule().fill(primary ? KoncluiTheme.accent.opacity(pressed ? 0.75 : 1) : Color.white.opacity(0.1)))
                         .scaleEffect(pressed ? 0.95 : 1)
                 }
             }

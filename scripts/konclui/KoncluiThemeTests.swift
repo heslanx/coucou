@@ -16,7 +16,7 @@ struct KoncluiThemeTests {
             check(ratio >= 4.5, "\(text) on \(surface) is \(String(format: "%.2f", ratio)):1, under 4.5:1")
         }
         // The known failures stay failures, so the reason for each token is not forgotten.
-        check(KoncluiContrast.ratio("#FFFFFF", KoncluiPalette.accent) < 3, "white on the accent is the 2.3:1 that ink replaces")
+        check(KoncluiContrast.ratio("#FFFFFF", KoncluiPalette.accent) < 3, "white on the accent fails; ink replaces it")
         check(KoncluiContrast.ratio("#6B7079", KoncluiPalette.card) < 4.5, "the old muted grey failed on a card")
         // Ink on the accent is the page's primary look: far above 4.5.
         check(KoncluiContrast.ratio(KoncluiPalette.onAccent, KoncluiPalette.accent) >= 8, "ink on the accent is at least 8:1")

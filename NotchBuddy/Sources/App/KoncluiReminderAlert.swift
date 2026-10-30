@@ -69,7 +69,8 @@ struct KoncluiReminderAlertView: View {
         column(big: false)
             .padding(.horizontal, 22).padding(.top, 46).padding(.bottom, 18)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 28, style: .continuous).fill(Color(hex: "#0B0B0D")))
+            .background(RoundedRectangle(cornerRadius: 28, style: .continuous).fill(KoncluiTheme.panel)
+                .overlay { KoncluiGrain().clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous)) })
             .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(Color.white.opacity(0.1)))
             .overlay(alignment: .top) { koru(size: 52).offset(y: -Self.rise) }
             .overlay(alignment: .topLeading) { if trial { trialTag.padding(14) } }
@@ -83,7 +84,7 @@ struct KoncluiReminderAlertView: View {
     private var fullScreen: some View {
         ZStack {
             if reduceTransparency {
-                Color(hex: "#0B0B0D")
+                KoncluiTheme.panel
             } else {
                 KoncluiBehindWindowBlur()
                 Color.black.opacity(0.5)

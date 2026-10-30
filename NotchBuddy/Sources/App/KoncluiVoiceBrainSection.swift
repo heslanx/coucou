@@ -175,7 +175,7 @@ struct KoncluiVoiceBrainSection: View {
 
     private func failureNotice(_ failure: KoncluiVoiceBrainLive.Failure) -> some View {
         HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange).accessibilityHidden(true)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundColor(KoncluiTheme.attention).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "konclui.voice.claude.failed"))
                     .font(.system(size: 11))

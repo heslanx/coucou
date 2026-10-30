@@ -243,7 +243,8 @@ struct HubHeroTheme {
         }
         switch page {
         case .dictation:
-            return .init(color: Color(hex: "#FB923C"), cast: [m("#F5F6F8", 66, 0.2), m("#FB923C", 52, 0.65), m("#F472B6", 44, 0.95, outfit: .bow)])
+            // Koncluí: the home page wears the brand, mint (KoncluiPalette.accent), where Coucou's orange was
+            return .init(color: KoncluiTheme.accent, cast: [m("#F5F6F8", 66, 0.2), m(KoncluiPalette.accent, 52, 0.65), m("#F472B6", 44, 0.95, outfit: .bow)])
         case .notes:
             return .init(color: Color(hex: "#3B9EFF"), cast: [m("#3B9EFF", 58, 0.1, outfit: .roundGlasses), m("#34D399", 50, 0.5), m("#A78BFA", 46, 0.9)])
         case .insights:
@@ -295,6 +296,7 @@ struct HubHero<Trailing: View>: View {
         ZStack(alignment: .bottomTrailing) {
             // Koncluí: only the Ditado band has particles (KoncluiMotion.liveBandPages); the others are a still colour wash.
             HubHeroBackdrop(color: theme.color, light: light, live: KoncluiMotion.liveBandPages.contains(page.rawValue))
+                .overlay { KoncluiGrain() }   // Koncluí: the brand's grain, as on the website's dark boxes
                 .allowsHitTesting(false)
             HubMochiScene(cast: theme.cast, range: 0...1)
                 .id(page)
@@ -462,7 +464,7 @@ struct HubHeroBackdrop: View {
         let t = drifting ? CGFloat(CACurrentMediaTime() - light.start) : 0
 
         // The black, deeper than the card around it.
-        context.fill(Path(rect), with: .color(Color(hex: "#020203").opacity(glass ? 0.72 : 1)))
+        context.fill(Path(rect), with: .color(KoncluiTheme.sunken.opacity(glass ? 0.72 : 1)))   // Koncluí: the navy family's well
         // The page's colour, low in the opposite corner and breathing in the top one.
         context.fill(Path(rect), with: .linearGradient(
             Gradient(colors: [color.opacity(0.10), .clear]),

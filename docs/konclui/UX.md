@@ -346,17 +346,20 @@ can run the skill of the same name for a full pass.
 
 Section 6 (Contrast and colour; Motion and transparency) says what is required. This section says how the hub window meets it, so a
 change does not have to re-decide it. The numbers live in `KoncluiThemeCore.swift` (pure, tested by
-`scripts/konclui/test-theme.sh`), the colours, type roles and controls in `KoncluiTheme.swift`. Nothing here adds a hue, a size or
-a radius the app did not already use (section 8). The checklist lines for it are in section 7.
+`scripts/konclui/test-theme.sh`), the colours, type roles and controls in `KoncluiTheme.swift`. The colours are Koncluí's design system
+(konclui-platform's dark family and the Painel Gestor's sidebar, so the Mac app and the web read as one product); sizes and
+radii add nothing the app did not already use (section 8). A colour comes from the design system or not at all. The checklist lines for it are in section 7.
 
 ### 11.1 Tokens
 
 | Group | Token | Value | Use |
 |---|---|---|---|
-| Surface | canvas, panel, card, field, control | #000000, #0E0F11, #18191C, #1F2024, #1D1E22 | window and sidebar, the page's big card, cards, text fields, secondary buttons |
-| Text | textPrimary, textBody, textSecondary, textTertiary | #F5F6F8, #C7CAD0, #8E939C, #83888F | titles and values, reading text, supporting text, the quietest text that still reads (4.5:1 on every surface, fields included) |
-| Accent | accent, onAccent, selection | #FB923C, #170C04, #C2410C | the region's one primary, text links and focus; ink on the accent (8.5:1; white on it is 2.3:1); a selected segment, where macOS draws white on the tint (5.2:1) |
-| Status | ok, attention, error, off | #34D399, #F5B83D, #FF453A, textSecondary | status is never the accent |
+| Brand | brandNavy, brandInk, brandDeep | #0D184F, #080924, #123234 | the window behind the sidebar and around the panel (`KoncluiBrandBackdrop`): the Painel Gestor's sidebar, navy at the top, ink by 60 %, deep teal at the foot along -160°, a mint glow (14 %) at the sidebar's top, still |
+| Grain | `KoncluiGrain` | 128 pt tile, four greys 70 to 190 at 12 %, soft light | the website's `--surface-grain` on the dark brand surfaces: the window, the pages' bands, the reminder's card. Not on reading cards |
+| Surface | canvas, panel, card, field, control, sunken | #080924, #03051A, #0E2236, #182C41, #1F3349, #020112 | the window where it is one colour, the page's big card, cards, text fields, secondary buttons, the pages' top bands |
+| Text | textPrimary, textBody, textSecondary, textTertiary | #F0F5FB, #B4BDCC, #98A3B3, #909BAC | titles and values, reading text, supporting text, the quietest text that still reads (4.5:1 on every surface, fields, buttons and the gradient included) |
+| Accent | accent, onAccent, selection | #53FFC8, #070A1D, #0B7A66 | mint: the region's one primary, text links, focus, the selected sidebar item (icon, and a 12 % wash); ink on the accent (15:1; white on it is 1.1:1); a selected segment, where macOS draws white on the tint (5.3:1) |
+| Status | ok, attention, error, off | #3DD9B0, #E8B04A, #F07B73, textSecondary | the platform's; status is never the accent and always comes with a word or a symbol (ok is close to mint by design) |
 | Space | gutter, cardPadding, sectionGap, rowGap, labelGap | 28, 18, 22, 12, 8 | page edge and every column, card content, between sections, between rows, label to card |
 | Radius | panel, band, card, control, chip | 20, 18, 14, 9, capsule | the page's card, the header band, cards, buttons and fields and menus, chips |
 

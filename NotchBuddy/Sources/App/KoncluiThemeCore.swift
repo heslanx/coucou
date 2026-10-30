@@ -4,28 +4,35 @@ import Foundation
 // with swiftc alone (contrast pairs, one gutter, which bands stay alive, when the Koru stands still). KoncluiTheme.swift
 // turns them into colours, fonts and controls. Rules: docs/konclui/UX.md, "Visual system".
 
-/// Every colour of the hub window as a hex string. They are the values the window already used (UX.md 8: no new hue);
-/// the greys that drifted (#A4A9B1, #B7BBC2, #C7CBD2, #D5D7DB, #E1E3E6…) fold into the four text roles.
+/// Every colour of the hub window as a hex string: the dark family of Koncluí's design system (konclui-platform,
+/// `packages/ui/src/styles/globals.css` and the Painel Gestor's sidebar in `apps/web/src/index.css`), so the Mac app and the
+/// web read as one product. Navy surfaces, mint as the one accent. The greys that drifted fold into the four text roles.
 enum KoncluiPalette {
+    // The brand: the Painel Gestor's sidebar gradient (navy, ink, deep teal, at -160°) with the mint glow on top. It is the
+    // window behind the sidebar and around the pages' panel (KoncluiBrandBackdrop).
+    static let brandNavy = "#0D184F"
+    static let brandInk = "#080924"
+    static let brandDeep = "#123234"
     // Surfaces
-    static let canvas = "#000000"       // the window and the sidebar: the island's black
-    static let panel = "#0E0F11"        // the big card the pages sit in
-    static let card = "#18191C"
-    static let field = "#1F2024"
-    static let control = "#1D1E22"      // secondary buttons
+    static let canvas = brandInk        // the window where it is one colour (the gradient's middle)
+    static let panel = "#03051A"        // the big card the pages sit in (the platform's dark background)
+    static let card = "#0E2236"
+    static let field = "#182C41"
+    static let control = "#1F3349"      // secondary buttons
+    static let sunken = "#020112"       // the pages' top bands, deeper than the panel (the platform's surface-sunken)
     // Text
-    static let textPrimary = "#F5F6F8"
-    static let textBody = "#C7CAD0"
-    static let textSecondary = "#8E939C"
-    static let textTertiary = "#83888F" // the quietest text that still reads: 4.5:1 on every surface, fields included
+    static let textPrimary = "#F0F5FB"
+    static let textBody = "#B4BDCC"
+    static let textSecondary = "#98A3B3"
+    static let textTertiary = "#909BAC" // the quietest text that still reads: 4.5:1 on every surface, fields and buttons included
     // Accent: the region's one primary, links, focus
-    static let accent = "#FB923C"
-    static let onAccent = "#170C04"     // ink on the accent: 8.5:1 (white on it is 2.3:1)
-    static let selection = "#C2410C"    // only where macOS draws white on the tint (a selected segment): 5.2:1
-    // Status: never the accent
-    static let ok = "#34D399"
-    static let attention = "#F5B83D"
-    static let error = "#FF453A"
+    static let accent = "#53FFC8"       // mint
+    static let onAccent = "#070A1D"     // ink on the accent: 15:1 (white on it is 1.1:1)
+    static let selection = "#0B7A66"    // only where macOS draws white on the tint (a selected segment): 5.3:1
+    // Status: the platform's; never the accent, and always with a word or a symbol (ok is close to mint by design)
+    static let ok = "#3DD9B0"
+    static let attention = "#E8B04A"
+    static let error = "#F07B73"
 
     /// Text roles on surfaces that must read at 4.5:1 (UX.md 6), and what they are for.
     static let textPairs: [(text: String, surface: String)] = [
@@ -34,7 +41,10 @@ enum KoncluiPalette {
         (textSecondary, panel), (textSecondary, card), (textSecondary, field), (textSecondary, control),
         (textTertiary, canvas), (textTertiary, panel), (textTertiary, card), (textTertiary, field), (textTertiary, control),
         (accent, panel), (accent, card), (ok, card), (attention, card), (error, card), (error, field),
-        (onAccent, accent), ("#FFFFFF", selection),
+        (onAccent, accent), ("#FFFFFF", selection), (textPrimary, sunken), (textBody, sunken), (textSecondary, sunken),
+        // The sidebar sits on the gradient: its text reads from the navy top to the teal foot.
+        (textPrimary, brandNavy), (textPrimary, brandDeep), (textBody, brandNavy), (textBody, brandDeep),
+        (textTertiary, brandNavy), (textTertiary, brandDeep), (accent, brandNavy), (accent, brandDeep),
     ]
 }
 

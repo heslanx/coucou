@@ -85,10 +85,14 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
 - **One design system for the hub window.** `App/KoncluiTheme.swift` (tokens, type roles, the hub's buttons, GroupBox, Toggle, status,
   key cap and field) and `App/KoncluiThemeCore.swift` (the numbers, tested by `scripts/konclui/test-theme.sh`): one gutter of 28 pt so
   every page lines up with its header card (the Notetaker's "Gravar uma chamada" included), text that passes 4.5:1, one primary look
-  (ink on orange, 8.5:1), a disabled button that never looks enabled, switches in one column, a status drawn one way, Reduce
+  (ink on mint, 15:1), a disabled button that never looks enabled, switches in one column, a status drawn one way, Reduce
   Motion, Increase Contrast and Reduce Transparency honoured. The notch pages' header is the compact band pinned over the scroll
   view with macOS 26's soft scroll edge (the window's only glass; macOS 15 to 25 get a fade). Only the Ditado band has particles;
   the others are a still colour wash. The rules are in UX.md section 11.
+- **The design system's colours.** The window wears konclui-platform's dark navy family with mint as the one accent, and its
+  background is the Painel Gestor's sidebar (navy, ink, deep teal at -160° with the mint glow, `KoncluiBrandBackdrop`) under
+  the website's grain (`KoncluiGrain`, also on the pages' bands and the reminder's card). The notch keeps its black: it has to
+  disappear into the hardware notch.
 - Every word on screen follows `docs/konclui/UX.md` section 5 in the 14 languages: no dashes as punctuation, one name per
   concept (notch, aba, Ajustes do ditado, Ajustes do Sistema, gateway), paths written with "›", macOS permission prompts that
   say what the app does with the permission and are localized (`NotchBuddy/Resources/InfoPlist.xcstrings`).
@@ -408,6 +412,8 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/FlowHubNotes.swift` | `HubNotesPage`: setup card only when `engine == .needsDownload`; `HubNotesList`: `KoncluiNoteSpeechRow()`; `HubRecordButton`: `.disabled(KoncluiNoteSpeech.engine == .needsDownload && !taker.isRecording)`; `HubLiveNote`: `KoncluiNoteSpeechProgress()` | the Record button is on; the engine in use and the Parakeet upgrade sit in one row with a popover; the language install shows under the live call |
 | `App/FlowHubHome.swift` | Home's "Record a call": `KoncluiNoteSpeech.engine != .needsDownload` instead of `Parakeet.shared.isReady` | same gate |
 | `App/FlowHub.swift` | `HubTheme.muted` is `KoncluiTheme.textTertiary` | the muted grey passes 4.5:1 (was 3.5:1 on a card) |
+| | every `HubTheme` colour is its `KoncluiTheme` token (`sidebar` is clear); `FlowHubView`'s background is `KoncluiBrandBackdrop()`; `HubSidebarItem`: the selected item's icon is the accent on a 12 % accent wash | the design system's colours (UX.md 11.1): navy surfaces, mint, the Painel Gestor's sidebar gradient with the website's grain |
+| `App/FlowHubMochis.swift` | `HubHeroTheme.of(.dictation)`: the accent and a mint Koru where Coucou's orange was; `HubHeroBackdrop`: the band's base is `KoncluiTheme.sunken`, with `KoncluiGrain` over it | the home band wears the brand; every band sits in the navy family with the site's texture |
 | | `FlowHubView.body`: `.koncluiTheme()` and `.environment(\.koncluiMotion, …)`, `@Environment(\.accessibilityReduceMotion)` | the hub's GroupBox, Toggle and button styles at the root; the canvases' rate (window front, behind, hidden, Reduce Motion) |
 | | `hubPage`: the notch pages are `KoncluiSettingsPage(page:section:)` | the compact header pinned over `SettingsView`'s scroll (`App/KoncluiSettingsPage.swift`); `SettingsView` is untouched |
 | | `HubSidebar.status` is `KoncluiDictationStatus` | the sidebar status is a door with a popover (`App/KoncluiDictationDoor.swift`) |

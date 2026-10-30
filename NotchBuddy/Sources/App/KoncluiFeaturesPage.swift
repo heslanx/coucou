@@ -76,6 +76,7 @@ struct KoncluiFeaturesSidebarItem: View {
             HStack(spacing: 10) {
                 Image(systemName: "flag")
                     .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(selected ? KoncluiTheme.accent : KoncluiTheme.textBody)
                     .frame(width: 20)
                 Text(String(localized: "konclui.features.title"))
                     .font(.system(size: 14, weight: selected ? .semibold : .regular))
@@ -85,7 +86,7 @@ struct KoncluiFeaturesSidebarItem: View {
             .padding(.horizontal, 10)
             .frame(height: 32)
             .background(RoundedRectangle(cornerRadius: 9)
-                .fill(Color.white.opacity(selected ? 0.08 : (hover ? 0.04 : 0))))
+                .fill(selected ? KoncluiTheme.accent.opacity(0.12) : Color.white.opacity(hover ? 0.06 : 0)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -80,23 +80,25 @@ enum HubPage: String, CaseIterable, Identifiable {
 }
 
 /// The colors of the Coucou Flow window: the island's dark, with Coucou's orange.
+/// Koncluí: the design system's navy family with mint (KoncluiPalette, docs/konclui/UX.md 11.1); the window itself is
+/// KoncluiBrandBackdrop, the Painel Gestor's sidebar gradient.
 enum HubTheme {
     /// OLED black: the window and the sidebar.
-    static let window = Color.black
-    static let sidebar = Color.black
+    static let window = KoncluiTheme.canvas
+    static let sidebar = Color.clear   // Koncluí: the window's gradient shows through
     /// The big card on the right, where the pages are.
-    static let panel = Color(hex: "#0E0F11")
-    static let card = Color(hex: "#18191C")
-    static let field = Color(hex: "#1F2024")
+    static let panel = KoncluiTheme.panel
+    static let card = KoncluiTheme.card
+    static let field = KoncluiTheme.field
     static let line = Color.white.opacity(0.07)
-    static let text = Color(hex: "#F5F6F8")
-    static let body = Color(hex: "#E1E3E6")
-    static let secondary = Color(hex: "#8E939C")
+    static let text = KoncluiTheme.textPrimary
+    static let body = KoncluiTheme.textBody
+    static let secondary = KoncluiTheme.textSecondary
     static let muted = KoncluiTheme.textTertiary   // Koncluí: was #6B7079, 3.5:1 on a card; 4.5:1 now
-    static let accent = Color(hex: "#FB923C")
-    static let onAccent = Color(hex: "#170C04")
-    static let green = Color(hex: "#34D399")
-    static let red = Color(hex: "#FF453A")
+    static let accent = KoncluiTheme.accent
+    static let onAccent = KoncluiTheme.onAccent
+    static let green = KoncluiTheme.ok
+    static let red = KoncluiTheme.error
     /// One color per person in a call: you first, then the others.
     static let speakers: [Color] = ["#3B9EFF", "#34D399", "#A78BFA", "#F7B32B", "#F472B6", "#22D3EE"].map { Color(hex: $0) }
 
@@ -245,7 +247,7 @@ struct FlowHubView: View {
                 .padding(.bottom, 10)
                 .padding(.trailing, 10)
         }
-        .background(HubTheme.window)
+        .background(KoncluiBrandBackdrop())   // Koncluí: the Painel Gestor's sidebar gradient, under the sidebar and around the panel
         .foregroundColor(HubTheme.text)
         .preferredColorScheme(.dark)
         .tint(HubTheme.accent)
@@ -379,6 +381,7 @@ private struct HubSidebarItem: View {
             HStack(spacing: 10) {
                 Image(systemName: page.symbol)
                     .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(selected ? KoncluiTheme.accent : KoncluiTheme.textBody)   // Koncluí: the platform's mint icon
                     .frame(width: 20)
                 Text(page.title)
                     .font(.system(size: 14, weight: selected ? .semibold : .regular))
@@ -387,8 +390,9 @@ private struct HubSidebarItem: View {
             .foregroundColor(selected ? HubTheme.text : KoncluiTheme.textBody)
             .padding(.horizontal, 10)
             .frame(height: 32)
+            // Koncluí: the selected page as on the platform's sidebar, a mint wash (rgba(83, 255, 200, 0.12))
             .background(RoundedRectangle(cornerRadius: 9)
-                .fill(Color.white.opacity(selected ? 0.08 : (hover ? 0.04 : 0))))
+                .fill(selected ? KoncluiTheme.accent.opacity(0.12) : Color.white.opacity(hover ? 0.06 : 0)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

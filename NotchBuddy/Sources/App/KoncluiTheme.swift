@@ -16,6 +16,7 @@ enum KoncluiTheme {
     static let card = Color(hex: KoncluiPalette.card)
     static let field = Color(hex: KoncluiPalette.field)
     static let control = Color(hex: KoncluiPalette.control)
+    static let sunken = Color(hex: KoncluiPalette.sunken)
 
     static let textPrimary = Color(hex: KoncluiPalette.textPrimary)
     static let textBody = Color(hex: KoncluiPalette.textBody)
@@ -29,6 +30,10 @@ enum KoncluiTheme {
     static let ok = Color(hex: KoncluiPalette.ok)
     static let attention = Color(hex: KoncluiPalette.attention)
     static let error = Color(hex: KoncluiPalette.error)
+
+    static let brandNavy = Color(hex: KoncluiPalette.brandNavy)
+    static let brandInk = Color(hex: KoncluiPalette.brandInk)
+    static let brandDeep = Color(hex: KoncluiPalette.brandDeep)
 
     /// Lines between and around surfaces; stronger with Increase Contrast.
     static func hairline(_ contrast: ColorSchemeContrast) -> Color {
@@ -122,6 +127,79 @@ struct KoncluiPinnedHeaderModifier<Header: View>: ViewModifier {
             .offset(y: KoncluiSpace.headerFade)
             .allowsHitTesting(false)
     }
+}
+
+// MARK: - Brand backdrop
+
+/// The window behind the sidebar and around the pages' panel: the Painel Gestor's sidebar (konclui-platform,
+/// `--app-sidebar-bg` and SidebarAura's still layers). Navy at the top, ink by 60 %, deep teal at the foot along -160°, a
+/// mint glow at the top of the sidebar, a dark scrim under the title bar and a shade at the sidebar's foot. Still: the
+/// platform's animated plasma would draw every frame in a window that stays open (the platform has the same still mode).
+struct KoncluiBrandBackdrop: View {
+    /// The sidebar's width, where the glow and the shade sit.
+    var sidebar: CGFloat = 228
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            ZStack(alignment: .topLeading) {
+                // -160° in CSS runs down and 20° to the left, whatever the window's proportions.
+                let run = tan(20 * Double.pi / 180) * size.height / max(size.width, 1) / 2
+                LinearGradient(stops: [.init(color: KoncluiTheme.brandNavy, location: 0.15),
+                                       .init(color: KoncluiTheme.brandInk, location: 0.6),
+                                       .init(color: KoncluiTheme.brandDeep, location: 1)],
+                               startPoint: UnitPoint(x: 0.5 + run, y: 0), endPoint: UnitPoint(x: 0.5 - run, y: 1))
+                LinearGradient(stops: [.init(color: .black.opacity(0.2), location: 0), .init(color: .clear, location: 0.38)],
+                               startPoint: .top, endPoint: .bottom)
+                glow(KoncluiTheme.accent.opacity(0.14), at: CGPoint(x: sidebar * 0.16, y: size.height * 0.08), reach: 0.3, in: size)
+                glow(KoncluiTheme.brandInk.opacity(0.55), at: CGPoint(x: sidebar * 0.92, y: size.height * 0.78), reach: 0.34, in: size)
+                KoncluiGrain()
+            }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    /// A CSS `radial-gradient(circle at …, color, transparent reach)` laid on the sidebar's box.
+    private func glow(_ color: Color, at center: CGPoint, reach: Double, in size: CGSize) -> some View {
+        let corner = hypot(max(center.x, sidebar - center.x), max(center.y, size.height - center.y))
+        let radius = corner * reach
+        return RadialGradient(colors: [color, .clear], center: .center, startRadius: 0, endRadius: radius)
+            .frame(width: radius * 2, height: radius * 2)
+            .offset(x: center.x - radius, y: center.y - radius)
+    }
+}
+
+/// The brand's grain (konclui-website, `--surface-grain` in `src/styles/theme.css`): a 128 pt tile of per-pixel noise in four
+/// greys, 70 to 190, each at 12 % alpha, laid with soft light and never smoothed, on the dark brand surfaces (the window, the
+/// pages' bands, the reminder's card). It breaks the gradients' banding and gives them the site's texture. Made once in code
+/// with the same numbers, so there is no image to ship; still, so it costs nothing after the first frame.
+struct KoncluiGrain: View {
+    var body: some View {
+        if let tile = Self.tile {
+            Image(decorative: tile, scale: 1)
+                .resizable(resizingMode: .tile)
+                .interpolation(.none)
+                .blendMode(.softLight)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private static let tile: CGImage? = {
+        let side = 128, alpha = 31   // 0x1F, the site's tile
+        let tones = [70, 110, 150, 190]
+        var seed: UInt64 = 0x4B6F6E636C7569   // fixed: the same grain on every launch
+        var pixels = [UInt8](repeating: 0, count: side * side * 4)
+        for i in 0..<(side * side) {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            let tone = UInt8((tones[Int(seed >> 62)] * alpha + 127) / 255)   // premultiplied
+            pixels[i * 4] = tone; pixels[i * 4 + 1] = tone; pixels[i * 4 + 2] = tone; pixels[i * 4 + 3] = UInt8(alpha)
+        }
+        guard let provider = CGDataProvider(data: Data(pixels) as CFData) else { return nil }
+        return CGImage(width: side, height: side, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: side * 4,
+                       space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                       provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
+    }()
 }
 
 // MARK: - Environment
