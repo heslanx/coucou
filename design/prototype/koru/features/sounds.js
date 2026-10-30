@@ -7,7 +7,7 @@
 (()=>{
 const {register,Clock}=Koru;
 const NAMES=['annoyed','approval','approve','attach','blip','close','dizzy','error','finish','greet','greeting','gulp','hover','love','open',
-  'peek','pop','proud','question','rate','search','send','slap','sleep','think','tick','wink','work','yawn'];
+  'peek','pop','proud','question','rate','search','send','slap','sleep','think','tick','wink','work','yawn','owl','sale'];
 const LOOPS={sleeping:'sleep-loop',thinking:'think-loop',working:'work-loop',searching:'search-loop'};
 const DIR=document.currentScript?new URL('../sounds/',document.currentScript.src).href:'koru/sounds/';
 let on=true, ambient=false, volume=.12, audition=null, current=null;   // current: the loop sounding now
@@ -52,7 +52,7 @@ register({name:'sounds',
     ui.toggle('Som','#3CCFD9',v=>{ on=v; if(!v) hush() }).classList.add('on');
     ui.toggle('Som ambiente','#7C8CF8',v=>{ ambient=v });
     ui.slider('Volume',0,.2,.01,volume,v=>{ volume=v; if(master) master.gain.setTargetAtTime(v,ctx.currentTime,.01); if(voice&&voice.el) voice.el.volume=v });   // the app's range (Settings, 0 to 0.2)
-    for(const n of NAMES) ui.button(n,'#5B6472',()=>play(n));
+    for(const n of NAMES) ui.button(({owl:'Coruja',sale:'Som de venda'})[n]||n,'#5B6472',()=>play(n));
     ui.group('Loops');   // audition: a click plays the loop until clicked again
     const btns={}; for(const n of Object.values(LOOPS)) btns[n]=ui.button(n,'#7C8CF8',()=>{ audition=audition===n?null:n;
       for(const k in btns) btns[k].classList.toggle('on',k===audition) }) }

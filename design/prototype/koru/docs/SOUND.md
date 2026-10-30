@@ -249,3 +249,21 @@ estado que o HookServer chama direto; o protótipo toca todos (`core.js`:270).
   não por escuta. Ouça `design/konclui/sound/preview.m4a` ou os botões "Sons" e "Loops" do protótipo.
 - No Chrome headless o `decodeAudioData` de AAC não resolve (um WAV resolve em 8 ms), então o caminho Web Audio dos loops foi provado
   com Web Audio simulado; num Chrome normal ele decodifica no início. Se não decodificar, o fallback `<audio loop>` toca (com a pausa).
+
+## 13. Imported owl and sale recordings
+
+Two additional, manually triggered sounds are available in the prototype:
+**Coruja** (`owl.m4a`) and **Som de venda** (`sale.m4a`). They use the existing
+sound toggle, volume, reduced-motion guard and silent capture mode. Existing
+state sounds remain unchanged.
+
+Read-only source: `konclui-project/konclui-work`. The isolated owl comes from
+`art/sale-sounds/owl-hoots.wav`; the sale comes from `media/sounds/sale.mp3`,
+which already includes the owl, according to that repository's README.
+Unmodified source copies are kept in `../sounds/originals/`. AAC copies use
+128 kbps, without normalization or trimming. These longer recordings are
+explicit audition effects, not frequent automatic state feedback.
+
+`alexa/` at the repository root contains the Echo Show development skill and
+24 kHz / 48 kbps MP3 derivatives. Its README describes deployment and the
+remaining device verification. Native Mac playback is unchanged.
