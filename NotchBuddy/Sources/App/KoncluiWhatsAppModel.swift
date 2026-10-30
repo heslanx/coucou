@@ -258,6 +258,8 @@ struct KoncluiWAPreviewOptions: Equatable, Sendable {
     var muteGroups: Bool
     var respectFocus: Bool
     var focusOn: Bool
+    /// Opening a chat marks it read (and tells the sender).
+    var markReadOnOpen = false
 
     /// A Focus is on and Koncluí respects it: new messages arrive without a reaction, a sound or a lit pill.
     var quiet: Bool { respectFocus && focusOn }
@@ -279,17 +281,33 @@ struct KoncluiWASample: Identifiable, Equatable, Sendable {
     enum Kind: Equatable, Sendable { case direct, mention, group }
     var kind: Kind
     var conversation: WAConversation
-    /// A muted group: it stays out of the notch's list (the preview draws it faded, so the option shows).
+    /// A muted group: it stays out of the notch's list.
     var muted: Bool
     /// Listed, but arrives quietly because of the Focus.
     var quiet: Bool
     var id: String { conversation.id }
+
+    /// The newest message typed in up to `count` characters, the way the preview shows a message arriving.
+    func typed(_ count: Int) -> KoncluiWASample {
+        var sample = self
+        guard let last = sample.conversation.messages.indices.last else { return sample }
+        sample.conversation.messages[last].text = String(sample.conversation.messages[last].text.prefix(max(0, count)))
+        return sample
+    }
+
+    /// How many characters the newest message has: what `typed` goes through.
+    var typingLength: Int { conversation.messages.last?.text.count ?? 0 }
 }
 
 enum KoncluiWAPreviewContent: Equatable, Sendable {
     case samples([KoncluiWASample])
     /// Not connected: the notch shows the link's own status line.
     case status(KoncluiWALink)
+}
+
+extension KoncluiWALink {
+    /// The status line pulses while Koncluí is trying or has a problem to show; "off" is a choice, not a wait.
+    var pulses: Bool { self != .off }
 }
 
 enum KoncluiWAPreview {
@@ -304,30 +322,36 @@ enum KoncluiWAPreview {
 
     /// A direct message, a message in a group that mentions you, and one in a group that does not. They go through the
     /// real inbox with the real filters, so what is listed, muted or quiet here is what the notch does.
+    /// `arrived` limits it to the conversations that already wrote, `fresh` stamps one conversation's newest message
+    /// "just now", and `read` are the chats opened with "mark as read" on.
     static func samples(options: KoncluiWAPreviewOptions, copy: KoncluiWASampleCopy = .english,
-                        now: Date = Date()) -> [KoncluiWASample] {
+                        now: Date = Date(), arrived: [KoncluiWASample.Kind] = [.direct, .mention, .group],
+                        fresh: KoncluiWASample.Kind? = nil, read: Set<KoncluiWASample.Kind> = []) -> [KoncluiWASample] {
         let filters = WAFilters(muteGroups: options.muteGroups)
         var inbox = WAInbox()
         var outcome: [String: WAInbox.Outcome] = [:]
 
-        func add(_ id: String, chat: String, name: String?, from sender: String, _ text: String, media: WAMedia = .none,
-                 ago: Double, mention: Bool = false) {
+        func add(_ id: String, _ kind: KoncluiWASample.Kind, chat: String, name: String?, from sender: String, _ text: String,
+                 media: WAMedia = .none, ago: Double, newest: Bool = false, mention: Bool = false) {
+            guard arrived.contains(kind) else { return }
+            let age = kind == fresh && newest ? justNow : ago
             var message = WAMessage(id: id, chat: chat, sender: sender, senderName: sender, text: text, media: media,
-                                    date: now.addingTimeInterval(-ago), mentionsMe: mention)
+                                    date: now.addingTimeInterval(-age), mentionsMe: mention)
             message.chatName = name
             outcome[chat] = inbox.add(message, filters: filters)
         }
-        add("preview-d1", chat: directChat, name: nil, from: copy.directName, copy.directText, ago: 150)
-        add("preview-d2", chat: directChat, name: nil, from: copy.directName, copy.directText, ago: 120)
-        add("preview-m1", chat: mentionChat, name: copy.mentionName, from: copy.mentionSender, copy.mentionText,
-            ago: 300, mention: true)
-        add("preview-g1", chat: groupChat, name: copy.groupName, from: copy.groupSender, copy.groupText, ago: 760)
-        add("preview-g2", chat: groupChat, name: copy.groupName, from: copy.groupSender, copy.groupText, ago: 740)
-        add("preview-g3", chat: groupChat, name: copy.groupName, from: copy.groupSender, copy.groupText,
-            media: .image, ago: 720)
+        add("preview-d1", .direct, chat: directChat, name: nil, from: copy.directName, copy.directText, ago: 150)
+        add("preview-d2", .direct, chat: directChat, name: nil, from: copy.directName, copy.directText, ago: 120, newest: true)
+        add("preview-m1", .mention, chat: mentionChat, name: copy.mentionName, from: copy.mentionSender, copy.mentionText,
+            ago: 300, newest: true, mention: true)
+        add("preview-g1", .group, chat: groupChat, name: copy.groupName, from: copy.groupSender, copy.groupText, ago: 760)
+        add("preview-g2", .group, chat: groupChat, name: copy.groupName, from: copy.groupSender, copy.groupText, ago: 740)
+        add("preview-g3", .group, chat: groupChat, name: copy.groupName, from: copy.groupSender, copy.groupText,
+            media: .image, ago: 720, newest: true)
 
-        let listed = Set(inbox.visible(filters: filters).map(\.id))
         let kinds: [String: KoncluiWASample.Kind] = [directChat: .direct, mentionChat: .mention, groupChat: .group]
+        for kind in read { inbox.markRead(chat(of: kind)) }
+        let listed = Set(inbox.visible(filters: filters).map(\.id))
         return inbox.sorted.compactMap { conversation in
             guard let kind = kinds[conversation.id] else { return nil }
             let muted = !listed.contains(conversation.id)
@@ -337,8 +361,165 @@ enum KoncluiWAPreview {
         }
     }
 
+    /// Seconds ago of a message that just arrived: the row reads "now".
+    static let justNow = 4.0
+
+    static func chat(of kind: KoncluiWASample.Kind) -> String {
+        switch kind {
+        case .direct:  return directChat
+        case .mention: return mentionChat
+        case .group:   return groupChat
+        }
+    }
+
     /// The count in the card's header: what the notch's list holds, never a muted group.
     static func unread(_ samples: [KoncluiWASample]) -> Int {
         samples.filter { !$0.muted }.reduce(0) { $0 + $1.conversation.unread }
+    }
+}
+
+// MARK: - The preview's timeline
+
+/// An option of the popover that changes what the preview shows (the beat that shows its effect starts over on a change).
+enum KoncluiWAOption: Equatable, Sendable { case muteGroups, focus, markRead }
+
+/// One moment of the loop the preview plays: what the notch is doing and what the card lists.
+struct KoncluiWABeat: Equatable, Sendable {
+    /// How the closed notch reacts to a message that just arrived.
+    enum Reaction: Equatable, Sendable {
+        case none
+        /// Koru hops and the WhatsApp mini lights up.
+        case lights
+        /// A muted group: nothing moves.
+        case muted
+        /// A Focus holds the message: nothing moves.
+        case held
+    }
+
+    /// What the line under the stage (and VoiceOver) says. The words are the view's; the rule is here.
+    enum Note: Equatable, Sendable {
+        case waiting
+        case arrives(KoncluiWASample.Kind, String)
+        case muted(String)
+        case held(String)
+        case opened
+        case markedRead(String)
+        case stillUnread(String)
+        case waitingHere
+        case status(KoncluiWALink)
+    }
+
+    /// The island is open on the card; otherwise it is the closed strip.
+    var open: Bool
+    var reaction: Reaction = .none
+    var note: Note
+    /// What the card lists, newest first. A closed beat keeps the rows the card already had, so a new row slides in when it opens.
+    var rows: [KoncluiWASample] = []
+    /// The conversation whose newest message types in while the card opens.
+    var typing: KoncluiWASample.Kind?
+    /// The conversation the pointer clicks on.
+    var pointing: KoncluiWASample.Kind?
+    /// The card shows the link's status line instead of conversations.
+    var status: KoncluiWALink?
+    /// The card says a Focus is on: messages wait here.
+    var focusNote = false
+    var seconds: Double
+    var demonstrates: KoncluiWAOption?
+
+    var unread: Int { KoncluiWAPreview.unread(rows) }
+
+    /// Characters the typing goes through (0 when nothing types in).
+    var typingLength: Int { rows.first { $0.kind == typing }?.typingLength ?? 0 }
+}
+
+enum KoncluiWATimeline {
+    static let restSeconds = 1.8
+    static let lightsSeconds = 1.3
+    static let silentSeconds = 2.8
+    static let cardSeconds = 3.8
+    static let readSeconds = 2.8
+    static let statusSeconds = 3.8
+    /// Reduce Motion: every beat holds the same time and the stage crossfades between them.
+    static let reducedMotionSeconds = 2.5
+
+    /// When the closed notch's reaction starts (the island has begun to close) and when a card starts typing (it has opened).
+    static let hopDelay = 0.35
+    static let typingDelay = 0.55
+
+    /// A message types in at 25 characters a second, faster when it is long, so it is always readable before the beat ends.
+    static func typingInterval(length: Int) -> Double { min(0.04, 1.4 / Double(max(1, length))) }
+
+    /// The beats for a link and a set of options: the loop starts at rest, plays each conversation's message in the order
+    /// it arrives, and starts over. Not connected: the closed notch, then the card with the link's own status.
+    static func beats(link: KoncluiWALink, options: KoncluiWAPreviewOptions, copy: KoncluiWASampleCopy = .english,
+                      now: Date = Date()) -> [KoncluiWABeat] {
+        let rest = KoncluiWABeat(open: false, note: .waiting, seconds: restSeconds)
+        if case .status(let link) = KoncluiWAPreview.content(link: link, options: options, copy: copy, now: now) {
+            return [rest, KoncluiWABeat(open: true, note: .status(link), status: link, seconds: statusSeconds)]
+        }
+
+        var beats = [rest]
+        var arrived: [KoncluiWASample.Kind] = []
+        var read: Set<KoncluiWASample.Kind> = []
+        var held = false
+        /// What the card lists once these have written, never a muted group.
+        func listed(fresh: KoncluiWASample.Kind? = nil) -> [KoncluiWASample] {
+            KoncluiWAPreview.samples(options: options, copy: copy, now: now, arrived: arrived, fresh: fresh, read: read)
+                .filter { !$0.muted }
+        }
+
+        for kind in [KoncluiWASample.Kind.direct, .group, .mention] {
+            let before = listed()
+            arrived.append(kind)
+            let all = KoncluiWAPreview.samples(options: options, copy: copy, now: now, arrived: arrived, fresh: kind, read: read)
+            guard let sample = all.first(where: { $0.kind == kind }) else { continue }
+            let name = sample.conversation.name
+            let reaction: KoncluiWABeat.Reaction = sample.muted ? .muted : sample.quiet ? .held : .lights
+            let note: KoncluiWABeat.Note = {
+                switch reaction {
+                case .muted: return .muted(name)
+                case .held:  return .held(name)
+                default:     return .arrives(kind, name)
+                }
+            }()
+            beats.append(KoncluiWABeat(
+                open: false, reaction: reaction, note: note, rows: before,
+                seconds: reaction == .lights ? lightsSeconds : silentSeconds,
+                demonstrates: kind == .group ? .muteGroups : kind == .direct ? .focus : nil))
+
+            switch reaction {
+            case .lights:
+                beats.append(KoncluiWABeat(open: true, note: .opened, rows: all.filter { !$0.muted }, typing: kind, seconds: cardSeconds))
+                if kind == .direct {
+                    // Opening the chat: read on the spot and told to the sender, or left unread until a reply.
+                    if options.markReadOnOpen { read.insert(.direct) }
+                    beats.append(KoncluiWABeat(
+                        open: true, note: options.markReadOnOpen ? .markedRead(name) : .stillUnread(name), rows: listed(),
+                        pointing: .direct, seconds: readSeconds, demonstrates: .markRead))
+                }
+            case .held:
+                held = true
+            case .muted, .none:
+                break
+            }
+        }
+        if held {
+            // Nothing opened by itself: open the notch and they are all there.
+            beats.append(KoncluiWABeat(open: true, note: .waitingHere, rows: listed(fresh: arrived.last), focusNote: true,
+                                       seconds: cardSeconds, demonstrates: .focus))
+        }
+        return beats
+    }
+
+    /// Where the loop starts over after the options changed: the beat that shows the changed option's effect. nil when
+    /// the change shows nothing new (a Focus switch while the preview is not pretending a Focus, for instance).
+    static func restartIndex(from old: KoncluiWAPreviewOptions, to new: KoncluiWAPreviewOptions,
+                             in beats: [KoncluiWABeat]) -> Int? {
+        let changed: KoncluiWAOption
+        if old.muteGroups != new.muteGroups { changed = .muteGroups }
+        else if old.quiet != new.quiet { changed = .focus }
+        else if old.markReadOnOpen != new.markReadOnOpen { changed = .markRead }
+        else { return nil }
+        return beats.firstIndex { $0.demonstrates == changed } ?? 0
     }
 }

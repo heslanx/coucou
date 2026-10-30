@@ -178,6 +178,165 @@ enum KoncluiWhatsAppTests {
             check("the same input gives the same samples", s == KoncluiWAPreview.samples(options: options, copy: copy, now: now))
         }
 
+        print("\nSamples as they arrive")
+        do {
+            let opts = KoncluiWAPreviewOptions(muteGroups: true, respectFocus: true, focusOn: false)
+            let first = KoncluiWAPreview.samples(options: opts, now: now, arrived: [.direct])
+            check("only the conversations that wrote", first.map(\.kind) == [.direct])
+            let all = KoncluiWAPreview.samples(options: opts, now: now)
+            check("every conversation is the default", all.map(\.kind) == [.direct, .mention, .group])
+            let fresh = KoncluiWAPreview.samples(options: opts, now: now, arrived: [.direct, .mention], fresh: .mention)
+            check("the fresh message reads just now and goes first", fresh.map(\.kind) == [.mention, .direct]
+                  && now.timeIntervalSince(fresh[0].conversation.lastActivity) == KoncluiWAPreview.justNow)
+            check("the older conversation keeps its age", now.timeIntervalSince(fresh[1].conversation.lastActivity) == 120)
+            let opened = KoncluiWAPreview.samples(options: opts, now: now, arrived: [.direct], read: [.direct])
+            check("a chat opened with mark as read has nothing unread", opened.first?.conversation.unread == 0 && KoncluiWAPreview.unread(opened) == 0)
+            let sample = all[0]
+            check("typed(0) keeps no text of the newest message", sample.typed(0).conversation.messages.last?.text == "")
+            check("typed(5) keeps the first five characters", sample.typed(5).conversation.messages.last?.text == "Dinne")
+            check("typed past the end keeps it all", sample.typed(1000) == sample)
+            check("typed(-3) is typed(0)", sample.typed(-3).conversation.messages.last?.text == "")
+            check("it only touches the newest message", sample.typed(2).conversation.messages.first?.text == sample.conversation.messages.first?.text)
+            check("the typing length is the newest message's", sample.typingLength == "Dinner tonight?".count)
+        }
+
+        print("\nTimeline: connected, defaults (mute groups on, Focus off, mark as read on)")
+        let defaults = KoncluiWAPreviewOptions(muteGroups: true, respectFocus: true, focusOn: false, markReadOnOpen: true)
+        func timeline(_ edit: (inout KoncluiWAPreviewOptions) -> Void = { _ in }, link: KoncluiWALink = .connected,
+                      copy: KoncluiWASampleCopy = .english) -> [KoncluiWABeat] {
+            var o = defaults
+            edit(&o)
+            return KoncluiWATimeline.beats(link: link, options: o, copy: copy, now: now)
+        }
+        func shape(_ beats: [KoncluiWABeat]) -> [String] {
+            beats.map { b in
+                switch b.note {
+                case .waiting:        return "rest"
+                case .arrives(let k, _): return "arrives \(k)"
+                case .muted:          return "muted"
+                case .held:           return "held"
+                case .opened:         return "card"
+                case .markedRead:     return "read"
+                case .stillUnread:    return "unread"
+                case .waitingHere:    return "waiting"
+                case .status:         return "status"
+                }
+            }
+        }
+        do {
+            let b = timeline()
+            same("the loop", shape(b).joined(separator: ", "), "rest, arrives direct, card, read, muted, arrives mention, card")
+            check("starts at rest: closed, nothing listed, no reaction", !b[0].open && b[0].rows.isEmpty && b[0].reaction == .none)
+            check("a direct message lights the closed notch", !b[1].open && b[1].reaction == .lights)
+            check("then the card opens on it and types it in", b[2].open && b[2].typing == .direct && b[2].rows.map(\.kind) == [.direct])
+            check("the card lists the typed message's length", b[2].typingLength == "Dinner tonight?".count)
+            check("the chat opens and is marked read", b[3].open && b[3].pointing == .direct && b[3].rows.first?.conversation.unread == 0 && b[3].unread == 0)
+            check("a group without a mention stays closed, muted by name", !b[4].open && b[4].reaction == .muted && b[4].note == .muted("Family"))
+            check("the muted group is not listed", b[4].rows.map(\.kind) == [.direct])
+            check("a mention lights the closed notch", !b[5].open && b[5].reaction == .lights && b[5].note == .arrives(.mention, "Design team"))
+            check("before it opens, the card still has only the earlier row", b[5].rows.map(\.kind) == [.direct])
+            check("the mention opens the card with the new row first", b[6].open && b[6].typing == .mention && b[6].rows.map(\.kind) == [.mention, .direct])
+            check("the header counts 1 + 0 (the first chat was read)", b[6].unread == 1)
+            check("a message that just arrived reads now", now.timeIntervalSince(b[2].rows[0].conversation.lastActivity) == KoncluiWAPreview.justNow)
+            check("no beat shows a status", b.allSatisfy { $0.status == nil && !$0.focusNote })
+        }
+
+        print("\nTimeline: mute groups off")
+        do {
+            let b = timeline { $0.muteGroups = false }
+            same("the group is announced and listed", shape(b).joined(separator: ", "),
+                 "rest, arrives direct, card, read, arrives group, card, arrives mention, card")
+            check("the group lights the closed notch", b[4].reaction == .lights && b[4].note == .arrives(.group, "Family"))
+            check("its card lists group first, then the chat read before", b[5].rows.map(\.kind) == [.group, .direct] && b[5].typing == .group)
+            check("the mention card lists all three, newest first", b[7].rows.map(\.kind) == [.mention, .direct, .group])
+        }
+
+        print("\nTimeline: Focus on")
+        do {
+            let b = timeline { $0.focusOn = true }
+            same("nothing opens by itself, the messages wait", shape(b).joined(separator: ", "),
+                 "rest, held, muted, held, waiting")
+            check("a held message does not react", b[1].reaction == .held && !b[1].open && b[1].note == .held("Marina Costa"))
+            check("a muted group is muted, not held (a Focus changes nothing for it)", b[2].reaction == .muted)
+            check("a mention is held too", b[3].reaction == .held && b[3].note == .held("Design team"))
+            check("opening the notch later lists what waited, with the Focus note",
+                  b[4].open && b[4].focusNote && b[4].typing == nil && b[4].rows.map(\.kind) == [.mention, .direct])
+            check("nothing is read by waiting", b[4].unread == 3)
+            check("no beat in the loop lights the notch", b.allSatisfy { $0.reaction != .lights })
+            let ignored = timeline { $0.focusOn = true; $0.respectFocus = false }
+            check("a Focus is ignored when \"stay quiet\" is off", shape(ignored) == shape(timeline()))
+            let both = timeline { $0.focusOn = true; $0.muteGroups = false }
+            same("with groups on too, all three are held", shape(both).joined(separator: ", "), "rest, held, held, held, waiting")
+        }
+
+        print("\nTimeline: mark as read off")
+        do {
+            let b = timeline { $0.markReadOnOpen = false }
+            same("the chat stays unread", shape(b).joined(separator: ", "), "rest, arrives direct, card, unread, muted, arrives mention, card")
+            check("its unread count is still there", b[3].rows.first?.conversation.unread == 2 && b[3].note == .stillUnread("Marina Costa"))
+            check("and still counted later (2 + 1)", b[6].unread == 3)
+            check("the on beat names the chat", timeline()[3].note == .markedRead("Marina Costa"))
+        }
+
+        print("\nTimeline: not connected")
+        for link: KoncluiWALink in [.off, .connecting, .needsQR, .unreachable, .unauthorized, .failed("x")] {
+            let b = timeline(link: link)
+            check("\(link): the closed notch, then the card with its own status", b.count == 2 && !b[0].open && b[1].open && b[1].status == link
+                  && b[1].note == .status(link))
+            check("\(link): no fake message", b.allSatisfy { $0.rows.isEmpty && $0.typing == nil && $0.reaction == .none })
+        }
+        check("every status pulses but \"off\"", KoncluiWALink.off.pulses == false && [KoncluiWALink.connecting, .needsQR, .unreachable,
+              .unauthorized, .failed("x")].allSatisfy(\.pulses))
+
+        print("\nTimeline: restart after a toggle")
+        do {
+            let b = timeline()
+            func restart(_ edit: (inout KoncluiWAPreviewOptions) -> Void) -> Int? {
+                var o = defaults
+                edit(&o)
+                return KoncluiWATimeline.restartIndex(from: defaults, to: o, in: KoncluiWATimeline.beats(link: .connected, options: o, now: now))
+            }
+            check("mute groups: the group's arrival", restart { $0.muteGroups = false } == 4)
+            check("the group's arrival is the beat that shows mute groups", b[4].demonstrates == .muteGroups)
+            check("mark as read: the chat that opens", restart { $0.markReadOnOpen = false } == 3)
+            check("Focus pretended on: the first message", restart { $0.focusOn = true } == 1)
+            check("stay quiet off, no Focus: nothing new to show", restart { $0.respectFocus = false } == nil)
+            check("no change: nothing to restart", restart { _ in } == nil)
+            var focusing = defaults
+            focusing.focusOn = true
+            check("Focus off again: back to the first message", KoncluiWATimeline.restartIndex(from: focusing, to: defaults, in: b) == 1)
+            check("stay quiet toggled during a Focus: the held message", KoncluiWATimeline.restartIndex(
+                from: focusing, to: { var o = focusing; o.respectFocus = false; return o }(), in: b) == 1)
+            var quiet = focusing
+            quiet.markReadOnOpen = false
+            check("mark as read during a Focus (no chat opens): back to the start",
+                  KoncluiWATimeline.restartIndex(from: focusing, to: quiet, in: KoncluiWATimeline.beats(link: .connected, options: quiet, now: now)) == 0)
+        }
+
+        print("\nTimeline: pace")
+        do {
+            let longer = KoncluiWASampleCopy(directName: "A", directText: String(repeating: "x", count: 60), mentionName: "B", mentionSender: "b",
+                                             mentionText: String(repeating: "y", count: 90), groupName: "C", groupSender: "c", groupText: "z")
+            let sets: [(String, [KoncluiWABeat])] = [
+                ("english", timeline()), ("long texts", timeline(copy: longer)),
+                ("groups on", timeline({ $0.muteGroups = false }, copy: longer)),
+            ]
+            for (label, beats) in sets {
+                let typing = beats.filter { $0.typing != nil }
+                let done = typing.allSatisfy { b in
+                    KoncluiWATimeline.typingDelay + Double(b.typingLength) * KoncluiWATimeline.typingInterval(length: b.typingLength) + 1.2 <= b.seconds
+                }
+                check("\(label): every message finishes typing with 1.2 s left to read it", !typing.isEmpty && done)
+                check("\(label): every beat lasts a few seconds", beats.allSatisfy { (1.0...4.5).contains($0.seconds) })
+            }
+            check("typing never runs slower than 25 characters a second", KoncluiWATimeline.typingInterval(length: 5) == 0.04
+                  && KoncluiWATimeline.typingInterval(length: 100) < 0.04 && KoncluiWATimeline.typingInterval(length: 0) == 0.04)
+            check("the reaction starts after the island has begun to close and before the beat ends",
+                  KoncluiWATimeline.hopDelay < KoncluiWATimeline.lightsSeconds - 0.5)
+            let total = timeline().reduce(0) { $0 + $1.seconds }
+            check("a loop is a quarter of a minute or so", (12...22).contains(total))
+        }
+
         print(failures == 0 ? "\nPASS" : "\nFAIL: \(failures)")
         exit(failures == 0 ? 0 : 1)
     }

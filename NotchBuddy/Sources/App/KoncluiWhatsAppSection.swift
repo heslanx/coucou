@@ -88,11 +88,9 @@ struct KoncluiWhatsAppSection: View {
         let stage = KoncluiWABlock.stage(inputs)
         let link: KoncluiWALink = inputs.enabled && inputs.hasRoom ? inputs.link : .off
         let options = KoncluiWAPreviewOptions(muteGroups: muteGroups.wrappedValue, respectFocus: respectFocus,
-                                              focusOn: simulateFocus)
+                                              focusOn: simulateFocus, markReadOnOpen: markReadOnOpen)
         VStack(alignment: .leading, spacing: 10) {
-            KoncluiWhatsAppPreview(
-                content: KoncluiWAPreview.content(link: link, options: options, copy: sampleCopy),
-                simulateFocus: $simulateFocus)
+            KoncluiWhatsAppPreview(link: link, options: options, copy: sampleCopy, simulateFocus: $simulateFocus)
 
             if stage.isSetup { setupCard(stage, inputs) } else { line(stage, inputs) }
 
