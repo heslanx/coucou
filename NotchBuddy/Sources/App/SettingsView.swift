@@ -1511,16 +1511,8 @@ struct SettingsView: View {
                 Toggle(String(localized: "Enable voice command"), isOn: $voiceEngine.isEnabled)
                     .disabled(!voicePermissionsGranted && !voiceEngine.isEnabled)
 
-                HStack(alignment: .top, spacing: 6) {
-                    Image(systemName: webKeySaved ? "checkmark.circle.fill" : "exclamationmark.circle")
-                        .foregroundColor(webKeySaved ? .green : .orange)
-                    Text(webKeySaved ? String(localized: "voice.setting-web-desc")
-                                     : String(localized: "voice.setting-web-nokey"))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .onAppear { webKeySaved = !(KeychainStore.shared.get("anthropic-api-key") ?? "").isEmpty }
+                // Koncluí: no API key needed. Why the box is greyed out, who understands you, and the Claude opt-in.
+                KoncluiVoiceBrainSection(permissionsGranted: voicePermissionsGranted, voiceOn: voiceEngine.isEnabled)
 
                 if voiceEngine.recognizerUnavailable {
                     HStack(spacing: 6) {

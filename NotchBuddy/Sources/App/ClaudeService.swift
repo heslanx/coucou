@@ -552,6 +552,13 @@ final class ClaudeService {
     /// the stop reason. The fast model first, the Settings model if the key can't use it.
     func voiceTurn(system: String, messages: [[String: Any]], tools: [[String: Any]])
         async -> (content: [[String: Any]], stopReason: String)? {
+        // Koncluí: the Koncluí Proxy answers when it is the source (KoncluiVoiceBrainLive.swift).
+        if KoncluiVoiceBrainLive.shared.claudeSource() == .proxy {
+            guard let sent = await KoncluiVoiceBrainLive.shared.send(system: system, messages: messages, tools: tools,
+                                                                     maxTokens: 2048, fastModel: Self.voiceModel)
+            else { return nil }
+            return KoncluiVoiceBrain.parseTurn(sent)
+        }
         guard let key = apiKey, !key.isEmpty else { return nil }
         func body(_ model: String) -> [String: Any] {
             ["model": model, "max_tokens": 2048, "system": system, "tools": tools, "messages": messages]
@@ -580,7 +587,10 @@ final class ClaudeService {
     /// `history` holds the previous exchanges of this voice conversation (memory only).
     /// nil on any failure: no key, network, quota.
     func voiceAnswer(_ question: String, history: [VoiceWebTurn], french: Bool) async -> String? {
-        guard let key = apiKey, !key.isEmpty else { return nil }
+        // Koncluí: the key is only needed when the Koncluí Proxy is not the source.
+        let viaProxy = KoncluiVoiceBrainLive.shared.claudeSource() == .proxy
+        let key = apiKey ?? ""
+        guard viaProxy || !key.isEmpty else { return nil }
         let today = Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year()
             .locale(Locale(identifier: french ? "fr_FR" : "en_US")))
         let system = french
@@ -609,6 +619,16 @@ final class ClaudeService {
         var location: [String: Any] = ["type": "approximate", "timezone": TimeZone.current.identifier]
         if let country = Locale.current.region?.identifier, country.count == 2 { location["country"] = country }
         search["user_location"] = location
+
+        // Koncluí: the Koncluí Proxy answers when it is the source (KoncluiVoiceBrainLive.swift).
+        if viaProxy {
+            guard let sent = await KoncluiVoiceBrainLive.shared.send(system: system, messages: messages, tools: [search],
+                                                                     maxTokens: 700, fastModel: Self.voiceModel),
+                  let content = KoncluiVoiceBrain.parseTurn(sent)?.content,
+                  let text = claudeResponseText(fromContent: content) else { return nil }
+            let spoken = VoiceQuery.spokenText(text)
+            return spoken.isEmpty ? nil : spoken
+        }
 
         func body(_ model: String) -> [String: Any] {
             ["model": model, "max_tokens": 700, "system": system, "tools": [search], "messages": messages]

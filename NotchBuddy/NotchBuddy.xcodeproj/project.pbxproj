@@ -10,6 +10,7 @@
 		0099C844CFD9424CEAA5CA77 /* ClaudeResponseText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444604C7E2C530B664849EF9 /* ClaudeResponseText.swift */; };
 		00BA6C52545395A5ACF2BDDE /* CaptureCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74BA58E1F273995F1C51AAAC /* CaptureCardView.swift */; };
 		010268912385AA35CF008970 /* KoruOutfits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E07EB15A77E3205CEEDBE94 /* KoruOutfits.swift */; };
+		01B83546E59E9FE30DE420B7 /* KoncluiVoiceBrainSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66DEEE42F77737AE6ACEBA4 /* KoncluiVoiceBrainSection.swift */; };
 		01B96F947DF2BDC352E8526D /* WeeklyRecapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888B3E1420BCB6292BDC8117 /* WeeklyRecapView.swift */; };
 		02B4988719F7FD03B07CCAE9 /* KoncluiWhatsAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCF80044191370A8213C881A /* KoncluiWhatsAppModel.swift */; };
 		0325A44358904B44C2237CCE /* ApprovalQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAE224C1C435C9FFD05BF65 /* ApprovalQueue.swift */; };
@@ -52,6 +53,7 @@
 		15D69752806E1D1D589B20A7 /* VoiceIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C62058BB0C9D0DF58DCB /* VoiceIntent.swift */; };
 		160EDB9D06275E2607DA5151 /* N8nPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89DA1A0C21AE3535A1760BB /* N8nPoller.swift */; };
 		17392C63757FBAC38F22B9D6 /* ServiceViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08128342A3F894D567AD9E6B /* ServiceViews.swift */; };
+		178AF9C4221848D4640ABBFC /* coucou-mcp.py in Resources */ = {isa = PBXBuildFile; fileRef = DA402E5FBA1DD366221E5966 /* coucou-mcp.py */; };
 		17D6063D3B374FB82340314E /* IslandTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0365DDE3C554F5E8570055F4 /* IslandTypes.swift */; };
 		189811F4DB3C4F6030043643 /* VoiceTranscriptHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE925A6844FE3E3C09131CE0 /* VoiceTranscriptHistory.swift */; };
 		18D47AE663EB96BE5638D5F7 /* ClaudePlanCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4263B550838CC5614569D13 /* ClaudePlanCardView.swift */; };
@@ -106,6 +108,7 @@
 		2E391FAA70ECBD27F7DD2B9A /* KoncluiDisclosureStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2BE993E905937D62FA997A /* KoncluiDisclosureStyle.swift */; };
 		2F36E3C6C073E968A682AFA4 /* NotionPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE03E03D1804B0B92C5C2DAD /* NotionPoller.swift */; };
 		308FC55948A52EE9115376BD /* KoncluiChatAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 486AC1436C89F554D57AB0B0 /* KoncluiChatAccess.swift */; };
+		30BE5354F50D7D6A98FF4466 /* KoncluiVoiceBrainSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66DEEE42F77737AE6ACEBA4 /* KoncluiVoiceBrainSection.swift */; };
 		326971DDA23F331116E5A628 /* VoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C563E55884A7750B40EC9A01 /* VoiceBrain.swift */; };
 		3451DB0668FAEEF09503D808 /* WakePhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12EC8F605BBC37F8223D7AA /* WakePhrase.swift */; };
 		352CD4E146AE486013366EC9 /* VoiceQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654AF6918593586EFF1989C6 /* VoiceQuery.swift */; };
@@ -139,6 +142,7 @@
 		48FA5A0DE13526F6C2A6B836 /* MailController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2F18663F42A246DACCD639 /* MailController.swift */; };
 		4976F8BF814D6F817370F1D8 /* ChatMarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFE88A53AEAA637F866D479D /* ChatMarkdownView.swift */; };
 		49EF271474F09D5251E16552 /* FlowDictation.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4A635006365A493A57B18 /* FlowDictation.swift */; };
+		4A13F8880C919AA960AC400F /* KoncluiVoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0339CD3CC07B13346BB7CF88 /* KoncluiVoiceBrain.swift */; };
 		4A32FB2EA69E8BA70EBEA8A7 /* ServiceLiveDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B710512DB99390EC564487 /* ServiceLiveDetail.swift */; };
 		4B6AC00F22EC75E90E0157D5 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F6D7015D6A77AA59323C0E7 /* AppLog.swift */; };
 		4B83070258D5AAAC8FCEB15F /* MochiOutfitDrawing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84E5D91129352E8A1D32AA4 /* MochiOutfitDrawing.swift */; };
@@ -209,6 +213,7 @@
 		6B0B39207A8DA88EA35E785A /* ScreenCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26CBF0D968BFB1AB0E36B18F /* ScreenCapture.swift */; };
 		6B34C151674F2915C8A03CEA /* KoruMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5625598BF1E513DEC5080DD1 /* KoruMood.swift */; };
 		6B4A9D635FD529CE1C2692B8 /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ACB4350729C6513824D1ADF /* ColorHex.swift */; };
+		6B5CB63E8B4DAD40C7D9023B /* KoncluiVoiceBrainLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD36CEDEA235178A472D558 /* KoncluiVoiceBrainLive.swift */; };
 		6BB32D6B5E627555994DC3CB /* SpotterGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EF48A44D82B5422E631FE0 /* SpotterGeneration.swift */; };
 		6BE6AA73FC83A588F21D9747 /* VoiceGenderNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 065B61C0809F2E3A461E9466 /* VoiceGenderNames.swift */; };
 		6CCEC73ED68E9F253C22D692 /* ShortcutLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA51E5B140C20812641168EA /* ShortcutLogic.swift */; };
@@ -383,6 +388,7 @@
 		B605F976F4141435F27CF266 /* IslandRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A1A8206F73376F4CAF2057 /* IslandRootView.swift */; };
 		B69DE31E2B0C2E35594CAA87 /* RecapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78FB882D49084DEA6A10DB4D /* RecapStore.swift */; };
 		B6C18F8EA3DCAFEAB19ED804 /* WhatsAppViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047257909800DC0D5A7DBEE1 /* WhatsAppViews.swift */; };
+		B6E4C65611CF46C94173B244 /* KoncluiVoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0339CD3CC07B13346BB7CF88 /* KoncluiVoiceBrain.swift */; };
 		B733A76DD197F6D6D949284C /* HotKeyCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1218B86E249691AF44F819AC /* HotKeyCenter.swift */; };
 		B7C93262AA9D5DEAA0B79C7C /* MacStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B66D0C664FB9FF74517AAF5 /* MacStubs.swift */; };
 		B7ED198C941104866BB3BC57 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86B99CF65C5E4BC887888C6 /* Haptics.swift */; };
@@ -420,6 +426,7 @@
 		C61E45A1B325BEFBE854AB53 /* PortfolioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9F0D1E310731155BCB3D89 /* PortfolioViews.swift */; };
 		C67B690DFC0A294C0E65FCBB /* IslandScreenGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9466FDE02C9B3FB4EF01DFF8 /* IslandScreenGeometry.swift */; };
 		C6EB0156909305CEF8B84A8D /* VoiceDataSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = F289B4DB7C57BC593C2E7B7F /* VoiceDataSources.swift */; };
+		C74563E18D02BD3048017D21 /* KoncluiVoiceBrainLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD36CEDEA235178A472D558 /* KoncluiVoiceBrainLive.swift */; };
 		C7C4953290E7C198E2918E14 /* VitalsHoverLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7889BA1980AB9D261DDE8A25 /* VitalsHoverLine.swift */; };
 		C7DCF18B4588088307E49FAD /* ParakeetEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8178EB447DDE9C03427B36 /* ParakeetEngine.swift */; };
 		C808B654C84D9F71DBF8493A /* GithubPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB8B6E5E9DA6164F979E88F /* GithubPoller.swift */; };
@@ -484,7 +491,6 @@
 		E82CA1269BF4859EEDE322AE /* MochiStill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045E7300878138F0AC385920 /* MochiStill.swift */; };
 		E9342A768208D5054F6A74AD /* WhatsAppGOWAProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94AA2388D0E7690653E62BBB /* WhatsAppGOWAProcess.swift */; };
 		E9723AAFC6137F30652BD230 /* KoncluiBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDB04294C7C184CC6351BDF /* KoncluiBrand.swift */; };
-		E9897A1DE18273CEE6AC1250 /* coucou-mcp.py in Resources */ = {isa = PBXBuildFile; fileRef = 7AAED4976C314C3F42BCD7DB /* coucou-mcp.py */; };
 		E9C18F039035C78173C306C7 /* MailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F907A5CC3CC05876548E96 /* MailViews.swift */; };
 		E9C21D11BCB72C392436D19E /* ClaudePlanGauge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF22817EC70748F2D1FB2E7 /* ClaudePlanGauge.swift */; };
 		EAEC8E117E130E5902295F73 /* FlowStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7124E98A85D75D3378F0AC8 /* FlowStore.swift */; };
@@ -572,6 +578,7 @@
 
 /* Begin PBXFileReference section */
 		011D05714C97CF5CAB32DCE7 /* AgentNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentNotifier.swift; sourceTree = "<group>"; };
+		0339CD3CC07B13346BB7CF88 /* KoncluiVoiceBrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiVoiceBrain.swift; sourceTree = "<group>"; };
 		0364C7995680F9FA9F85F905 /* PortfolioController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioController.swift; sourceTree = "<group>"; };
 		0365DDE3C554F5E8570055F4 /* IslandTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandTypes.swift; sourceTree = "<group>"; };
 		045E7300878138F0AC385920 /* MochiStill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MochiStill.swift; sourceTree = "<group>"; };
@@ -630,6 +637,7 @@
 		39A7F4F54C19E9F0399590F9 /* KoncluiFeatureRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiFeatureRegistry.swift; sourceTree = "<group>"; };
 		3A27178AA6007F7B56901750 /* SessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailView.swift; sourceTree = "<group>"; };
 		3A8FB03801C49690C3789EFD /* VoiceCaptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCaptionManager.swift; sourceTree = "<group>"; };
+		3AD36CEDEA235178A472D558 /* KoncluiVoiceBrainLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiVoiceBrainLive.swift; sourceTree = "<group>"; };
 		3B238F6E7B20EFDED5CD3E8E /* ClaudeSettingsFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSettingsFile.swift; sourceTree = "<group>"; };
 		3D3C36DE7C1DC055250C811D /* MacUpdateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdateViews.swift; sourceTree = "<group>"; };
 		3E5A8CA07E1AD8AFD3F9DD79 /* KoncluiAgentHooks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiAgentHooks.swift; sourceTree = "<group>"; };
@@ -688,7 +696,6 @@
 		79D8DD79C3DD9BBC584B3CB2 /* HookServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookServer.swift; sourceTree = "<group>"; };
 		79E7E2106BCE86A472ED8051 /* FlowHubMochis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHubMochis.swift; sourceTree = "<group>"; };
 		7A666A5E3F809301028F0DF8 /* NoteTaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTaker.swift; sourceTree = "<group>"; };
-		7AAED4976C314C3F42BCD7DB /* coucou-mcp.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "coucou-mcp.py"; sourceTree = "<group>"; };
 		7C1A7D5CBE2AC084A10C5FF3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7C432FE1286945E42D3E11D7 /* VoiceResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceResultView.swift; sourceTree = "<group>"; };
 		7C8178EB447DDE9C03427B36 /* ParakeetEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetEngine.swift; sourceTree = "<group>"; };
@@ -778,6 +785,7 @@
 		D8212018F09EA1E96FBD63CD /* IslandStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandStateMachine.swift; sourceTree = "<group>"; };
 		D849B1A27AD17AEE1C7FFD1A /* DenyApprovalIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DenyApprovalIntent.swift; sourceTree = "<group>"; };
 		D8C1BB0DF7770A6B263995E6 /* TeamConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamConfiguration.swift; sourceTree = "<group>"; };
+		DA402E5FBA1DD366221E5966 /* coucou-mcp.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "coucou-mcp.py"; sourceTree = "<group>"; };
 		DD426E81DF79CA79888059D9 /* ApprovalRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalRelay.swift; sourceTree = "<group>"; };
 		DDB831F5623E699A2506698E /* NotificationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationViewController.swift; sourceTree = "<group>"; };
 		DE18399D1CD69468CCF57966 /* MochiActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MochiActivityState.swift; sourceTree = "<group>"; };
@@ -785,6 +793,7 @@
 		DEDB04294C7C184CC6351BDF /* KoncluiBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiBrand.swift; sourceTree = "<group>"; };
 		E087AE3B5782E3B54605E104 /* ReminderMCPAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderMCPAdapter.swift; sourceTree = "<group>"; };
 		E18E74B3586BC0861C69E70A /* InstructionComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionComposer.swift; sourceTree = "<group>"; };
+		E66DEEE42F77737AE6ACEBA4 /* KoncluiVoiceBrainSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiVoiceBrainSection.swift; sourceTree = "<group>"; };
 		E6AAC67875F84A862BC2A9AF /* ServiceDetailRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceDetailRunner.swift; sourceTree = "<group>"; };
 		E84E5D91129352E8A1D32AA4 /* MochiOutfitDrawing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MochiOutfitDrawing.swift; sourceTree = "<group>"; };
 		E91B733ADC638E14E9BB6EFA /* WindowContextCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowContextCapture.swift; sourceTree = "<group>"; };
@@ -840,13 +849,12 @@
 			path = sounds;
 			sourceTree = "<group>";
 		};
-		2938B7560B8A936C0A7638DD /* konclui */ = {
+		1B09F72C94546D4573764AA1 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
-				FAE6031CBDD595DB29A02405 /* scripts */,
+				DA402E5FBA1DD366221E5966 /* coucou-mcp.py */,
 			);
-			name = konclui;
-			path = ..;
+			path = scripts;
 			sourceTree = "<group>";
 		};
 		2D4550630644796DA0649B81 /* App */ = {
@@ -918,6 +926,9 @@
 				FA934C1F728B5D0810000857 /* KoncluiOrca.swift */,
 				0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */,
 				A5016CA216FEB6795F2A25F6 /* KoncluiTabLabel.swift */,
+				0339CD3CC07B13346BB7CF88 /* KoncluiVoiceBrain.swift */,
+				3AD36CEDEA235178A472D558 /* KoncluiVoiceBrainLive.swift */,
+				E66DEEE42F77737AE6ACEBA4 /* KoncluiVoiceBrainSection.swift */,
 				BCF80044191370A8213C881A /* KoncluiWhatsAppModel.swift */,
 				9048F743C068A2B40073C702 /* KoncluiWhatsAppPreview.swift */,
 				834F054531F0622364E54F30 /* KoncluiWhatsAppSection.swift */,
@@ -987,6 +998,15 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		52AD129BDA780B664B1D0791 /* konclui-run */ = {
+			isa = PBXGroup;
+			children = (
+				1B09F72C94546D4573764AA1 /* scripts */,
+			);
+			name = "konclui-run";
+			path = ..;
+			sourceTree = "<group>";
+		};
 		53BB44AD4AC9AB9A0B95AB79 /* Widgets */ = {
 			isa = PBXGroup;
 			children = (
@@ -1051,7 +1071,7 @@
 			children = (
 				506824380E9C80B9BC6DCE72 /* Assets.xcassets */,
 				60401D1023D17C3FD30D7113 /* PhoneAssets.xcassets */,
-				2938B7560B8A936C0A7638DD /* konclui */,
+				52AD129BDA780B664B1D0791 /* konclui-run */,
 				D3593DF62D69E62DA5121807 /* Resources */,
 				B382DF6D17081F63DA1CC08B /* Sources */,
 				6CF11AAA7898712CF6DB364A /* Products */,
@@ -1140,14 +1160,6 @@
 				2A1C4152EBDBD7C24CABFFD7 /* TurnSnapshot.swift */,
 			);
 			path = CoucouKit;
-			sourceTree = "<group>";
-		};
-		FAE6031CBDD595DB29A02405 /* scripts */ = {
-			isa = PBXGroup;
-			children = (
-				7AAED4976C314C3F42BCD7DB /* coucou-mcp.py */,
-			);
-			path = scripts;
 			sourceTree = "<group>";
 		};
 		FB8E4AAB0B5E949069B8D03D /* Voice */ = {
@@ -1351,7 +1363,7 @@
 			files = (
 				DCAC390FF9EC65B945A15B24 /* Assets.xcassets in Resources */,
 				7AEED9FBB924F0DD1D07E1A5 /* Localizable.xcstrings in Resources */,
-				E9897A1DE18273CEE6AC1250 /* coucou-mcp.py in Resources */,
+				178AF9C4221848D4640ABBFC /* coucou-mcp.py in Resources */,
 				F06EE0A97CB77096A337AA8B /* sounds in Resources */,
 				20020883EEC68D17A3091396 /* whats-new.json in Resources */,
 			);
@@ -1479,6 +1491,9 @@
 				B18539A047478290941B880F /* KoncluiOrca.swift in Sources */,
 				AEFD9957EEAC5337160823CC /* KoncluiRecognition.swift in Sources */,
 				629DA8065540E83E8F24D567 /* KoncluiTabLabel.swift in Sources */,
+				4A13F8880C919AA960AC400F /* KoncluiVoiceBrain.swift in Sources */,
+				6B5CB63E8B4DAD40C7D9023B /* KoncluiVoiceBrainLive.swift in Sources */,
+				01B83546E59E9FE30DE420B7 /* KoncluiVoiceBrainSection.swift in Sources */,
 				02B4988719F7FD03B07CCAE9 /* KoncluiWhatsAppModel.swift in Sources */,
 				656585F7AA7D9B72C5D5E589 /* KoncluiWhatsAppPreview.swift in Sources */,
 				A024BC92E2F58C71D5D09A62 /* KoncluiWhatsAppSection.swift in Sources */,
@@ -1783,6 +1798,9 @@
 				72CAB105F08CF39670BF4BA4 /* KoncluiOrca.swift in Sources */,
 				B26E115D058E28C1279AED8C /* KoncluiRecognition.swift in Sources */,
 				CCF229F2365BFD08C26355BC /* KoncluiTabLabel.swift in Sources */,
+				B6E4C65611CF46C94173B244 /* KoncluiVoiceBrain.swift in Sources */,
+				C74563E18D02BD3048017D21 /* KoncluiVoiceBrainLive.swift in Sources */,
+				30BE5354F50D7D6A98FF4466 /* KoncluiVoiceBrainSection.swift in Sources */,
 				693C72ADEF22E098C1DD43E1 /* KoncluiWhatsAppModel.swift in Sources */,
 				BC61FAD924456969BCFDB8BE /* KoncluiWhatsAppPreview.swift in Sources */,
 				228C6BFE1182BE642E775ED4 /* KoncluiWhatsAppSection.swift in Sources */,

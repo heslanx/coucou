@@ -48,6 +48,13 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
   (versions 8 and 7); rules: `docs/konclui/UX.md`. There is no "update available" notice: nothing in the app knows a newer
   gateway exists without a network call the user did not configure, so "Update gateway" stays inside the popover (it
   downloads the latest, as before).
+- "OK Koru" needs no API key. By default the words are understood on this Mac: the phrase parser first, then Apple
+  Intelligence for what it does not know. Claude answers open questions and searches the web only when the person turns it
+  on in Settings → Voice ("Claude answers open questions and searches the web", off by default), through the Koncluí Proxy
+  (the subscription behind klaude) when klaude is set up, else through the Anthropic key of Settings → Chat. Settings →
+  Voice says who understands you now and what that means for privacy, and says why "Enable voice command" is greyed out.
+  The routing is `App/KoncluiVoiceBrain.swift` (pure, `scripts/konclui/test-voice-brain.sh`); the live inputs and the proxy
+  call are `App/KoncluiVoiceBrainLive.swift`; the Settings view is `App/KoncluiVoiceBrainSection.swift`.
 - Out of scope for now: the iPhone app and its extensions, Windows/Linux (`windows/`), Android,
   the docs site and the relay.
 
@@ -140,6 +147,9 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Orca click | `TerminalTarget.activate` (`TerminalTarget+AppKit.swift`, one `if` for Orca's bundle id), `ClaudeHost.switchOrcaTerminal`, `OrcaTerminals` (`KoncluiOrca.swift`) | added: runs `<Orca.app>/Contents/Resources/bin/orca terminal switch --terminal <handle>` off the main thread (bare environment `HOME`/`PATH`, killed after 5 s), then activates Orca; no handle, or no CLI: only activates Orca | covers the pill click, the finished/error "Open terminal" buttons and ⌃⌥T; the handle is the one of the session that owns the pill's card (same owner rule as its name) |
 | klaude hooks | `HookServer.previewClaudeHooks(at:install:)`, `writeClaudeHooks(at:)`, `uninstallClaudeHooks(at:)` (the `~/.claude` installer, now parameterized by settings path), `KoncluiAgentHooks.swift` (`KlaudeHooks`, `KlaudeHooksSection`) | added: the same 12 Claude Code hooks plus the AskUserQuestion one, installed into `~/.klaude/settings.json`; dated backup, merge, JSON preview, written only after the user confirms; Uninstall previews and removes only Koncluí's entries | klaude starts Claude Code with `CLAUDE_CONFIG_DIR=~/.klaude`, which never reads `~/.claude/settings.json` |
 | "Is this Claude hook ours?" | `HookServer.buildHooksData(at:)`, `hooksDataWithoutKoncluiEntries(at:)` | changed: `KoncluiHook.owns` (command runs `konclui/nb-hook`) instead of "contains Konclui/konclui" | a foreign hook whose path only mentions konclui (for example under `~/Developments/konclui-project/…`) was replaced at install and deleted at uninstall |
+| Claude opt-in | UserDefaults `voiceClaudeBrain` (`VoiceSettings.claudeBrainEnabled`) | now read by `ClaudeVoiceBrain.isActive` and set by Settings → Voice; off by default | the words leave the Mac only after the person turns it on |
+| klaude key for the voice | Keychain generic password, service `klaude-api-key` | read with `KoncluiProxyAccess.readKey()` when a voice call starts, kept in a local variable, never stored, logged or shown; server error text is wiped of it; the logs hold the HTTP status only | same rule as the notch chat (K10) |
+| Brain order | `KoncluiVoiceBrain.brain` | Claude (opt-in, subscription before key) > Apple Intelligence > phrase commands | owner decision D13: the lightest way is the default |
 
 ## Feature flags
 
@@ -229,10 +239,26 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | | `KoncluiWhatsAppSection()` in place of `WhatsAppSettingsSection()` in `integrationsSection`, shown also when `KoncluiWhatsAppDebug.forcesBlock` | the new WhatsApp block (one line, popover, notch preview). `WhatsAppViews.swift` is untouched and still holds the old block, the notch card and the rows the preview reuses (`WhatsAppRow`, `WhatsAppStatus`); the new block repeats the old one's Advanced fields and save logic, and the preview repeats `WhatsAppCardView`'s header and status layout: after an upstream merge, mirror changes to those two places. DEBUG only, for screenshots: `-konclui.debug.whatsappState` with `fresh`, `installing`, `qr`, `connected`, `stopped`, `unauthorized`, `failed`, `connecting`, `off` or `noroom` draws that state (no setting, Keychain item or gateway is read or written), and `-konclui.debug.whatsappPopover` with `options`, `ignored` or `advanced` opens the popover |
 | | `FlowHubView.body`: `.disclosureGroupStyle(KoncluiDisclosureStyle())` | every disclosure in the window opens from its whole label (`App/KoncluiDisclosureStyle.swift`) |
 | `App/IslandViewContent.swift` | `AgentPill.displayName` and `MusicPill`'s title go through `KoncluiTabLabel.short` | a tab's name fits in 11 characters: "Claude Desk" (`App/KoncluiTabLabel.swift`, `scripts/konclui/test-tab-label.sh`) |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state |
+| `App/Voice/ClaudeVoiceBrain.swift` | `isActive` returns `KoncluiVoiceBrainLive.shared.currentBrain().claudeSource != nil`; `respond` calls `turnEnded(failed:)` at both exits | Claude is the brain only when the person turned it on and a source exists (not "a key is saved"); the outcome of each turn feeds the failure notice in Settings → Voice |
+| `App/ClaudeService.swift` | `voiceTurn` and `voiceAnswer`: an early branch when `claudeSource() == .proxy`; `voiceAnswer` no longer needs a key in that case | the same Messages body goes through the Koncluí Proxy (non-streamed, bearer token read per call); if the proxy refuses the server tool `web_search_20250305` the call is repeated once without it and later turns leave it out |
+| `App/Voice/VoiceDataSources.swift` | `LiveVoiceInfo.hasWebKey` | the subscription counts as a way to reach Claude, so the web answer path works without a key |
+| `App/SettingsView.swift` | `voiceSection`: the orange "add your Anthropic key" row is replaced by `KoncluiVoiceBrainSection(permissionsGranted:voiceOn:)` | the reason the checkbox is greyed out, who understands you now, the Claude opt-in. The `webKeySaved` state stays declared (unused now) to keep the diff small |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused) |
 
 ## Open items
 
+- The proxy answers the model id `claude-haiku-4-5` (probed through klaude, 2026-10-30); whether it accepts the server tool
+  `web_search_20250305` is not probed. The code
+  handles both refusals (retry without the tool; then the model chosen for the chat), so the first Claude turn after turning
+  it on may cost up to four requests; what worked is remembered until the app quits.
+- Anyone who had an Anthropic key saved and relied on Claude as the voice brain gets Apple Intelligence until they turn the
+  opt-in on (before, a saved key was enough).
+- When Claude is on and a turn fails, the phrase parser answers and Apple Intelligence is skipped (upstream's guard, kept);
+  Settings → Voice shows "Couldn't reach Claude on the last try".
+- "Request permissions" does nothing when macOS has the microphone or speech recognition on "denied" (the system asks once);
+  the new reason line then says so and offers "Open System Settings".
+- Portuguese speakers: see the K13 return (listening follows the Mac's dictation language, the phrase parser and the answer
+  language are English and French only).
 - "OK Koru" is checked on transcripts only (`scripts/test-voice-wake.sh`); how often the
   recognizer writes it in a spelling the list misses needs a try on a real Mac.
 - Koru's gender in ar, bn, hi, id, th, tr, zh: names are replaced, agreement was not reviewed

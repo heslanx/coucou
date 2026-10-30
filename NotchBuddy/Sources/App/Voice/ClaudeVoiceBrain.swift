@@ -24,7 +24,8 @@ final class ClaudeVoiceBrain {
 
     /// Claude is Coucou's brain whenever an Anthropic key is saved (Settings → Chat).
     static var isActive: Bool {
-        !(ClaudeService.shared.apiKey ?? "").isEmpty
+        // Koncluí: only when the person turned Claude on and a source exists (KoncluiVoiceBrain.swift).
+        KoncluiVoiceBrainLive.shared.currentBrain().claudeSource != nil
     }
 
     private var messages: [[String: Any]] = []
@@ -52,6 +53,7 @@ final class ClaudeVoiceBrain {
                 // Leave the history coherent: drop the question that got no answer.
                 if let last = messages.last, last["role"] as? String == "user",
                    last["content"] is String { messages.removeLast() }
+                KoncluiVoiceBrainLive.shared.turnEnded(failed: true)   // Koncluí: Settings → Voice shows it
                 // Something already happened (a pill, the music, the mail card): the
                 // parser must not do it again. Say it's done.
                 return acted ? Reply(text: "", acted: true, failed: false) : nil
@@ -77,6 +79,7 @@ final class ClaudeVoiceBrain {
         }
 
         let text = VoiceQuery.spokenText(spoken)
+        KoncluiVoiceBrainLive.shared.turnEnded(failed: text.isEmpty && !acted)   // Koncluí
         return Reply(text: text, acted: acted, failed: text.isEmpty && !acted)
     }
 
