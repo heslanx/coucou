@@ -319,7 +319,11 @@ struct SettingsView: View {
         case "agents":       agentsSection
         case "chat":         chatSection
         case "integrations": integrationsSection
+        #if APPSTORE
         case "reminders":    RemindersSettingsSection()
+        #else
+        case "reminders":    KoncluiRemindersPage()   // Koncluí: a list and an editor with a live preview (KoncluiRemindersPage.swift)
+        #endif
         #if !APPSTORE
         case "voice":        voiceSection
         #endif

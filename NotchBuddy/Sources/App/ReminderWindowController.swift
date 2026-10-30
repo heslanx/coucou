@@ -164,7 +164,8 @@ private struct ReminderAlertView: View {
                 .frame(maxWidth: maximumWidth)
             }
             .scrollIndicators(.hidden)
-            .frame(maxWidth: maximumWidth, maxHeight: max(120, maximumHeight - 48))
+            // Koncluí: a full-screen alert covers the width too; its words keep their column (the width above).
+            .frame(maxWidth: .infinity, maxHeight: max(120, maximumHeight - 48))
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)

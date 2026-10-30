@@ -79,6 +79,7 @@ final class ReminderManager: ObservableObject {
     }
 
     func perform(_ action: ReminderButtonAction, for id: UUID, button: ReminderButton? = nil) {
+        if KoncluiReminderTrial.close(id, action: action, button: button) { return }   // Koncluí: a test changes nothing
         guard storageReady else { return }
         guard let index = reminders.firstIndex(where: { $0.id == id }), reminders[index].isActive else { return }
         let previous = reminders[index]
@@ -98,7 +99,8 @@ final class ReminderManager: ObservableObject {
             ReminderWindowController.shared.dismiss(id: id)
             statusMessage = "Reminder snoozed for \(minutes) minutes."
         case .complete:
-            finishOccurrence(at: index, complete: true)
+            // Koncluí: done for this time; a repeating reminder comes back at its next turn, as complete_reminder says.
+            finishOccurrence(at: index, complete: reminder.repeats == .none)
         case .dismiss:
             finishOccurrence(at: index, complete: false)
         case .stop:
