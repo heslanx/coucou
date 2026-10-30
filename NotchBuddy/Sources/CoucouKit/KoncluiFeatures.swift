@@ -15,7 +15,7 @@ enum KoncluiFeatures {
     static let shippedOff: Set<String> = [
         "integration_crypto", "integration_calcom", "integration_stripe", "integration_github",
         "integration_vercel", "integration_n8n", "integration_resend", "integration_notion", "integration_portfolio",
-        // The updater checks Coucou's releases and verifies Louis's signing team: it cannot install Koncluí (KONCLUI.md).
+        // The updater reads Koncluí's releases, which do not exist yet (no Developer ID, no public releases repository; KONCLUI.md).
         "block_updates",
     ]
 

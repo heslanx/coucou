@@ -186,11 +186,26 @@ FIXED = [
     ("NotchBuddy/Sources/App/AppState.swift",
      'Bundle.main.bundleIdentifier ?? "fr.louisraille.NotchBuddy"', f'Bundle.main.bundleIdentifier ?? "{BUNDLE_ID}"'),
     ("NotchBuddy/Sources/App/MacUpdate.swift",
-     'static let owner = "Louis-CFM"', f'static let owner = "{FORK.split("/")[0]}"'),
-    ("NotchBuddy/Sources/App/MacUpdate.swift",
      'static let bundleId = "fr.louisraille.NotchBuddy"', f'static let bundleId = "{BUNDLE_ID}"'),
     ("NotchBuddy/Sources/App/MacUpdate.swift",
      '$0["name"] as? String == "Coucou.zip"', f'$0["name"] as? String == "{APP_ASCII}.zip"'),
+    # Koncluí's updater reads only Koncluí's releases: its public releases repository, its team, its konclui-v tags
+    # (generated from upstream's file, after the two rules above; WORKFLOW.md "Releases").
+    ('NotchBuddy/Sources/App/MacUpdate.swift',
+     '    static let owner = "Louis-CFM"\n    static let repo = "coucou"',
+     '    static let owner = "konclui"            // Koncluí: public, releases only; `konclui/konclui-notch` is private\n    static let repo = "konclui-releases"'),
+    ('NotchBuddy/Sources/App/MacUpdate.swift',
+     "    /// What the downloaded app must be signed as: Coucou's bundle id, Louis's Developer ID team.",
+     "    /// What the downloaded app must be signed as: Koncluí's bundle id, Koncluí's Developer ID team."),
+    ('NotchBuddy/Sources/App/MacUpdate.swift',
+     '    static let teamId = "256AUJ9555"',
+     '    static let teamId = "5M8RG3BCX2"        // Koncluí: scripts/konclui/signing.sh\'s team\n    /// Koncluí: the Mac\'s tags; a Coucou tag (`v0.5.6`) is never Koncluí\'s.\n    static let tagPrefix = "konclui-v"'),
+    ('NotchBuddy/Sources/App/MacUpdate.swift',
+     '    /// "v0.5.1" → "0.5.1"; "windows-v0.5.0", "linux-latest", "android-v0.2.0" → nil.',
+     '    /// "konclui-v0.5.1" → "0.5.1"; Coucou\'s "v0.5.1", "windows-v0.5.0", "linux-latest", "android-v0.2.0" → nil.'),
+    ('NotchBuddy/Sources/App/MacUpdate.swift',
+     '        guard tag.hasPrefix("v") else { return nil }\n        let v = String(tag.dropFirst())',
+     '        guard tag.hasPrefix(tagPrefix) else { return nil }   // Koncluí: its own prefix\n        let v = String(tag.dropFirst(tagPrefix.count))'),
     ("NotchBuddy/Sources/App/WhatsAppGOWAProcess.swift",
      '"Coucou/GOWA"', f'"{APP_ASCII}/GOWA"'),
     ("NotchBuddy/Sources/App/WeeklyRecapView.swift",
@@ -290,9 +305,34 @@ FIXED = [
      '''        check("coffee goes to Stripe", WhatsNew.coffeeURL.host == "buy.stripe.com")
         check("release page"''', '        check("release page"'),
     # Upstream tests that name Coucou's ids, release URLs and hook paths.
-    ("tests/MacUpdateTests.swift", "Louis-CFM/coucou", FORK),
+    ("tests/MacUpdateTests.swift", "Louis-CFM/coucou", "konclui/konclui-releases"),
     ("tests/MacUpdateTests.swift", "Coucou.zip", f"{APP_ASCII}.zip"),
     ("tests/MacUpdateTests.swift", "fr.louisraille.NotchBuddy", BUNDLE_ID),
+    # The updater's tests follow Koncluí's tags and team (after the three rules above).
+    ('tests/MacUpdateTests.swift',
+     '        check("v0.5.1", MacUpdate.macVersion("v0.5.1") == "0.5.1")\n        check("v1.0", MacUpdate.macVersion("v1.0") == "1.0")',
+     '        check("konclui-v0.5.1", MacUpdate.macVersion("konclui-v0.5.1") == "0.5.1")\n        check("konclui-v1.0", MacUpdate.macVersion("konclui-v1.0") == "1.0")\n        check("Coucou\'s v0.5.6 is not Koncluí\'s", MacUpdate.macVersion("v0.5.6") == nil)'),
+    ('tests/MacUpdateTests.swift',
+     '        check("v0.5.1-beta", MacUpdate.macVersion("v0.5.1-beta") == nil)\n        check("v", MacUpdate.macVersion("v") == nil)',
+     '        check("konclui-v0.5.1-beta", MacUpdate.macVersion("konclui-v0.5.1-beta") == nil)\n        check("konclui-v", MacUpdate.macVersion("konclui-v") == nil)'),
+    ('tests/MacUpdateTests.swift',
+     '                release("v0.9.0", draft: true), release("v0.8.0", pre: true), release("v0.7.0", zip: false),\n                release("v0.5.1"), release("v0.10.0", body: "Coucou 0.10.0\\n\\n## What\'s new\\n\\n- **One-click update** from the notch.\\n- Other\\n\\n## Install\\n- x"),\n                release("v0.6.2"),',
+     '                release("konclui-v0.9.0", draft: true), release("konclui-v0.8.0", pre: true), release("konclui-v0.7.0", zip: false),\n                release("konclui-v0.5.1"), release("konclui-v0.10.0", body: "Coucou 0.10.0\\n\\n## What\'s new\\n\\n- **One-click update** from the notch.\\n- Other\\n\\n## Install\\n- x"),\n                release("konclui-v0.6.2"),'),
+    ('tests/MacUpdateTests.swift',
+     '            check("picks v0.10.0 over 0.6.2 and 0.5.1", r?.version == "0.10.0" && r?.tag == "v0.10.0")',
+     '            check("picks v0.10.0 over 0.6.2 and 0.5.1", r?.version == "0.10.0" && r?.tag == "konclui-v0.10.0")'),
+    ('tests/MacUpdateTests.swift',
+     '            check("its page", r?.pageURL.absoluteString == "https://github.com/konclui/konclui-releases/releases/tag/v0.10.0")',
+     '            check("its page", r?.pageURL.absoluteString == "https://github.com/konclui/konclui-releases/releases/tag/konclui-v0.10.0")'),
+    ('tests/MacUpdateTests.swift',
+     '            check("nothing for drafts and others only", MacUpdate.latest(json([release("v0.9.0", draft: true), release("windows-v1.0")])) == nil)',
+     '            check("nothing for drafts and others only", MacUpdate.latest(json([release("konclui-v0.9.0", draft: true), release("windows-v1.0")])) == nil)'),
+    ('tests/MacUpdateTests.swift',
+     '        let r = MacUpdate.Release(version: "0.6.0", tag: "v0.6.0", zipURL: URL(string: "https://github.com/a")!, size: 1,',
+     '        let r = MacUpdate.Release(version: "0.6.0", tag: "konclui-v0.6.0", zipURL: URL(string: "https://github.com/a")!, size: 1,'),
+    ('tests/MacUpdateTests.swift',
+     '        check("requirement names the team", MacUpdate.codeRequirement.contains("256AUJ9555") && MacUpdate.codeRequirement.contains("anchor apple generic"))',
+     '        check("requirement names Koncluí\'s team", MacUpdate.codeRequirement.contains("5M8RG3BCX2") && MacUpdate.codeRequirement.contains("anchor apple generic"))\n        check("never Louis\'s team", !MacUpdate.codeRequirement.contains("256AUJ9555"))\n        check("only Koncluí\'s releases", MacUpdate.releasesURL.absoluteString == "https://api.github.com/repos/konclui/konclui-releases/releases?per_page=20")'),
     ("tests/WhatsNewTests.swift", "Louis-CFM/coucou", FORK),
     ("tests/ClaudeHookDetectionTests.swift", '"$HOME/.claude/coucou/nb-hook"', f'"$HOME/.claude/{SLUG}/nb-hook"'),
     ("tests/ClaudeHookDetectionTests.swift", "/Applications/NotchBuddy.app/", f"/Applications/{APP_ASCII}.app/"),
@@ -333,7 +373,16 @@ CODE += [(rel, *HUB_STYLE_RULES[kind]) for rel, kinds in HUB_STYLES.items() for 
 # Insertions: (file, anchor, block). The block goes right before the anchor, once.
 INSERTS = [
     # The project guide points every developer and agent to the fork's own rules.
-    ("CLAUDE.md", "## Build\n", '## Koncluí (this fork)\nThis checkout is Koncluí, a fork of Coucou. Read these before changing it; they win over upstream habits where they differ:\n- `KONCLUI.md`: what the fork changes, the rebrand script, feature flags, the hooks in upstream files, the upstream workflow.\n- `docs/konclui/UX.md`: usability, microcopy, accessibility, the review gate and the UI polish pass, for every screen.\n- `docs/konclui/ENGINEERING.md`: code rules (clean code, architecture, pragmatism, simplification) and mergeability.\n\n'),
+    ("CLAUDE.md", "## Build\n", '## Koncluí (this fork)\nThis checkout is Koncluí, a fork of Coucou. Read these before changing it; they win over upstream habits where they differ:\n- `KONCLUI.md`: what the fork changes, the rebrand script, feature flags, the hooks in upstream files, the upstream workflow.\n- `docs/konclui/UX.md`: usability, microcopy, accessibility, the review gate and the UI polish pass, for every screen.\n- `docs/konclui/ENGINEERING.md`: code rules (clean code, architecture, pragmatism, simplification) and mergeability.\n- `docs/konclui/WORKFLOW.md`: branches, remotes, pull requests, Coucou syncs, pushes and releases (the main branch is `main` of the private `konclui` remote; never push Koncluí to `origin`).\n\n'),
+    # Coucou's release script stops in this fork: it would push to the public origin and publish to Louis-CFM/coucou.
+    ("scripts/release.sh", 'VERSION="${1:?Usage: $0 <version> [--finish]}"',
+     "# Koncluí: this is Coucou's release (Coucou's profile and notary profile, a tag and a cask commit pushed to the public\n"
+     "# origin, the release published to Louis-CFM/coucou). Koncluí releases with scripts/konclui/release.sh.\n"
+     '[ -f "$(dirname "$0")/konclui/release.sh" ] && { echo "error: Koncluí releases with ./scripts/konclui/release.sh" >&2; exit 1; }\n\n'),
+    # Koncluí's updater: what the file is about now (the rules in FIXED change its values).
+    ("NotchBuddy/Sources/App/MacUpdate.swift", "\nenum MacUpdate {",
+     "// Koncluí: only Koncluí's releases. Its public releases repository, its `konclui-vX.Y.Z` tags with a `Konclui.zip`\n"
+     "// (upstream's `vX.Y.Z` tags reach this repository with every sync), its team. scripts/konclui/release.sh publishes there.\n"),
     ("tests/WakePhraseTests.swift", "        // MARK: split — should NOT match",
      """        // Koncluí: how the recognizer may write Koru
         checkMatch("ok Corú",                WakePhrase.split("ok Corú"),                cmd: "")

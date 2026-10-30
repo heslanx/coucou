@@ -16,6 +16,7 @@ This checkout is Koncluí, a fork of Coucou. Read these before changing it; they
 - `KONCLUI.md`: what the fork changes, the rebrand script, feature flags, the hooks in upstream files, the upstream workflow.
 - `docs/konclui/UX.md`: usability, microcopy, accessibility, the review gate and the UI polish pass, for every screen.
 - `docs/konclui/ENGINEERING.md`: code rules (clean code, architecture, pragmatism, simplification) and mergeability.
+- `docs/konclui/WORKFLOW.md`: branches, remotes, pull requests, Coucou syncs, pushes and releases (the main branch is `main` of the private `konclui` remote; never push Koncluí to `origin`).
 
 ## Build
 ```
