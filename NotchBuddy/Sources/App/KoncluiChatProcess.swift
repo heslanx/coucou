@@ -135,13 +135,29 @@ enum KoncluiProcess {
         Registry.all().forEach(stop)
     }
 
-    /// SIGTERM, then SIGKILL two seconds later if it ignored it.
+    /// SIGTERM, then SIGKILL two seconds later if it ignored it. `claude` and `codex` start helpers of their own (Node,
+    /// MCP servers) that a signal to the direct child alone leaves running, so they get the SIGTERM too, listed before
+    /// the child goes (once it is gone they belong to launchd). They get no late SIGKILL: by then their pid may be reused.
     private static func stop(_ child: Child) {
-        child.process.terminate()
         let pid = child.process.processIdentifier
+        let helpers = pid > 0 ? descendants(of: pid) : []
+        child.process.terminate()
+        for helper in helpers { kill(helper, SIGTERM) }
         DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
             if child.process.isRunning { kill(pid, SIGKILL) }
         }
+    }
+
+    /// Every process under `pid`, deepest first.
+    private static func descendants(of pid: pid_t) -> [pid_t] {
+        let estimate = proc_listchildpids(pid, nil, 0)
+        guard estimate > 0 else { return [] }
+        var children = [pid_t](repeating: 0, count: Int(estimate) + 8)
+        let count = children.withUnsafeMutableBytes { buffer in
+            proc_listchildpids(pid, buffer.baseAddress, Int32(buffer.count))
+        }
+        guard count > 0 else { return [] }
+        return children.prefix(Int(count)).filter { $0 > 0 }.flatMap { descendants(of: $0) + [$0] }
     }
 
     /// `Process` is not Sendable; every use here goes through these few thread-safe calls.

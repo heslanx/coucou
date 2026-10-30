@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Builds Koncluí (Debug, signed ad hoc: no Apple team needed) and makes it the only Koncluí:
+# Builds Koncluí (the Debug configuration, optimized like upstream's daily DebugCloud build; signed with this Mac's
+# Apple Development certificate when it has one, ad hoc otherwise) and makes it the only Koncluí:
 # installed in /Applications/Konclui.app, the copies left by earlier builds removed.
 # Coucou.app (any build, any place) is never touched: both apps run side by side.
 #
@@ -27,14 +28,17 @@ if [ -d "${TARGET}" ]; then
   fi
 fi
 
-echo "Building (Debug)..."
+echo "Building (Debug, optimized)..."
 cd "${REPO_ROOT}/NotchBuddy"
 xcodegen >/dev/null
 # Signed with this Mac's "Apple Development" certificate when there is one, so macOS keeps the Keychain and
 # privacy permissions across builds; ad hoc otherwise (scripts/konclui/signing.sh).
 SIGN_ARGS=()
 while IFS= read -r setting; do [ -n "$setting" ] && SIGN_ARGS+=("$setting"); done < <("${REPO_ROOT}/scripts/konclui/signing.sh")
-xcodebuild -scheme NotchBuddy -configuration Debug -derivedDataPath "${DERIVED}" -quiet ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} build
+# Optimized: unoptimized Swift costs about twice the CPU for Koru's drawing (project.yml, DebugCloud). DEBUG stays
+# defined, so the -konclui.debug.* launch arguments keep working.
+xcodebuild -scheme NotchBuddy -configuration Debug -derivedDataPath "${DERIVED}" -quiet SWIFT_OPTIMIZATION_LEVEL=-O \
+  ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} build
 
 echo "Quitting Koncluí..."
 osascript -e "tell application id \"${BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true

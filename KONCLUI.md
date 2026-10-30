@@ -511,6 +511,19 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 - Uninstalling an agent whose tool is not on this Mac removes its row (a row shows while the tool is there or the hooks are
   installed), and the popover with it; the status message then shows in the window's bottom line.
 
+## Distributing Koncluí (to do, needs the owner's Apple account)
+
+Today only this Mac can run Koncluí: Debug builds are signed with the owner's Apple Development certificate
+(`scripts/konclui/signing.sh`), and Release still carries Coucou's team and profile. Before anyone else installs it:
+
+1. A paid Apple Developer Program membership for Koncluí, and a "Developer ID Application" certificate in it.
+2. Release and ReleaseCloud signed with that team (a `FIXED` rule in `scripts/konclui/rebrand.py` on `NotchBuddy/project.yml`,
+   so upstream merges keep it), hardened runtime on, and Koncluí's own iCloud container if the iPhone link is wanted.
+3. Notarization (`xcrun notarytool submit … --wait`, then `xcrun stapler staple`) for every build that leaves this Mac.
+4. A public release channel (releases of a public repository or a feed of Koncluí's own), then `MacUpdater` pointed at it
+   with Koncluí's team in its signature check, and only then `block_updates` switched on by default.
+5. `FORK` in `rebrand.py` set to that public repository, so the weekly recap image links to it.
+
 ## Orca and klaude, as found on this Mac (read-only)
 
 - Orca copies `~/.claude/settings.json` into each Claude profile home it launches agents with

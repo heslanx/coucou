@@ -82,9 +82,10 @@ what it costs at the next `git merge upstream/main`.
 
 - Build: `cd NotchBuddy && xcodegen && xcodebuild -scheme NotchBuddy -configuration Debug build` (use a
   `-derivedDataPath` under `/tmp` for throwaway builds and delete it after; the disk is small).
-- Day to day: `./scripts/konclui/dev-install.sh`. It signs with your own "Apple Development" certificate when the Mac has
-  one (`scripts/konclui/signing.sh`), so macOS keeps Koncluí's Keychain and privacy permissions across builds; without
-  one it builds ad hoc and macOS asks again after each build.
+- Day to day: `./scripts/konclui/dev-install.sh`. It builds the Debug configuration optimized (`-O`, as upstream's daily
+  DebugCloud: unoptimized Swift costs about twice the CPU for Koru's drawing) and signs with your own "Apple Development"
+  certificate when the Mac has one (`scripts/konclui/signing.sh`), so macOS keeps Koncluí's Keychain and privacy
+  permissions across builds; without one it builds ad hoc and macOS asks again after each build.
 - The tests of what you touched: `scripts/test-*.sh`, `scripts/konclui/test-*.sh`, `python3 scripts/test-localization.py`,
   `python3 scripts/test-whats-new.py`, `python3 scripts/konclui/test-copy.py`, `scripts/konclui/test-key-name.sh`, and
   `python3 scripts/konclui/rebrand.py --check`.
