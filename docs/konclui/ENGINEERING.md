@@ -13,6 +13,9 @@ what it costs at the next `git merge upstream/main`.
 - Koncluí's code lives in **new files** named `Konclui*.swift` (and `Koru*.swift` for the character).
 - An upstream file gets only a **small hook**: one call, one filter, one `if`, marked with a `// Koncluí:` comment and listed
   in `KONCLUI.md`, "Koncluí hooks in upstream files".
+- New strings go in with `scripts/konclui/add-strings.py <strings.json>` (`{"key": {"en": "...", "pt-BR": "...", ...}}`, all
+  14 languages): one line per key at the top of the catalog, upstream's entries untouched. Units working in parallel hand in
+  their JSON and one person merges them.
 - Text that users see is rewritten by `scripts/konclui/rebrand.py`, not by hand. A new rule goes into the script so it is
   applied again after a merge; `python3 scripts/konclui/rebrand.py --check` must report 0 changes and 0 stale rules.
 - Internal identifiers stay upstream's (targets, Swift types, UserDefaults keys). Pill IDs, feature flag IDs, chat provider

@@ -4161,7 +4161,8 @@ struct AgentPill: View {
 
     // The Claude pill shows "VS Code" (or "Claude Code" for a terminal session) regardless of project name
     private var displayName: String {
-        task.id == "integration_claude" ? ClaudeHost.pillName(hostApp: task.hostApp) : task.name
+        // Koncluí: a tab shows at most 11 characters, a long name by its short form ("Claude Desk").
+        KoncluiTabLabel.short(task.id == "integration_claude" ? ClaudeHost.pillName(hostApp: task.hostApp) : task.name)
     }
 
     var body: some View {
@@ -4251,7 +4252,7 @@ struct MusicPill: View {
             .allowsHitTesting(false)
 
             // Title — trailing padding grows on hover to make room for buttons
-            Text(task.name)
+            Text(KoncluiTabLabel.short(task.name))   // Koncluí: tab names fit in 11 characters
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(isHovered ? Color(hex: task.color).lighter(by: 0.3) : Color(hex: "#6B7079"))
                 .lineLimit(1)

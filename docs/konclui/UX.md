@@ -64,6 +64,9 @@ equivalent, so nobody has to re-decide it.
 - Sound, morphing icons and prefetching may reinforce the feeling of response when measured and under the person's control
   (Settings → Sound, volume, reduced motion), but they are never the only way information is given.
 - **Hovering is silent**: passing the pointer over something never plays a sound by default.
+- **The whole label is the target.** A disclosure (accordion) opens and closes from anywhere on its label row, not only
+  from the chevron; the same goes for a row that expands. In SwiftUI use `KoncluiDisclosureStyle` (the hub window applies it
+  to every `DisclosureGroup`; popovers are separate windows and apply it themselves).
 
 ### 1.5 Undo: the universal safety net
 - Every click that changes data offers **Undo** right away, in a visible notice that stays long enough and is reachable
@@ -172,6 +175,7 @@ Interface text is part of the product's function. Koncluí ships in 14 languages
 | Empty states | Why there is nothing, and the button for the next action. | "Nenhum ditado ainda. Segure ⌥ da direita em qualquer app e fale." |
 | Blocked controls | One line: the reason and how to unlock it. | "Salve uma chave de API para usar este provedor." |
 | Vocabulary | One name per concept across the app (glossary below). | The app says "aba"; no screen says "pílula". |
+| Names in tight places | A name never ends in "…" mid-word. Where space is fixed (a tab in the notch: at most 11 characters and 64 pt), a long name has a short form chosen by hand in `KoncluiTabLabel.shortForms`; `scripts/konclui/test-tab-label.sh` checks every catalog name. | "Claude Desk" instead of "Claude Deskt…" |
 
 Existing strings that break a rule (many use "—") are rewritten when their screen is touched; do not leave a touched screen
 half-converted.
@@ -216,6 +220,7 @@ Add a row whenever a new concept reaches the interface.
 - [ ] Unavailable data reads "unavailable", not `0`.
 - [ ] Exactly **one** primary action stands out per region.
 - [ ] Everything clickable shows the pointing-hand cursor and works with the keyboard, without hover.
+- [ ] A disclosure or expanding row opens from its whole label; no name is cut by "…" where a short form fits.
 - [ ] No control can be blocked silently: a blocked one says why and how to unlock it.
 - [ ] Data on screen (names, numbers, paths, statuses, dates) opens a popover with quick actions.
 - [ ] Numbers and counters are clickable and show the records behind them (zero included).

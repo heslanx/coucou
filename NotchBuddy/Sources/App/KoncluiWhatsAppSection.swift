@@ -628,6 +628,7 @@ struct KoncluiWhatsAppSection: View {
                 Text(verbatim: "\(ignored.count)").font(.system(size: 11)).foregroundColor(Self.muted).monospacedDigit()
             }
         }
+        .disclosureGroupStyle(KoncluiDisclosureStyle())   // the popover is its own window: the hub's style does not reach it
     }
 
     /// Your own gateway (OpenWA, another address, a password, the port): folded away.
@@ -684,6 +685,7 @@ struct KoncluiWhatsAppSection: View {
         } label: {
             Text("whatsapp.advanced").font(.system(size: 11, weight: .medium))
         }
+        .disclosureGroupStyle(KoncluiDisclosureStyle())
     }
 
     /// Koncluí starts the gateway itself (GitHub build: the App Store build is sandboxed and never compiles this).

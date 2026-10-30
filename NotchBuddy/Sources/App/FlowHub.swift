@@ -244,6 +244,7 @@ struct FlowHubView: View {
         .foregroundColor(HubTheme.text)
         .preferredColorScheme(.dark)
         .tint(HubTheme.accent)
+        .disclosureGroupStyle(KoncluiDisclosureStyle())   // Koncluí: a disclosure opens from its whole label.
         .environment(\.hubVisible, windowState.visible)
         .environment(\.hubPage, router.showFeatures ? .settings : router.page)
         .onChange(of: featuresUnlocked) { _, unlocked in if !unlocked { router.showFeatures = false } }

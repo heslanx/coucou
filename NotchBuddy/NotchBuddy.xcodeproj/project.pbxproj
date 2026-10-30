@@ -96,12 +96,14 @@
 		2986BA2B984C8C1D421B4D99 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D14C4D6FA9E2546B590FE8 /* ReminderModels.swift */; };
 		2A30FA2F046492E22A1C5719 /* ServiceDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F64746B2740D5FE26B7E5A /* ServiceDetail.swift */; };
 		2A57CCE7D6813E6340C036BE /* MailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F907A5CC3CC05876548E96 /* MailViews.swift */; };
+		2AAEF3D2560CE734480A81C4 /* KoncluiDisclosureStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2BE993E905937D62FA997A /* KoncluiDisclosureStyle.swift */; };
 		2C14F1DB0449CEB5F29DFB4A /* ClaudeDesktopChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A5CB029F97C5F050CCF9A79 /* ClaudeDesktopChat.swift */; };
 		2C798C3837A63B9BB561A1A0 /* HookServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79D8DD79C3DD9BBC584B3CB2 /* HookServer.swift */; };
 		2CC2E3B688B15BBEB3AE3BCE /* WindowContextCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91B733ADC638E14E9BB6EFA /* WindowContextCapture.swift */; };
 		2D5E6A8A808C588675CCBA67 /* KoncluiAgentHooks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E5A8CA07E1AD8AFD3F9DD79 /* KoncluiAgentHooks.swift */; };
 		2DEB459FBD0BA3CEAAA5FDE9 /* ClaudeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83D5410BD030B243ADDCFF4 /* ClaudeService.swift */; };
 		2E0DC1F3BCD0D894C8B94E7C /* WhatsAppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADD0D8C37F00BF1877153D8 /* WhatsAppModels.swift */; };
+		2E391FAA70ECBD27F7DD2B9A /* KoncluiDisclosureStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2BE993E905937D62FA997A /* KoncluiDisclosureStyle.swift */; };
 		2F36E3C6C073E968A682AFA4 /* NotionPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE03E03D1804B0B92C5C2DAD /* NotionPoller.swift */; };
 		308FC55948A52EE9115376BD /* KoncluiChatAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 486AC1436C89F554D57AB0B0 /* KoncluiChatAccess.swift */; };
 		326971DDA23F331116E5A628 /* VoiceBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C563E55884A7750B40EC9A01 /* VoiceBrain.swift */; };
@@ -179,6 +181,7 @@
 		618AF56A4D380E1EEAEEBFE7 /* KoruOutfitsParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 947E7C48B294E2B03536F2FA /* KoruOutfitsParts.swift */; };
 		61CB7049490F61CFA1B36B64 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F6D7015D6A77AA59323C0E7 /* AppLog.swift */; };
 		61F73B27A7E3AFF584B2CC22 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E4F18AA940EFF7E047B9F7 /* AppState.swift */; };
+		629DA8065540E83E8F24D567 /* KoncluiTabLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5016CA216FEB6795F2A25F6 /* KoncluiTabLabel.swift */; };
 		62C4EE3F74DAA59764729E62 /* UploadCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B241B043223AFBBFB7418A5E /* UploadCanvasView.swift */; };
 		63093DC288B68F7F17249517 /* GitHubActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168A9A73B519018FAB0AA465 /* GitHubActivity.swift */; };
 		63B87D9E49F228ADCEC4C293 /* WakeSpotter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1DE3225F5239394398E6B6 /* WakeSpotter.swift */; };
@@ -428,6 +431,7 @@
 		CAC1A12153A798730E5FA835 /* MochiStill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045E7300878138F0AC385920 /* MochiStill.swift */; };
 		CB68EE6BBF36AABB4334A3BF /* KoncluiChatCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5674E8EEAC9E180121DA3740 /* KoncluiChatCore.swift */; };
 		CC81DAE27417672CB93349A5 /* PillCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C64C4C5D705CE486221B74 /* PillCatalog.swift */; };
+		CCF229F2365BFD08C26355BC /* KoncluiTabLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5016CA216FEB6795F2A25F6 /* KoncluiTabLabel.swift */; };
 		CD05A497A7D0B3D723D92C06 /* QuestionPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6993B34A0FFF8E3D454ADC /* QuestionPayload.swift */; };
 		CD8DECA66B9E09C97E469DB9 /* BotCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A29F4C0B02BE91654D02AA0C /* BotCanvasView.swift */; };
 		CDD36B01BF50F64A2A3180EF /* IslandScreenGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9466FDE02C9B3FB4EF01DFF8 /* IslandScreenGeometry.swift */; };
@@ -650,6 +654,7 @@
 		5A5CB029F97C5F050CCF9A79 /* ClaudeDesktopChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDesktopChat.swift; sourceTree = "<group>"; };
 		5C3E2269A202B640E7F3B5E0 /* CoucouWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CoucouWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C406C508A86E215B3CBE3FC /* CoucouControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoucouControl.swift; sourceTree = "<group>"; };
+		5D2BE993E905937D62FA997A /* KoncluiDisclosureStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiDisclosureStyle.swift; sourceTree = "<group>"; };
 		60401D1023D17C3FD30D7113 /* PhoneAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = PhoneAssets.xcassets; sourceTree = "<group>"; };
 		61B5FDDE03F5F711146937E2 /* ResendPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResendPoller.swift; sourceTree = "<group>"; };
 		62CF42AE7611EF212CA0458F /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsView.swift; sourceTree = "<group>"; };
@@ -721,6 +726,7 @@
 		A14A61070D293AB4BBA303F7 /* NotchBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotchBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A2737EC4885ADB8FDDA1C610 /* VoiceActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActionRunner.swift; sourceTree = "<group>"; };
 		A29F4C0B02BE91654D02AA0C /* BotCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotCanvasView.swift; sourceTree = "<group>"; };
+		A5016CA216FEB6795F2A25F6 /* KoncluiTabLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiTabLabel.swift; sourceTree = "<group>"; };
 		A5DC0954D23B69B247578437 /* question.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = question.wav; sourceTree = "<group>"; };
 		A83D5410BD030B243ADDCFF4 /* ClaudeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeService.swift; sourceTree = "<group>"; };
 		A87F39805C78722F614295B4 /* VoiceAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAudio.swift; sourceTree = "<group>"; };
@@ -906,10 +912,12 @@
 				486AC1436C89F554D57AB0B0 /* KoncluiChatAccess.swift */,
 				5674E8EEAC9E180121DA3740 /* KoncluiChatCore.swift */,
 				57B7DF76CB5B4B49566E268D /* KoncluiChatProcess.swift */,
+				5D2BE993E905937D62FA997A /* KoncluiDisclosureStyle.swift */,
 				39A7F4F54C19E9F0399590F9 /* KoncluiFeatureRegistry.swift */,
 				50D11DDE05773E558327EAD8 /* KoncluiFeaturesPage.swift */,
 				FA934C1F728B5D0810000857 /* KoncluiOrca.swift */,
 				0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */,
+				A5016CA216FEB6795F2A25F6 /* KoncluiTabLabel.swift */,
 				BCF80044191370A8213C881A /* KoncluiWhatsAppModel.swift */,
 				9048F743C068A2B40073C702 /* KoncluiWhatsAppPreview.swift */,
 				834F054531F0622364E54F30 /* KoncluiWhatsAppSection.swift */,
@@ -1464,11 +1472,13 @@
 				1A2652A9947230FDA5CE1EFC /* KoncluiChatAccess.swift in Sources */,
 				783FC137C53CAE831EFB3B28 /* KoncluiChatCore.swift in Sources */,
 				4694F00C1ADFD4890D486E5A /* KoncluiChatProcess.swift in Sources */,
+				2E391FAA70ECBD27F7DD2B9A /* KoncluiDisclosureStyle.swift in Sources */,
 				D4BB152F7CB2C8BE0274BFB3 /* KoncluiFeatureRegistry.swift in Sources */,
 				A017FC2B40001770BF9918AF /* KoncluiFeatures.swift in Sources */,
 				80D9C5FC94D7C762927F6322 /* KoncluiFeaturesPage.swift in Sources */,
 				B18539A047478290941B880F /* KoncluiOrca.swift in Sources */,
 				AEFD9957EEAC5337160823CC /* KoncluiRecognition.swift in Sources */,
+				629DA8065540E83E8F24D567 /* KoncluiTabLabel.swift in Sources */,
 				02B4988719F7FD03B07CCAE9 /* KoncluiWhatsAppModel.swift in Sources */,
 				656585F7AA7D9B72C5D5E589 /* KoncluiWhatsAppPreview.swift in Sources */,
 				A024BC92E2F58C71D5D09A62 /* KoncluiWhatsAppSection.swift in Sources */,
@@ -1766,11 +1776,13 @@
 				308FC55948A52EE9115376BD /* KoncluiChatAccess.swift in Sources */,
 				CB68EE6BBF36AABB4334A3BF /* KoncluiChatCore.swift in Sources */,
 				A060355DA8D8C68C39CC88EB /* KoncluiChatProcess.swift in Sources */,
+				2AAEF3D2560CE734480A81C4 /* KoncluiDisclosureStyle.swift in Sources */,
 				D28CCB9F6DE813212419773A /* KoncluiFeatureRegistry.swift in Sources */,
 				282D1F954E7ED47F18DA6684 /* KoncluiFeatures.swift in Sources */,
 				F84A244F247F91C7E3397FD1 /* KoncluiFeaturesPage.swift in Sources */,
 				72CAB105F08CF39670BF4BA4 /* KoncluiOrca.swift in Sources */,
 				B26E115D058E28C1279AED8C /* KoncluiRecognition.swift in Sources */,
+				CCF229F2365BFD08C26355BC /* KoncluiTabLabel.swift in Sources */,
 				693C72ADEF22E098C1DD43E1 /* KoncluiWhatsAppModel.swift in Sources */,
 				BC61FAD924456969BCFDB8BE /* KoncluiWhatsAppPreview.swift in Sources */,
 				228C6BFE1182BE642E775ED4 /* KoncluiWhatsAppSection.swift in Sources */,
