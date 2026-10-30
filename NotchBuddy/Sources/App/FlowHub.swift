@@ -6,12 +6,12 @@ import SwiftUI
 /// The pages of the Coucou window: Flow (the dictation, the Notetaker) and the notch's settings.
 enum HubPage: String, CaseIterable, Identifiable {
     case dictation, notes, insights, dictionary, snippets, styles, settings
-    case general, pills, agents, chat, integrations, voice, shortcuts
+    case general, pills, agents, chat, integrations, reminders, voice, shortcuts
 
     var id: String { rawValue }
 
     static let flowPages: [HubPage] = [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings]
-    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .voice, .shortcuts]
+    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .reminders, .voice, .shortcuts]
 
     /// The section of Settings this page shows, for the notch's pages.
     var settingsSection: String? {
@@ -21,6 +21,7 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .agents:       return "agents"
         case .chat:         return "chat"
         case .integrations: return "integrations"
+        case .reminders:    return "reminders"
         case .voice:        return "voice"
         case .shortcuts:    return "shortcuts"
         default:            return nil
@@ -39,6 +40,7 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .agents:       return String(localized: "Agents")
         case .chat:         return String(localized: "Chat")
         case .integrations: return String(localized: "Integrations")
+        case .reminders:    return String(localized: "Reminders")
         case .voice:        return String(localized: "Voice")
         case .shortcuts:    return String(localized: "Shortcuts")
         case .dictation:  return String(localized: "hub.page.dictation")
@@ -65,6 +67,7 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .agents:       return "terminal"
         case .chat:         return "bubble.left.and.bubble.right"
         case .integrations: return "puzzlepiece.extension"
+        case .reminders:    return "bell.badge"
         case .voice:        return "waveform"
         case .shortcuts:    return "keyboard"
         }
@@ -116,6 +119,7 @@ extension HubPage {
         case .agents:       return String(localized: "hub.notch.agents")
         case .chat:         return String(localized: "hub.notch.chat")
         case .integrations: return String(localized: "hub.notch.integrations")
+        case .reminders:    return String(localized: "hub.notch.reminders")
         case .voice:        return String(localized: "hub.notch.voice")
         case .shortcuts:    return String(localized: "hub.notch.shortcuts")
         default:            return nil

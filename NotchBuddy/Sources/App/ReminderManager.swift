@@ -46,7 +46,7 @@ final class ReminderManager: ObservableObject {
             reminders.removeAll { $0.id == reminder.id }
             throw ReminderManagerError.persistenceFailed(statusMessage)
         }
-        statusMessage = "Reminder created."
+        statusMessage = String(localized: "Reminder created.")
         Task { await requestNotificationPermissionIfNeeded() }
         scheduleNotifications()
         presentDueReminders()
@@ -72,7 +72,7 @@ final class ReminderManager: ObservableObject {
             restore(previous, at: index, wasPresented: wasPresented)
             throw ReminderManagerError.persistenceFailed(statusMessage)
         }
-        statusMessage = "Reminder updated."
+        statusMessage = String(localized: "Reminder updated.")
         scheduleNotifications()
         presentDueReminders()
         scheduleDueCheck()
@@ -96,7 +96,7 @@ final class ReminderManager: ObservableObject {
             reminders[index] = reminder
             presentedIDs.remove(id)
             ReminderWindowController.shared.dismiss(id: id)
-            statusMessage = "Reminder snoozed for \(minutes) minutes."
+            statusMessage = String(format: String(localized: "Reminder snoozed for %lld minutes."), Int64(minutes))
         case .complete:
             finishOccurrence(at: index, complete: true)
         case .dismiss:
@@ -107,7 +107,7 @@ final class ReminderManager: ObservableObject {
             reminders[index] = reminder
             presentedIDs.remove(id)
             ReminderWindowController.shared.dismiss(id: id)
-            statusMessage = "Reminder stopped."
+            statusMessage = String(localized: "Reminder stopped.")
         }
 
         guard persist() else {
@@ -137,7 +137,7 @@ final class ReminderManager: ObservableObject {
         }
         scheduleNotifications()
         scheduleDueCheck()
-        statusMessage = "Reminder snoozed for \(minutes) minutes."
+        statusMessage = String(format: String(localized: "Reminder snoozed for %lld minutes."), Int64(minutes))
     }
 
     func dismiss(id: UUID) {
@@ -168,7 +168,7 @@ final class ReminderManager: ObservableObject {
             let prefix = Self.notificationPrefix + id.uuidString
             center.removeDeliveredNotifications(withIdentifiers: delivered.map(\.request.identifier).filter { $0.hasPrefix(prefix) })
         }
-        statusMessage = "Reminder deleted."
+        statusMessage = String(localized: "Reminder deleted.")
     }
 
     func present(id: UUID) {
@@ -183,10 +183,10 @@ final class ReminderManager: ObservableObject {
         reminder.snoozedUntil = nil
         if !complete, let next = reminder.nextOccurrence(after: Date()) {
             reminder.dueAt = next
-            statusMessage = "Reminder dismissed. The next one is scheduled."
+            statusMessage = String(localized: "Reminder dismissed. The next one is scheduled.")
         } else {
             reminder.isActive = false
-            statusMessage = complete ? "Reminder completed." : "Reminder dismissed."
+            statusMessage = String(localized: complete ? "Reminder completed." : "Reminder dismissed.")
         }
         reminders[index] = reminder
         presentedIDs.remove(reminder.id)
@@ -248,7 +248,8 @@ final class ReminderManager: ObservableObject {
         } catch {
             reminders = []
             storageReady = false
-            statusMessage = "Saved reminders could not be read from \(Self.storageURL.path): \(error.localizedDescription). Changes are disabled to protect the existing file."
+            statusMessage = String(format: String(localized: "Saved reminders could not be read from %@: %@. Changes are disabled to protect the existing file."),
+                                   Self.storageURL.path, error.localizedDescription)
         }
     }
 
@@ -263,7 +264,7 @@ final class ReminderManager: ObservableObject {
             try store.save(reminders)
             return true
         } catch {
-            statusMessage = "Reminder could not be saved: \(error.localizedDescription)"
+            statusMessage = String(format: String(localized: "Reminder could not be saved: %@"), error.localizedDescription)
             return false
         }
     }
@@ -288,7 +289,7 @@ final class ReminderManager: ObservableObject {
             do {
                 _ = try await center.requestAuthorization(options: [.alert, .sound])
             } catch {
-                statusMessage = "System notification permission failed: \(error.localizedDescription)"
+                statusMessage = String(format: String(localized: "System notification permission failed: %@"), error.localizedDescription)
                 return
             }
         }
@@ -296,7 +297,7 @@ final class ReminderManager: ObservableObject {
         if updatedSettings.authorizationStatus == .authorized || updatedSettings.authorizationStatus == .provisional {
             scheduleNotifications()
         } else {
-            statusMessage = "macOS notifications are off. Reminders will appear only while Coucou is open."
+            statusMessage = String(localized: "macOS notifications are off. Reminders will appear only while Coucou is open.")
         }
     }
 
@@ -325,7 +326,7 @@ final class ReminderManager: ObservableObject {
         for reminder in activeReminders {
             for request in notificationRequests(for: reminder) {
                 do { try await center.add(request) }
-                catch { statusMessage = "System reminder could not be scheduled: \(error.localizedDescription)" }
+                catch { statusMessage = String(format: String(localized: "System reminder could not be scheduled: %@"), error.localizedDescription) }
             }
         }
     }
@@ -389,14 +390,14 @@ enum ReminderManagerError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notFound: "Reminder was not found."
+        case .notFound: String(localized: "Reminder was not found.")
         case .storageUnavailable(let message): message
-        case .invalidIdentifier: "Reminder ID is invalid."
-        case .invalidAction: "Reminder action is not supported."
-        case .invalidConfiguration: "The reminder contains an unsupported display, repeat, button, or image value."
-        case .missingFields: "A reminder needs a title and an ISO 8601 due date."
-        case .invalidSnooze: "Snooze must be between 1 and 1,440 minutes."
-        case .snoozeDisabled: "Snooze is disabled for this reminder."
+        case .invalidIdentifier: String(localized: "Reminder ID is invalid.")
+        case .invalidAction: String(localized: "Reminder action is not supported.")
+        case .invalidConfiguration: String(localized: "The reminder contains an unsupported display, repeat, button, or image value.")
+        case .missingFields: String(localized: "A reminder needs a title and an ISO 8601 due date.")
+        case .invalidSnooze: String(localized: "Snooze must be between 1 and 1,440 minutes.")
+        case .snoozeDisabled: String(localized: "Snooze is disabled for this reminder.")
         case .persistenceFailed(let message): message
         }
     }

@@ -260,6 +260,8 @@ struct HubHeroTheme {
             return .init(color: Color(hex: "#E07950"), cast: [m("#E07950", 58, 0.3, state: .thinking, roams: false), m("#F5F6F8", 48, 0.85)])
         case .integrations:
             return .init(color: Color(hex: "#7C5CFF"), cast: [m("#7C5CFF", 54, 0.15), m("#22D3EE", 46, 0.55), m("#F7B32B", 42, 0.95)])
+        case .reminders:
+            return .init(color: Color(hex: "#F59E0B"), cast: [m("#F59E0B", 54, 0.25, state: .thinking), m("#F5F6F8", 46, 0.8)])
         case .voice:
             return .init(color: Color(hex: "#F97316"), cast: [m("#F97316", 60, 0.3), m("#F5F6F8", 48, 0.85, outfit: .roundGlasses)])
         case .shortcuts:
@@ -293,6 +295,10 @@ struct HubHero<Trailing: View>: View {
                     Text(title)
                         .font(.system(size: compact ? 24 : 30, weight: .bold))
                         .tracking(-0.6)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                     if let subtitle {
                         Text(subtitle)
                             .font(.system(size: 14))

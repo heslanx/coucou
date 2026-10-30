@@ -26,7 +26,7 @@ struct RemindersSettingsSection: View {
     private var screens: [NSScreen] { NSScreen.screens }
     private var hasSnoozeActionButton: Bool { buttons.contains { $0.action == .snooze } }
     private var mcpScriptPath: String {
-        NSHomeDirectory() + "/Library/Application Support/NotchBuddy/coucou-mcp.py"
+        HookServer.supportDir.appendingPathComponent("coucou-mcp.py").path
     }
 
     var body: some View {
@@ -90,7 +90,8 @@ struct RemindersSettingsSection: View {
                         .foregroundStyle(.secondary)
                 }
                 if snoozeEnabled {
-                    Stepper("Snooze for \(snoozeMinutes) minutes", value: $snoozeMinutes, in: 1...1_440)
+                    Stepper(String(format: String(localized: "Snooze for %lld minutes"), Int64(snoozeMinutes)),
+                            value: $snoozeMinutes, in: 1...1_440)
                 }
 
                 HStack(spacing: 8) {
@@ -238,7 +239,8 @@ struct RemindersSettingsSection: View {
     private var mcpConfiguration: String {
         let config: [String: Any] = ["mcpServers": ["coucou-reminders": [
             "command": "/usr/bin/python3",
-            "args": ["-I", mcpScriptPath]
+            "args": ["-I", mcpScriptPath],
+            "env": ["COUCOU_SOCKET": HookServer.socketPath]
         ]]]
         guard let data = try? JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys]),
               let text = String(data: data, encoding: .utf8) else { return "" }
@@ -357,25 +359,33 @@ struct RemindersSettingsSection: View {
         do {
             let data = try Data(contentsOf: url)
             guard data.count <= 2_000_000 else {
-                manager.report("Choose an image smaller than 2 MB.")
+                manager.report(String(localized: "Choose an image smaller than 2 MB."))
                 return
             }
             guard NSImage(data: data) != nil else {
-                manager.report("That image could not be decoded. Choose a valid PNG or JPEG.")
+                manager.report(String(localized: "That image could not be decoded. Choose a valid PNG or JPEG."))
                 return
             }
             imageData = data
         } catch {
-            manager.report("Image could not be opened: \(error.localizedDescription)")
+            manager.report(String(format: String(localized: "Image could not be opened: %@"), error.localizedDescription))
         }
     }
 
     private func reminderStatus(_ reminder: Reminder) -> String {
-        guard reminder.isActive else { return "Stopped" }
+        guard reminder.isActive else { return String(localized: "Stopped") }
         let date = reminder.snoozedUntil ?? reminder.dueAt
         let schedule = date.formatted(date: .abbreviated, time: .shortened)
-        let repeatName = reminder.repeats == .none ? "Once" : reminder.repeats.rawValue.capitalized
-        let display = reminder.presentation == .fullScreen ? "Full screen" : "Floating card"
-        return "\(schedule) · \(repeatName) · \(display)"
+        let repeatName: String
+        switch reminder.repeats {
+        case .none: repeatName = String(localized: "Only once")
+        case .daily: repeatName = String(localized: "Every day")
+        case .weekdays: repeatName = String(localized: "Weekdays")
+        case .weekly: repeatName = String(localized: "Every week")
+        }
+        let display = reminder.presentation == .fullScreen
+            ? String(localized: "Full screen")
+            : String(localized: "Floating card")
+        return String(format: String(localized: "%@ · %@ · %@"), schedule, repeatName, display)
     }
 }
