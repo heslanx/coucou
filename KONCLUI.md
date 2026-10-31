@@ -106,7 +106,8 @@ voice and gamification research. It keeps product direction apart from what this
   background is the Painel Gestor's sidebar (navy, ink, deep teal at -160° with the mint glow, `KoncluiBrandBackdrop`) under
   the website's grain (`KoncluiGrain`, also on the pages' bands and the reminder's card). The notch keeps its black: it has to
   disappear into the hardware notch.
-- Every word on screen follows `docs/konclui/UX.md` section 5 in all 16 languages: no dashes as punctuation, one name per
+- Every word on screen follows `docs/konclui/UX.md` section 5: Koncluí's own strings in all 16 languages, Coucou's through
+  the COPY rules in 14 (not Korean or Japanese). No dashes as punctuation, one name per
   concept (notch, aba, Ajustes do ditado, Ajustes do Sistema, gateway), paths written with "›", macOS permission prompts that
   say what the app does with the permission and are localized (`NotchBuddy/Resources/InfoPlist.xcstrings`).
 - **The notch pages behave.** Every agent's popover (Settings → Agents, the "Hooks not installed" door of Active pills, klaude)
