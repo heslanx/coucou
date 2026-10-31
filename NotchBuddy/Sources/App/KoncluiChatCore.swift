@@ -25,6 +25,7 @@ enum KoncluiCLI {
         "CLAUDE_CODE_USE_ANTHROPIC_AWS", "CLAUDECODE", "CLAUDE_CODE_SESSION_ID",
         "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN",
         "OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_API_KEY",
+        "GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL",
     ]
 
     /// Where the app looks for a CLI: it does not get the shell's PATH.
@@ -106,12 +107,14 @@ enum KoncluiClaudeCLI {
     /// `claude -p` with the prompt on stdin. Only web search and fetch are on, so nothing asks for a
     /// permission and nothing touches the disk; `--safe-mode` keeps the user's hooks (Koncluí's own
     /// would show this chat as a session in the notch), skills and MCP servers out of a chat turn.
+    /// `web: false` (the conversation holds email) turns every tool off: a message written to steer the
+    /// model could otherwise send what it read to a website.
     static func arguments(model: String, resume sessionID: String?, systemPrompt: String,
-                          safeMode: Bool = true) -> [String] {
+                          safeMode: Bool = true, web: Bool = true) -> [String] {
         var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-                    "--permission-mode", "dontAsk",
-                    "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch",
-                    "--system-prompt", systemPrompt]
+                    "--permission-mode", "dontAsk"]
+        args += web ? ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] : ["--tools", ""]
+        args += ["--system-prompt", systemPrompt]
         if safeMode { args.append("--safe-mode") }
         if !model.isEmpty, model != "default" { args += ["--model", model] }
         if let sessionID, !sessionID.isEmpty { args += ["--resume", sessionID] }

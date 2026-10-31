@@ -141,6 +141,8 @@ extension CLIRelay {
         run.process.currentDirectoryURL = workdir
         var env = ProcessInfo.processInfo.environment
         env.removeValue(forKey: "CLAUDECODE")
+        // Koncluí: no inherited endpoint or key sends a subscription elsewhere (KONCLUI.md, functional ties)
+        for key in KoncluiCLI.routingVariables { env[key] = nil }
         // An npm install is a `#!/usr/bin/env node` script: its own folder (nvm keeps Node
         // there) and the usual ones first on PATH so it finds its Node.
         let dir = (exe as NSString).deletingLastPathComponent

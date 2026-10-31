@@ -226,6 +226,7 @@ final class ClaudeService {
         KoncluiChat.shared.clear()
         #if !APPSTORE
         relayHistory = []
+        relayHoldsMail = false
         #endif
     }
 
@@ -243,6 +244,7 @@ final class ClaudeService {
 
     /// The relay's turns, as plain text: they never mix with the API's content blocks.
     private var relayHistory: [(user: String, assistant: String)] = []
+    private var relayHoldsMail = false   // Koncluí: the relay's conversation carries email
 
     private func chatThroughSubscription(_ provider: ChatProvider, query: String, context: PromptContext?, state: AppState) async {
         guard let cli = provider.installedCLI else {
@@ -281,11 +283,13 @@ final class ClaudeService {
             if case .file = context, relayHistory.isEmpty { return true }
             return false
         }()
+        // Koncluí: email is untrusted text too: no web while the conversation holds any (KoncluiChat.holdsMail)
+        if state.chatMailMode { relayHoldsMail = true }
         let request = CLIRequest(
             model: provider == .anthropic ? model : nil,
             system: systemPrompt + extraSystem,
             prompt: CLIRelay.chatPrompt(history: relayHistory, context: contextLine, query: query),
-            web: !readsFile,
+            web: !readsFile && !relayHoldsMail,
             readDir: readDir,
             noWebPolicy: nil,
             timeout: 180
@@ -360,7 +364,7 @@ final class ClaudeService {
         guard state.chatProvider == .anthropic else {
             if state.chatProvider.isSubscription {
                 // Koncluí: Claude Code, Codex or the Koncluí Proxy, no API key
-                await KoncluiChat.shared.chat(query: query, context: context, state: state)
+                await KoncluiChat.shared.chat(query: query, context: context, state: state, extraSystem: extraSystem)
             } else {
                 await chatOpenAICompatible(query: query, context: context, state: state)
             }

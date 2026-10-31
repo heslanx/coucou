@@ -138,6 +138,7 @@ final class KoncluiChat {
     /// The proxy is stateless: the whole conversation goes with every request (Anthropic format).
     private var proxyMessages: [[String: Any]] = []
     private var running: Task<Void, Never>?
+    private var extraSystem = ""
     private var quitObserver: NSObjectProtocol?
 
     private init() {
@@ -149,6 +150,9 @@ final class KoncluiChat {
         #endif
     }
 
+    /// The conversation carries email (Mail on in the chat): no web tool until it is cleared.
+    private var holdsMail = false
+
     /// A new conversation: ends a running turn (and its subprocess) and forgets the threads.
     func clear() {
         running?.cancel()
@@ -156,10 +160,14 @@ final class KoncluiChat {
         claudeSession = nil
         codexThread = nil
         proxyMessages = []
+        holdsMail = false
     }
 
-    func chat(query: String, context: PromptContext?, state: AppState) async {
+    /// `extraSystem`: instructions added to the system prompt for this turn (Mail's plan format, MailAgentPrompt).
+    func chat(query: String, context: PromptContext?, state: AppState, extraSystem: String = "") async {
         running?.cancel()
+        if state.chatMailMode { holdsMail = true }
+        self.extraSystem = extraSystem
         let provider = state.chatProvider
         let turn = Task { @MainActor in
             switch provider {
@@ -184,7 +192,7 @@ final class KoncluiChat {
                                         context: claudeSession == nil ? Self.contextText(context) : nil)
         let placeholder = beginAnswer(state: state)
         let model = state.activeChatModel
-        let system = ClaudeService.makeSystemPrompt()
+        let system = ClaudeService.makeSystemPrompt() + extraSystem
         var stream = KoncluiClaudeStream()
         var ended: (code: Int32, stderr: String, timedOut: Bool) = (0, "", false)
 
@@ -193,7 +201,8 @@ final class KoncluiChat {
             ended = await consume(
                 KoncluiProcess.stream(claude,
                                       KoncluiClaudeCLI.arguments(model: model, resume: claudeSession,
-                                                                 systemPrompt: system, safeMode: safeMode),
+                                                                 systemPrompt: system, safeMode: safeMode,
+                                                                 web: !holdsMail),
                                       environment: KoncluiCLILocator.environment(for: claude),
                                       directory: KoncluiCLILocator.chatDirectory,
                                       input: Data(prompt.utf8), timeout: 300),
@@ -237,7 +246,8 @@ final class KoncluiChat {
         }
         let prompt = KoncluiPrompt.turn(
             query: query,
-            persona: firstTurn ? ClaudeService.makeSystemPrompt(webSearch: false) : nil,
+            persona: firstTurn ? ClaudeService.makeSystemPrompt(webSearch: false) + extraSystem
+                               : (extraSystem.isEmpty ? nil : extraSystem),
             context: firstTurn ? Self.contextText(context) : nil)
         let placeholder = beginAnswer(state: state)
         var stream = KoncluiCodexStream()
@@ -320,7 +330,7 @@ final class KoncluiChat {
         proxyMessages.append(["role": "user", "content": content])
 
         guard let body = KoncluiProxy.messagesBody(model: state.activeChatModel,
-                                                   system: ClaudeService.makeSystemPrompt(webSearch: false),
+                                                   system: ClaudeService.makeSystemPrompt(webSearch: false) + extraSystem,
                                                    messages: proxyMessages),
               let request = KoncluiProxy.messagesRequest(base: base, token: key, body: body) else {
             proxyMessages.removeLast()
