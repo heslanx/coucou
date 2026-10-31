@@ -11,7 +11,8 @@ extension TerminalTarget {
               let app = apps.first(where: { $0.bundleIdentifier == id }) else { return false }
         // Koncluí: Orca holds many terminals, so it also opens the one the clicked card's session runs in.
         if id == ClaudeHost.orcaBundleId {
-            let terminal = task.flatMap { OrcaTerminals.shared.terminal(task: $0) } ?? OrcaTerminals.shared.focusTerminal
+            // A card whose session is unknown opens Orca as it is, never another session's terminal.
+            let terminal = task.map { OrcaTerminals.shared.terminal(task: $0) } ?? OrcaTerminals.shared.focusTerminal
             ClaudeHost.switchOrcaTerminal(handle: terminal?.handle)
         }
         return app.activate(options: .activateIgnoringOtherApps)
