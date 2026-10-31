@@ -13,7 +13,6 @@ Run it after changing one of FILES, then `python3 scripts/konclui/rebrand.py --c
 Needs the `upstream` remote fetched (`git fetch upstream`).
 """
 import difflib
-import re
 import runpy
 import subprocess
 import sys
@@ -42,21 +41,11 @@ def upstream(path: str) -> str:
 
 
 def without_generated(text: str) -> str:
-    """rebrand.py without this script's blocks (and the hand-made rules they replaced)."""
+    """rebrand.py without this script's blocks."""
     for start, end in ((F_START, F_END), (I_START, I_END)):
         while start in text:
             i = text.index(start)
             text = text[:i] + text[text.index(end, i) + len(end):]
-    # Earlier hand-made versions of the same rules.
-    alt = "|".join(re.escape(f) for f in FILES)
-    text = re.sub(r"    \('(?:" + alt + r")',\n     .*?\),\n", "", text, flags=re.S)
-    for line in ('    ("tests/MacUpdateTests.swift", "Louis-CFM/coucou", "konclui/konclui-releases"),\n',
-                 '    ("tests/WhatsNewTests.swift", "Louis-CFM/coucou", FORK),\n',
-                 "    # Koncluí's updater reads only Koncluí's releases, through its update service (updates/, ADR-002): its team, its\n"
-                 "    # konclui-v tags (generated from upstream's files, after the two rules above; WORKFLOW.md \"Releases\").\n",
-                 "    # The updater's tests follow Koncluí's service, tags and team (after the two rules above).\n",
-                 "    # Koncluí's updater: lines it adds to upstream's files (generated with the rules in FIXED; INSERTS run after them).\n"):
-        text = text.replace(line, "")
     return text
 
 

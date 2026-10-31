@@ -105,9 +105,10 @@ gitleaks git --log-opts="<branch> --not --remotes=konclui" --redact .
 ## Releases
 
 Everything about a release points at Koncluí only: its team (`5M8RG3BCX2`), its notary profile (`konclui-notary`),
-`Konclui.zip`, `konclui-vX.Y.Z` tags on the private `konclui` remote, and the release published to Koncluí's **public**
-releases repository `konclui/konclui-releases`, which is where the app's updater looks (`MacUpdate`). Public because the app
-reads releases without a token, and `konclui/konclui-notch` is private. Never `origin`, never `Louis-CFM/coucou`.
+`Konclui.zip`, `konclui-vX.Y.Z` tags, and the release published in this same private repository, `konclui/konclui-notch`.
+The app reads it through Koncluí's update service (`updates/`, `https://updates.konclui.com`), which holds a read-only token:
+one private repository, no token in the app ([ADR-002](decisions/ADR-002-update-service.md)). Never `origin`, never
+`Louis-CFM/coucou`. Deploying the service: [updates/README.md](../../updates/README.md).
 
 What is still missing on this Mac, each with how to get it:
 
@@ -117,8 +118,8 @@ What is still missing on this Mac, each with how to get it:
 
 On 2026-10-30 it lists six: a Developer ID Application certificate of team `5M8RG3BCX2` (the paid Apple Developer Program),
 the notary profile, the Release build signed with that team, Release entitlements without Coucou's iCloud container, a
-version of Koncluí's own (today `project.yml` follows Coucou's at every sync), and the public releases repository. Until
-then a Mac gets Koncluí by building it with `scripts/konclui/dev-install.sh`, and `block_updates` stays off.
+version of Koncluí's own (today `project.yml` follows Coucou's at every sync), and the update service answering with its
+token. Until then a Mac gets Koncluí by building it with `scripts/konclui/dev-install.sh`, and `block_updates` stays off.
 
 Once `--check` says "Ready to release", from a clean `main` equal to `konclui/main`:
 
@@ -126,7 +127,8 @@ Once `--check` says "Ready to release", from a clean `main` equal to `konclui/ma
    shows) and the What's new entry that [CLAUDE.md](../../CLAUDE.md) asks for, merged like any other change.
 2. `./scripts/konclui/release.sh <version>`: builds Release, checks the signature the updater will demand, notarizes, staples,
    shows the notes, and after a "y" tags `konclui-v<version>` on `konclui` and publishes the release with `Konclui.zip`.
-   `--finish` resumes after an interrupted notarization wait.
+   `--finish` resumes after an interrupted notarization wait. Macs see it within five minutes (the service keeps the list
+   that long).
 
 `scripts/release.sh` is upstream's (Coucou's profile and notary profile, `Coucou.zip`, the tag and a Homebrew commit pushed
 to the public `origin`, the release on `Louis-CFM/coucou`): in this fork it stops at its first line.
@@ -134,17 +136,21 @@ to the public `origin`, the release on `Louis-CFM/coucou`): in this fork it stop
 A fix for a released version while `main` has changes not ready to ship: `release/x.y` from the tag, the fix on `main` first,
 then cherry-picked to `release/x.y`, released from there.
 
+A release that must not be installed: its tag in the service's `BLOCKED_TAGS` (Easypanel) and a redeploy; within a minute no
+Mac is offered it or can download it. Then publish a fixed release with a higher version.
+
 ## How the app finds and installs an update
 
 Once `block_updates` is on and the person said yes to looking (once, in the notch, or in Settings → Atualizações):
 
-1. 30 seconds after launch, then every hour, `MacUpdater` checks whether 6 hours have passed since the last look (GitHub
-   allows 60 anonymous calls an hour). If so it asks `GET api.github.com/repos/konclui/konclui-releases/releases`.
+1. 30 seconds after launch, then every hour, `MacUpdater` checks whether 6 hours have passed since the last look. If so it
+   asks `GET https://updates.konclui.com/v1/mac/releases`; the service answers from the private repository's releases.
 2. `MacUpdate.latest` keeps the newest published release (not a draft or prerelease) whose tag is `konclui-vX.Y.Z` and that has
    a `Konclui.zip`, and compares its version with the running app's, number by number (0.10.0 is newer than 0.9.3).
 3. Newer: the Koru announces it in the notch, once a day at most per version ("Later" hides it for 24 hours), and turns blue
    until it is installed; the menu bar and Settings keep offering it.
-4. "Install": the zip is downloaded from GitHub only, unzipped with `ditto`, and checked before anything is replaced: the
+4. "Install": the zip is downloaded through the service, which redirects to GitHub's short-lived link (only those two hosts
+   are allowed), unzipped with `ditto`, and checked before anything is replaced: the
    bundle id is `com.konclui.mac` and the version is the announced one, the signature satisfies `anchor apple generic and
    identifier "com.konclui.mac" and certificate leaf[subject.OU] = "5M8RG3BCX2"` on every architecture and nested binary,
    and Gatekeeper accepts it as notarized (`spctl`). Any failure stops there and nothing is replaced.
