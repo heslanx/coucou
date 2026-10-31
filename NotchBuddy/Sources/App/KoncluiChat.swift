@@ -177,10 +177,19 @@ final class KoncluiChat {
     }
 
     /// The conversation carries text from outside (email with Mail on, a dropped file): no web tool until it is
-    /// cleared, so that text cannot steer the model into sending what it read to a website.
-    private var holdsOutsideText = false
-    /// The conversation carries email: only a tool that can answer with no web at all takes it.
-    private var holdsMail = false
+    /// cleared, so that text cannot steer the model into sending what it read to a website. Only a tool that can answer
+    /// with no web at all takes it. Recorded for every route (`receive`), Coucou's own included.
+    private(set) var outside = KoncluiOutsideText()
+    private var holdsOutsideText: Bool { outside.any }
+    private var holdsMail: Bool { outside.mail }
+
+    /// What a turn brings into the conversation. ClaudeService calls it before it picks a route, so a Mail turn answered
+    /// by an API key or a local server counts for the turns after it too.
+    func receive(mail: Bool, context: PromptContext?) {
+        var file = false
+        if case .file = context { file = true }
+        outside.receive(mail: mail, file: file)
+    }
 
     /// Who answers: a provider's subscription tool once its switch is on, and the Koncluí Proxy.
     enum Route: Equatable, Sendable {
@@ -218,8 +227,7 @@ final class KoncluiChat {
         proxyMessages = []
         proxyAnswers = 0
         proxyContext = nil
-        holdsOutsideText = false
-        holdsMail = false
+        outside = KoncluiOutsideText()
         Self.removeCursorChats()
     }
 
@@ -241,8 +249,7 @@ final class KoncluiChat {
     func chat(_ route: Route, query: String, context: PromptContext?, state: AppState, extraSystem: String = "") async {
         stopRunning()
         runningProvider = state.chatProvider
-        if state.chatMailMode { holdsOutsideText = true; holdsMail = true }
-        if case .file = context { holdsOutsideText = true }
+        receive(mail: state.chatMailMode, context: context)
         // What this turn sends is fixed here: a later turn cannot change it under a cancelled one.
         let extra = extraSystem, web = !holdsOutsideText, sensitive = holdsOutsideText
         if case .refused(let cli) = route {

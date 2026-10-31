@@ -220,12 +220,11 @@ final class ClaudeService {
 
     // Multi-turn conversation messages (for API)
     private var conversationMessages: [[String: Any]] = []
-    /// Koncluí: the conversation carries email (Mail on): no web tool on any route until it is cleared.
-    private var conversationHoldsMail = false
+    /// Koncluí: the conversation carries email (Mail on): no web tool on any route until it is cleared (KoncluiChat's record).
+    private var conversationHoldsMail: Bool { KoncluiChat.shared.outside.mail }
 
     func clearConversation() {
         conversationMessages = []
-        conversationHoldsMail = false
         KoncluiChat.shared.clear()
         #if !APPSTORE
         relayHistory = []
@@ -356,9 +355,9 @@ final class ClaudeService {
         if state.chatMailMode {
             query = await MailAgent.shared.decorate(query)
             extraSystem = MailAgentPrompt.instructions
-            conversationHoldsMail = true   // Koncluí: an email could steer a model with web tools to a URL
         }
         #endif
+        KoncluiChat.shared.receive(mail: state.chatMailMode, context: context)   // Koncluí: what the conversation holds, every route
         #if !APPSTORE
         // Koncluí: Claude and ChatGPT on their subscription, and the Koncluí Proxy, stream (KoncluiChat.swift)
         if let route = KoncluiChat.route(for: state.chatProvider, state: state, context: context) {

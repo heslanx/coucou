@@ -200,6 +200,20 @@ struct KoncluiThreads: Sendable {
     }
 }
 
+/// What the conversation holds from outside, whichever route answered the turn that brought it: email (Mail on) or a
+/// dropped file. The one record of it: the routes, the relay and the Anthropic API read it, until Clear.
+struct KoncluiOutsideText: Equatable, Sendable {
+    private(set) var mail = false
+    private(set) var file = false
+    /// No web tool while the conversation holds either.
+    var any: Bool { mail || file }
+
+    mutating func receive(mail: Bool, file: Bool) {
+        if mail { self.mail = true }
+        if file { self.file = true }
+    }
+}
+
 /// What a turn continues and what it carries.
 struct KoncluiTurnShape: Equatable, Sendable {
     /// The CLI's thread to continue; nil: a new thread (or none, for the relay format).

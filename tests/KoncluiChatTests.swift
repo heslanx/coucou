@@ -518,6 +518,22 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.route([.cursor], offline: true, installed: both), .cli(.cursor), "Cursor turns its web off")
         expect(KoncluiChatEngine.route([], offline: false, installed: both), nil, "no tool: Coucou's own code")
 
+        // Email answered by another route (an API key, a local server) is the conversation's too: one record, read by
+        // the route of every later turn until Clear.
+        var outside = KoncluiOutsideText()
+        outside.receive(mail: true, file: false)   // a Mail turn the Anthropic key answered
+        let mailOffNow = KoncluiChatEngine.offline(holdsOutsideText: outside.any, mailMode: false, attachesFile: false)
+        expectTrue(mailOffNow, "Mail switched off, a subscription picked: still no web")
+        expect(KoncluiChatEngine.route(google, offline: mailOffNow, installed: both), .cli(.gemini), "so Gemini CLI, not Antigravity")
+        expect(KoncluiChatEngine.route(google, offline: mailOffNow, installed: onlyAgy), .refused(.antigravity),
+               "or a refusal when only Antigravity is there")
+        outside.receive(mail: false, file: false)
+        expectTrue(outside.mail && outside.any, "a later turn without Mail does not forget it")
+        var dropped = KoncluiOutsideText()
+        dropped.receive(mail: false, file: true)
+        expectTrue(dropped.any && !dropped.mail, "a dropped file counts, and is not email")
+        expectTrue(!KoncluiOutsideText().any, "a new conversation (Clear) holds nothing")
+
         // The refusal for a file says so in every language of the catalog.
         let catalogURL = URL(fileURLWithPath: "NotchBuddy/Resources/Localizable.xcstrings")
         let catalog = (try? JSONSerialization.jsonObject(with: Data(contentsOf: catalogURL))) as? [String: Any]
