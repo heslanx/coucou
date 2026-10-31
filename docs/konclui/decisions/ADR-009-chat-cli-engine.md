@@ -76,11 +76,12 @@ would give it a thread; it waits for the JSON events to be documented or checked
 **What stays on disk.** Once a conversation holds email or a dropped file, a CLI that can run without saving does
 (`turnsPersistenceOff`), and every turn sends the conversation instead of continuing a thread, as the relay does: Claude
 Code with `--no-session-persistence` (checked: no session under `~/.claude/projects`) and Codex with `--ephemeral`
-(checked live: it answers and writes no file under `~/.codex/sessions`). The others have no such switch:
+(checked live: it answers, and its thread cannot be continued afterwards while a saved one can; Codex 0.166 keeps threads
+in its own database). The others have no such switch:
 
 | CLI | What it keeps of a turn | Removed by Koncluí |
 |---|---|---|
-| Claude Code, Codex | a plain conversation: their usual session files (the thread); with email or a file: nothing | no (their stores) |
+| Claude Code, Codex | a plain conversation: their usual sessions (the thread: Claude's files under `~/.claude/projects`, Codex's database); with email or a file: nothing | no (their stores) |
 | Cursor | the chat, in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`); its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the chats, when the conversation is cleared and when Koncluí starts; not Cursor's transcripts |
 | Gemini CLI | the session, under `~/.gemini/tmp/<the chat folder's hash>/chats` (deleted by Gemini after 30 days by default) | no (Gemini's store) |
 | Antigravity | its conversation, in its own store; it never answers a conversation with email or a dropped file | no |
@@ -108,6 +109,8 @@ Sources, read on 2026-10-31:
   sign-in line and an isolation stricter than the relay's (no file read anywhere, no MCP, no web with outside text).
 - Gemini CLI, Antigravity and Copilot are not installed on the Mac this was built on: their adapters follow the sources
   above and are tested on fixtures; a run in a format they do not read falls back to the relay's reading.
+- Cursor starts a `worker-server` for the chat folder that leaves the CLI's process tree (its parent is launchd), so
+  stopping a turn does not end it; seen ending on its own within minutes.
 - What no CLI lets a run switch off stays as with the relay: the user's hooks for Cursor (`~/.cursor/hooks.json`; checked:
   `CURSOR_CONFIG_DIR` does not move them), Gemini CLI, Antigravity and Copilot; GEMINI.md; Antigravity's MCP servers,
   plugins and web (its headless defaults refuse them unless the user's settings allow them).

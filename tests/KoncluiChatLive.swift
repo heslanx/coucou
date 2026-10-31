@@ -122,19 +122,16 @@ enum KoncluiChatLive {
         let adapter = KoncluiCodexAdapter(model: KoncluiCodexCLI.configuredModel() ?? "")
         await thread("codex", adapter, codex, in: dir, firstTurn: KoncluiCLITurn(prompt: persona + "\n\n" + first))
 
-        // A conversation with email or a dropped file: --ephemeral, no session file.
-        let sessions = URL(fileURLWithPath: home).appendingPathComponent(".codex/sessions")
-        let before = sessionFiles(sessions)
-        let unsaved = await turn(adapter, codex, KoncluiCLITurn(prompt: persona + "\n\nReply with just: unsaved.", web: false,
-                                                                persist: false), in: dir)
+        // A conversation with email or a dropped file: --ephemeral. Nothing is kept, so its thread cannot be resumed
+        // (Codex 0.166 keeps threads in its own database, not as files: resuming is the observable check).
+        let unsaved = await turn(adapter, codex, KoncluiCLITurn(prompt: persona + "\n\n" + first, web: false, persist: false),
+                                 in: dir)
         report("codex", "ephemeral", unsaved)
         check(!unsaved.text.isEmpty && !unsaved.failed, "codex", "an ephemeral turn answers")
-        check(sessionFiles(sessions).subtracting(before).isEmpty, "codex", "and leaves no session file")
-    }
-
-    static func sessionFiles(_ root: URL) -> Set<String> {
-        let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? []
-        return Set(files.map(\.path))
+        let again = await turn(adapter, codex, KoncluiCLITurn(prompt: second, resume: unsaved.threadID), in: dir)
+        report("codex", "resume ephemeral", again)
+        check(unsaved.threadID != nil && !again.text.uppercased().contains("PINEAPPLE"), "codex",
+              "and keeps nothing: its thread cannot be continued\(KoncluiCLI.isLostThread(stderr: again.stderr) ? " (lost thread)" : "")")
     }
 
     static func cursor(_ dir: URL) async {
