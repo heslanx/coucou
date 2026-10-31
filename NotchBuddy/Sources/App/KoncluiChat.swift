@@ -134,10 +134,7 @@ final class KoncluiChat {
     /// Each CLI's own memory of the conversation, so a turn continues the same thread while it holds every turn.
     private var threads = KoncluiThreads()
     /// The proxy is stateless: the whole conversation goes with every request (Anthropic format).
-    private var proxyMessages: [[String: Any]] = []
-    /// How many answered turns of the visible conversation `proxyMessages` holds, and the window or file it was given.
-    private var proxyAnswers = 0
-    private var proxyContext: String?
+    private var proxy = KoncluiProxyConversation()
     private var running: Task<Void, Never>?
     /// The provider whose turn is running: picking another one stops it.
     private var runningProvider: ChatProvider?
@@ -224,9 +221,7 @@ final class KoncluiChat {
     func clear() {
         stopRunning()
         threads = KoncluiThreads()
-        proxyMessages = []
-        proxyAnswers = 0
-        proxyContext = nil
+        proxy.clear()
         outside = KoncluiOutsideText()
         Self.removeCursorChats()
     }
@@ -452,18 +447,14 @@ final class KoncluiChat {
 
         // Another provider answered in between: the proxy gets the conversation as the person sees it, with the window
         // or file on its first message. A conversation it holds gets a window or file it has not been given yet.
-        let transcript = Self.transcript(state)
-        let rebuild = proxyAnswers != transcript.count
-        let contextKey = Self.contextKey(context)
-        let carries = contextKey != nil && (rebuild || proxyMessages.isEmpty || contextKey != proxyContext)
-        proxyMessages = KoncluiChatEngine.proxyMessages(kept: rebuild ? nil : proxyMessages, transcript: transcript,
-                                                        context: carries ? Self.proxyBlocks(context) : [], query: query)
+        // Built apart: the conversation takes it only once this turn is answered (`KoncluiProxyConversation.answered`).
+        let turn = proxy.turn(transcript: Self.transcript(state), contextKey: Self.contextKey(context),
+                              blocks: { Self.proxyBlocks(context) }, query: query)
 
         guard let body = KoncluiProxy.messagesBody(model: state.activeChatModel,
                                                    system: ClaudeService.makeSystemPrompt(webSearch: false) + extra,
-                                                   messages: proxyMessages),
+                                                   messages: turn.messages),
               let request = KoncluiProxy.messagesRequest(base: base, token: key, body: body) else {
-            proxyMessages.removeLast()
             return fail(String(localized: "The Koncluí Proxy is unreachable. Check your connection."), state: state)
         }
 
@@ -498,12 +489,10 @@ final class KoncluiChat {
             try Task.checkCancellation()
             let final = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !final.isEmpty else { throw ProxyFailure.empty }
-            proxyMessages.append(["role": "assistant", "content": final])
-            proxyAnswers = transcript.count + 1
-            if rebuild || carries { proxyContext = carries ? contextKey : nil }
+            proxy.answered(turn, with: final)
             finish(final, placeholder: placeholder, state: state)
         } catch {
-            proxyMessages.removeLast()
+            // Nothing to undo: the conversation never took this turn's messages.
             abandon(placeholder, state: state)
             if Task.isCancelled || (error as? URLError)?.code == .cancelled { return }
             switch error {

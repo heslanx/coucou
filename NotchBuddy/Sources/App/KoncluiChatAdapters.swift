@@ -214,6 +214,55 @@ struct KoncluiOutsideText: Equatable, Sendable {
     }
 }
 
+/// The Koncluí Proxy's side of the conversation (the proxy keeps nothing: every request carries it all). A turn builds
+/// its messages apart, and the conversation takes them only once that turn's answer has come, so a stopped turn,
+/// whatever it does later, never touches what the next one sends.
+struct KoncluiProxyConversation {
+    /// One turn's messages, and what the conversation becomes once it is answered.
+    struct Turn {
+        let messages: [[String: Any]]
+        fileprivate let revision: Int
+        fileprivate let answers: Int
+        fileprivate let context: String?
+    }
+
+    private(set) var messages: [[String: Any]] = []
+    /// How many answered turns of the visible chat it holds, the window or file it was given, and how many times it
+    /// changed (a turn built before the last change is stale).
+    private var answers = 0
+    private var context: String?
+    private var revision = 0
+
+    /// A turn's messages: rebuilt from the visible chat when another provider answered in between, the window or file
+    /// (`blocks`, built only when carried) when the conversation has not been given it (`contextKey`).
+    func turn(transcript: [KoncluiExchange], contextKey: String?, blocks: () -> [[String: Any]], query: String) -> Turn {
+        let rebuild = answers != transcript.count
+        let carries = contextKey != nil && (rebuild || messages.isEmpty || contextKey != context)
+        let built = KoncluiChatEngine.proxyMessages(kept: rebuild ? nil : messages, transcript: transcript,
+                                                    context: carries ? blocks() : [], query: query)
+        return Turn(messages: built, revision: revision, answers: transcript.count + 1,
+                    context: carries ? contextKey : (rebuild ? nil : context))
+    }
+
+    /// The turn's answer came: the conversation is its messages and the answer. A turn built before the conversation
+    /// last changed (one that was stopped, or from before Clear) changes nothing.
+    mutating func answered(_ turn: Turn, with answer: String) {
+        guard turn.revision == revision else { return }
+        messages = turn.messages + [["role": "assistant", "content": answer]]
+        answers = turn.answers
+        context = turn.context
+        revision += 1
+    }
+
+    /// A new conversation; turns built before it stay stale.
+    mutating func clear() {
+        messages = []
+        answers = 0
+        context = nil
+        revision += 1
+    }
+}
+
 /// What a turn continues and what it carries.
 struct KoncluiTurnShape: Equatable, Sendable {
     /// The CLI's thread to continue; nil: a new thread (or none, for the relay format).

@@ -639,6 +639,31 @@ enum KoncluiChatTests {
                #"[{"content":[{"text":"Hi","type":"text"}],"role":"user"},{"content":"Hello!","role":"assistant"},{"content":[{"text":"More?","type":"text"}],"role":"user"}]"#,
                "a kept conversation with nothing new: the question alone")
 
+        // A stopped proxy turn cannot touch the conversation the next turn sends.
+        var proxy = KoncluiProxyConversation()
+        let stopped = proxy.turn(transcript: [], contextKey: nil, blocks: { [] }, query: "Q1")
+        let next = proxy.turn(transcript: [], contextKey: nil, blocks: { [] }, query: "Q2")
+        expect(json(proxy.messages), "[]", "building a turn changes nothing")
+        proxy.answered(next, with: "A2")
+        expect(json(proxy.messages), #"[{"content":[{"text":"Q2","type":"text"}],"role":"user"},{"content":"A2","role":"assistant"}]"#,
+               "the answered turn's question and answer, nothing of the stopped one")
+        proxy.answered(stopped, with: "A1, late")
+        expect(json(proxy.messages), #"[{"content":[{"text":"Q2","type":"text"}],"role":"user"},{"content":"A2","role":"assistant"}]"#,
+               "a stopped turn's late answer is ignored")
+        var blocksBuilt = 0
+        let withFile = proxy.turn(transcript: [KoncluiExchange(user: "Q2", assistant: "A2")], contextKey: "file:/a.pdf",
+                                  blocks: { blocksBuilt += 1; return [["type": "text", "text": "File: a.pdf"]] }, query: "Q3")
+        proxy.answered(withFile, with: "A3")
+        let sameFile = proxy.turn(transcript: [KoncluiExchange(user: "Q2", assistant: "A2"), KoncluiExchange(user: "Q3", assistant: "A3")],
+                                  contextKey: "file:/a.pdf", blocks: { blocksBuilt += 1; return [] }, query: "Q4")
+        expect(blocksBuilt, 1, "the file is read once, for the turn that carries it")
+        expect(json(Array(sameFile.messages.suffix(1))), #"[{"content":[{"text":"Q4","type":"text"}],"role":"user"}]"#,
+               "and not sent again")
+        let beforeClear = proxy.turn(transcript: [], contextKey: nil, blocks: { [] }, query: "old")
+        proxy.clear()
+        proxy.answered(beforeClear, with: "late")
+        expect(json(proxy.messages), "[]", "a turn from before Clear changes nothing")
+
         // A stopped turn takes its CLI's thread with it: the CLI may hold part of a turn the chat never shows.
         var book = KoncluiThreads()
         book[.claude] = KoncluiThread(id: "c", answers: 2)
