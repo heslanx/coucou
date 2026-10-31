@@ -63,7 +63,7 @@ final class MailAgent: ObservableObject {
 
     /// Where a plan's files are made (saved attachments, PDF pages); emptied at launch.
     private let workDir: URL = {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("coucou-mail-plans", isDirectory: true)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("konclui-mail-plans", isDirectory: true)
         try? FileManager.default.removeItem(at: dir)
         return dir
     }()

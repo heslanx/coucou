@@ -60,7 +60,7 @@
             "tr": "Masaüstündeki Koru görünür kalır",
             "th": "Koru บนเดสก์ท็อปไม่หาย",
             "zh-Hant": "桌面 Koru 保持可見",
-            "ko": "데스크톱 Mochi가 그대로",
+            "ko": "데스크톱 Koru가 그대로",
             "ja": "デスクトップの Koru が消えない"
           },
           "detail": {
@@ -78,7 +78,7 @@
             "tr": "Uygulama değiştirdiğinizde Koru artık masaüstünden kaybolmuyor.",
             "th": "สลับแอปแล้ว Koru จะไม่หายไปจากเดสก์ท็อปอีก",
             "zh-Hant": "切換 App 時，Koru 不會再從桌面消失。",
-            "ko": "앱을 바꿔도 Mochi가 더 이상 데스크톱에서 사라지지 않아요.",
+            "ko": "앱을 바꿔도 Koru가 더 이상 데스크톱에서 사라지지 않아요.",
             "ja": "アプリを切り替えても、Koru がデスクトップから消えなくなりました。"
           }
         },
@@ -239,7 +239,7 @@
             "tr": "Koru'yi ekranın bir köşesine sürükleyin ya da Ayarlar → Genel → Konum'dan seçin.",
             "th": "ลาก Koru ไปที่มุมจอ หรือเลือกใน การตั้งค่า → ทั่วไป → ตำแหน่ง",
             "zh-Hant": "把 Koru 拖到螢幕一角，或在設定 → 一般 → 位置中選擇。",
-            "ko": "Mochi를 화면 구석으로 끌어 놓거나 설정 → 일반 → 위치에서 고르세요.",
+            "ko": "Koru를 화면 구석으로 끌어 놓거나 설정 → 일반 → 위치에서 고르세요.",
             "ja": "Koru を画面の隅へドラッグするか、設定 → 一般 → 位置 で選べます。"
           }
         },
@@ -361,7 +361,7 @@
             "tr": "Koncluí artık 16 dil konuşuyor. Korece @lovyestar sayesinde.",
             "th": "ตอนนี้ Koncluí พูดได้ 16 ภาษา ภาษาเกาหลีโดย @lovyestar",
             "zh-Hant": "Koncluí 現在支援 16 種語言。韓文由 @lovyestar 貢獻。",
-            "ko": "Coucou가 이제 16개 언어를 지원합니다. 한국어는 @lovyestar 덕분이에요.",
+            "ko": "Koncluí가 이제 16개 언어를 지원합니다. 한국어는 @lovyestar 덕분이에요.",
             "ja": "Koncluí は 16 言語に対応しました。韓国語は @lovyestar のおかげです。"
           }
         }
@@ -483,7 +483,7 @@
             "ar": "لم يعد فشل اتصال واحد يقطع Claude Code، ولا يُعدَّل إلا خطافات Koncluí نفسها.",
             "bn": "একটি সংযোগ ব্যর্থ হলে আর Claude Code বিচ্ছিন্ন হয় না, আর শুধু Koncluí-র নিজের hooks বদলায়।",
             "id": "Satu koneksi gagal tak lagi memutus Claude Code, dan hanya hook milik Koncluí yang diubah.",
-            "de": "Eine fehlgeschlagene Verbindung trennt Claude Code nicht mehr, und nur Coucous eigene Hooks werden geändert.",
+            "de": "Eine fehlgeschlagene Verbindung trennt Claude Code nicht mehr, und nur Koncluís eigene Hooks werden geändert.",
             "tr": "Tek bir başarısız bağlantı artık Claude Code’u koparmıyor; yalnızca Koncluí’nun kendi hook’ları değişir.",
             "th": "การเชื่อมต่อที่ล้มเหลวไม่ตัด Claude Code อีกต่อไป และแก้เฉพาะ hooks ของ Koncluí เอง",
             "zh-Hant": "一次連線失敗不再讓 Claude Code 中斷，且只更動 Koncluí 自己的 hooks。",
@@ -549,7 +549,7 @@
             "tr": "Güncellemede Koru maviye döner",
             "th": "Koru เป็นสีฟ้าเมื่อมีอัปเดต",
             "zh-Hant": "有更新時 Koru 變藍",
-            "ko": "업데이트가 있으면 모찌가 파랗게 돼요",
+            "ko": "업데이트가 있으면 코루가 파랗게 돼요",
             "ja": "アップデートで Koru が青に"
           },
           "detail": {
@@ -567,7 +567,7 @@
             "tr": "Yeni Koncluí onu çentikte ve menü çubuğunda maviye çevirir. Tek tıkla kurulur.",
             "th": "เมื่อมี Koncluí ใหม่ เขาจะเป็นสีฟ้าในรอยบากและแถบเมนู คลิกเดียวติดตั้ง",
             "zh-Hant": "有新版 Koncluí 時，瀏海和選單列中的它會變藍，一鍵安裝。",
-            "ko": "새 Coucou가 나오면 모찌가 노치와 메뉴 막대에서 파랗게 변해요. 클릭 한 번이면 설치돼요.",
+            "ko": "새 Koncluí가 나오면 코루가 노치와 메뉴 막대에서 파랗게 변해요. 클릭 한 번이면 설치돼요.",
             "ja": "新しい Koncluí が出るとノッチとメニューバーで青くなります。1 クリックでインストール。"
           }
         },
@@ -606,7 +606,7 @@
             "tr": "Her güncellemeden sonra: getirdikleri, ardından şimdiye kadar Koncluí’n.",
             "th": "หลังอัปเดตแต่ละครั้ง: ดูของใหม่ แล้วดู Koncluí ของคุณจนถึงตอนนี้",
             "zh-Hant": "每次更新後：先看新內容，再看你的 Koncluí 至今。",
-            "ko": "업데이트할 때마다 새로 뭐가 생겼는지 보여 주고, 지금까지의 Coucou도 알려 줘요.",
+            "ko": "업데이트할 때마다 새로 뭐가 생겼는지 보여 주고, 지금까지의 Koncluí도 알려 줘요.",
             "ja": "アップデートのたびに、新しい内容とこれまでのあなたの Koncluí を表示します。"
           }
         }
