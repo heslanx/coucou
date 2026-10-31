@@ -16,7 +16,7 @@ extension ChatProvider {
         case .cursor:    [.cursor]
         case .copilot:   [.copilot]
         case .ollama, .lmstudio, .deepseek, .qwen, .moonshot: []
-        case .claudeCode, .codex, .koncluiProxy: []   // Koncluí: signed-in routes of their own (KoncluiChatAccess.swift)
+        case .koncluiProxy: []   // Koncluí: klaude's route (KoncluiChat.swift)
         }
     }
 

@@ -120,9 +120,8 @@ enum ChatProvider: String, CaseIterable, Codable {
     case deepseek  = "deepseek"
     case qwen      = "qwen"
     case moonshot  = "moonshot"
-    // Koncluí: the chat through what this Mac is signed in to (raw values are stable)
-    case claudeCode   = "claude-code"
-    case codex        = "codex"
+    // Koncluí: the Koncluí Proxy behind klaude (raw value is stable). Claude Code and Codex are the Anthropic and OpenAI
+    // providers with Coucou's subscription switch on (ChatSubscription.swift), answered by KoncluiChat.
     case koncluiProxy = "konclui-proxy"
     // Answered only through the user's own subscription (CLIRelay.swift, GitHub build)
     case cursor    = "cursor"
@@ -138,8 +137,6 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .deepseek:  "DeepSeek"
         case .qwen:      "Qwen"
         case .moonshot:  "Moonshot"
-        case .claudeCode:   "Claude Code"
-        case .codex:        "Codex"
         case .koncluiProxy: "Koncluí Proxy"
         case .cursor:    "Cursor"
         case .copilot:   "GitHub Copilot"
@@ -156,8 +153,6 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .deepseek:  "#5B8FF9"
         case .qwen:      "#FF6A00"
         case .moonshot:  "#7C5CFC"
-        case .claudeCode:   "#D97757"
-        case .codex:        "#38BDF8"
         case .koncluiProxy: "#2DD4BF"
         case .cursor:    "#A1A1AA"
         case .copilot:   "#8B5CF6"
@@ -175,8 +170,6 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .qwen:      "qwen-max"
         case .moonshot:  "moonshot-v1-32k"
         // "default" = the CLI's own default model (no --model / -m)
-        case .claudeCode:   "default"
-        case .codex:        "default"
         case .koncluiProxy: "claude-sonnet-5-5"
         case .cursor:    ""
         case .copilot:   ""
@@ -193,8 +186,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .deepseek:  "deepseek-api-key"
         case .qwen:      "qwen-api-key"
         case .moonshot:  "moonshot-api-key"
-        // No key of Koncluí's own: the CLIs keep their login, the proxy key stays in klaude's Keychain item
-        case .claudeCode, .codex, .koncluiProxy: ""
+        // No key of Koncluí's own: the proxy key stays in klaude's Keychain item
+        case .koncluiProxy: ""
         case .cursor:    ""
         case .copilot:   ""
         }
@@ -204,9 +197,9 @@ enum ChatProvider: String, CaseIterable, Codable {
         self == .ollama || self == .lmstudio
     }
 
-    /// Reached through what this Mac is signed in to (Claude Code, Codex, the Koncluí Proxy), not an API key.
+    /// Koncluí's own route, reached through klaude's sign-in rather than a key of Koncluí's (the Koncluí Proxy).
     var isSubscription: Bool {
-        self == .claudeCode || self == .codex || self == .koncluiProxy
+        self == .koncluiProxy
     }
 
     var pillID: String {
@@ -219,8 +212,6 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .deepseek:  "ai_deepseek"
         case .qwen:      "ai_qwen"
         case .moonshot:  "ai_moonshot"
-        case .claudeCode:   "ai_claude_code"
-        case .codex:        "ai_codex"
         case .koncluiProxy: "ai_konclui_proxy"
         case .cursor:    "ai_cursor"
         case .copilot:   "ai_copilot"
@@ -237,8 +228,6 @@ enum ChatProvider: String, CaseIterable, Codable {
         case "ai_deepseek":  self = .deepseek
         case "ai_qwen":      self = .qwen
         case "ai_moonshot":  self = .moonshot
-        case "ai_claude_code":    self = .claudeCode
-        case "ai_codex":          self = .codex
         case "ai_konclui_proxy":  self = .koncluiProxy
         case "ai_cursor":    self = .cursor
         case "ai_copilot":   self = .copilot

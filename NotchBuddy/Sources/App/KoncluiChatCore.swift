@@ -107,13 +107,18 @@ enum KoncluiClaudeCLI {
     /// `claude -p` with the prompt on stdin. Only web search and fetch are on, so nothing asks for a
     /// permission and nothing touches the disk; `--safe-mode` keeps the user's hooks (Koncluí's own
     /// would show this chat as a session in the notch), skills and MCP servers out of a chat turn.
-    /// `web: false` (the conversation holds email) turns every tool off: a message written to steer the
-    /// model could otherwise send what it read to a website.
+    /// `web: false` (the conversation holds email or a dropped file) turns the web tools off: that text could
+    /// otherwise steer the model into sending what it read to a website. `readDir`: the folder holding a copy of the
+    /// dropped file (CLIRelay.isolate, as Coucou's relay does); Read is the only tool then, limited to that folder.
     static func arguments(model: String, resume sessionID: String?, systemPrompt: String,
-                          safeMode: Bool = true, web: Bool = true) -> [String] {
+                          safeMode: Bool = true, web: Bool = true, readDir: URL? = nil) -> [String] {
         var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
                     "--permission-mode", "dontAsk"]
-        args += web ? ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] : ["--tools", ""]
+        if let readDir {
+            args += ["--tools", "Read", "--allowedTools", "Read", "--add-dir", readDir.path]
+        } else {
+            args += web ? ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] : ["--tools", ""]
+        }
         args += ["--system-prompt", systemPrompt]
         if safeMode { args.append("--safe-mode") }
         if !model.isEmpty, model != "default" { args += ["--model", model] }
@@ -217,29 +222,19 @@ struct KoncluiClaudeStream {
 // MARK: - Codex
 
 enum KoncluiCodexCLI {
-    /// `codex exec --json` with the prompt on stdin. Read-only sandbox (a chat edits nothing), and
-    /// hooks off so the chat does not show up as a Codex session in the notch.
+    /// `codex exec --json` with the prompt on stdin. It can only answer: no shell (a read-only sandbox still reads
+    /// the whole disk), no apps, plugins or web search, and hooks off so the chat does not show up as a Codex session
+    /// in the notch. The model is the one chosen in Codex (`model` empty), as Coucou's relay does.
     static func arguments(model: String, resume threadID: String?, images: [String] = []) -> [String] {
         var args = ["exec"]
         if let threadID, !threadID.isEmpty { args += ["resume", threadID] }
-        args += ["--json", "--skip-git-repo-check", "--disable", "hooks",
-                 "-c", #"sandbox_mode="read-only""#]
+        args += ["--json", "--skip-git-repo-check"]
+        for feature in ["hooks", "shell_tool", "unified_exec", "apps", "plugins"] { args += ["--disable", feature] }
+        args += ["-c", #"sandbox_mode="read-only""#, "-c", #"web_search="disabled""#]
         if !model.isEmpty, model != "default" { args += ["-m", model] }
         for image in images { args += ["-i", image] }
         args.append("-")
         return args
-    }
-
-    /// The models `codex debug models` lists for the picker ("list" visibility), the CLI's default first.
-    static func parseModels(_ json: Data) -> [KoncluiModel] {
-        guard let object = (try? JSONSerialization.jsonObject(with: json)) as? [String: Any],
-              let items = object["models"] as? [[String: Any]] else { return [] }
-        let listed = items.compactMap { item -> KoncluiModel? in
-            guard let slug = item["slug"] as? String, !slug.isEmpty,
-                  (item["visibility"] as? String ?? "list") == "list" else { return nil }
-            return KoncluiModel(id: slug, label: (item["display_name"] as? String) ?? slug)
-        }
-        return listed.isEmpty ? [] : [KoncluiModel(id: "default", label: "Default")] + listed
     }
 
     static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp"]
@@ -426,5 +421,23 @@ enum KoncluiPrompt {
         if let context, !context.isEmpty { parts.append(context) }
         parts.append(query)
         return parts.joined(separator: "\n\n")
+    }
+}
+
+// MARK: - Migration
+
+/// Koncluí had chat providers of its own for Claude Code and Codex until 2026-10-31; they are Coucou's Anthropic and
+/// OpenAI with the subscription switch on now (ChatSubscription.swift). A Mac that chatted through one keeps doing so.
+enum KoncluiChatMigration {
+    static let moved = ["claude-code": "anthropic", "codex": "openai"]
+
+    static func run(_ defaults: UserDefaults = .standard) {
+        if let old = defaults.string(forKey: "chatProvider"), let provider = moved[old] {
+            defaults.set(provider, forKey: "chatProvider")
+            // ChatSubscription.swift's key for the provider's switch
+            defaults.set(true, forKey: "chat.useSubscription.\(provider)")
+        }
+        defaults.removeObject(forKey: "claudeCodeChatModel")
+        defaults.removeObject(forKey: "codexChatModel")
     }
 }

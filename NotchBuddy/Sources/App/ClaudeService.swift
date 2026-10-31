@@ -360,6 +360,11 @@ final class ClaudeService {
         }
         #endif
         #if !APPSTORE
+        // Koncluí: Claude and ChatGPT on their subscription, and the Koncluí Proxy, stream (KoncluiChat.swift)
+        if let route = KoncluiChat.route(for: state.chatProvider, state: state) {
+            await KoncluiChat.shared.chat(route, query: query, context: context, state: state, extraSystem: extraSystem)
+            return
+        }
         // "Use my subscription": the provider's own terminal tool answers, signed in with
         // the user's account.
         if state.usesSubscription(state.chatProvider) {
@@ -369,8 +374,8 @@ final class ClaudeService {
         #endif
         guard state.chatProvider == .anthropic else {
             if state.chatProvider.isSubscription {
-                // Koncluí: Claude Code, Codex or the Koncluí Proxy, no API key
-                await KoncluiChat.shared.chat(query: query, context: context, state: state, extraSystem: extraSystem)
+                // Koncluí: the Koncluí Proxy, no API key
+                await KoncluiChat.shared.chat(.proxy, query: query, context: context, state: state, extraSystem: extraSystem)
             } else {
                 await chatOpenAICompatible(query: query, context: context, state: state)
             }
@@ -437,7 +442,7 @@ final class ClaudeService {
             case .deepseek:  baseURL = "https://api.deepseek.com/v1"
             case .qwen:      baseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
             case .moonshot:  baseURL = "https://api.moonshot.cn/v1"
-            case .anthropic, .ollama, .lmstudio, .cursor, .copilot, .claudeCode, .codex, .koncluiProxy: baseURL = ""
+            case .anthropic, .ollama, .lmstudio, .cursor, .copilot, .koncluiProxy: baseURL = ""
             }
         }
 
