@@ -16,7 +16,7 @@ Koncluí (Mac) ──HTTPS──▶ updates.konclui.com (this service, Easypanel
 
 | Request | Answer |
 |---|---|
-| `GET /health` | `{"ok": true, "configured": true}` (`configured` is whether a token is set; the token never appears) |
+| `GET /health` | `{"ok": true, "configured": true, "startedAt": "…"}`: `configured` is whether a token is set (the token never appears); `startedAt` changes at every deploy, the proof that a push to `main` was deployed |
 | `GET /v1/mac/releases` | GitHub's releases shape, cut to Koncluí's Mac releases: published, not prereleases, tag `konclui-vX.Y.Z`, a `Konclui.zip`, not blocked. Every link points at this service. `MacUpdate.latest` reads it as it read GitHub |
 | `GET /v1/mac/download/<tag>/Konclui.zip` | `302` to GitHub's short-lived link for the private asset. The zip never passes through this service and the token never leaves it |
 | `GET /v1/mac/notes/<tag>` or `/v1/mac/notes/latest` | the release notes as a page, for the app's "See what's new" |
@@ -38,17 +38,39 @@ who asked: no IPs, no versions, no identifiers (CLAUDE.md, no telemetry); it log
 
 ## Deploy on Easypanel
 
-1. **The token** (github.com → Settings → Developer settings → Fine-grained tokens → Generate): resource owner `konclui`,
-   only `konclui/konclui-notch`, Repository permissions → Contents: Read-only, an expiry you will remember to renew.
-2. **The app** in the Koncluí project: source GitHub `konclui/konclui-notch`, branch `main`, build path `/updates`, build type
-   Dockerfile. Environment: `GITHUB_TOKEN=<the token>` (and `PUBLIC_URL` if the domain is not `updates.konclui.com`).
-3. **The domain** `updates.konclui.com` → port 3000, HTTPS on.
-4. **Deploy**, then check from any Mac:
-   `curl https://updates.konclui.com/health` → `{"ok":true,"configured":true}`, and
-   `curl https://updates.konclui.com/v1/mac/releases` → `[]` until the first release, then that release.
+Deployed on 2026-10-30 on the KNC Easypanel (`epanel.konclui.com`), the same way as `bos_backend`:
 
-Easypanel rebuilds the service on every push to `main` (its webhook does not filter folders): a rebuild takes seconds and
-changes nothing when `updates/` did not change.
+| | |
+|---|---|
+| Service | project `backend`, service `updates` (app) |
+| Source | GitHub `konclui/konclui-notch`, branch `main`, path `/updates`; Dockerfile |
+| Automatic deploy | on: Easypanel added a `push` webhook to the repository (`services.app.enableGithubDeploy`) |
+| Deploy | 1 replica, zero downtime |
+| Domains | `updates.konclui.com` (the app's address; needs its DNS record, below) and `backend-updates.2i27md.easypanel.host` (works without any DNS, for checks) → port 3000, HTTPS |
+| Environment | `PUBLIC_URL=https://updates.konclui.com`, `REPO=konclui/konclui-notch`, `PORT=3000`, and `GITHUB_TOKEN` (below) |
+
+What is left to the owner:
+
+1. **The token**: github.com → Settings → Developer settings → Fine-grained tokens → Generate. Resource owner `konclui`, only
+   `konclui/konclui-notch`, Repository permissions → Contents: Read-only, an expiry you will remember to renew. In Easypanel,
+   `backend` → `updates` → Environment: add `GITHUB_TOKEN=<the token>`, Save, Deploy. Never in git, never in a message.
+2. **The DNS record** in Cloudflare, like `bos-api.konclui.com`: `updates` → the KNC server, proxied.
+
+Checks, from any Mac:
+
+```
+curl https://updates.konclui.com/health          # {"ok":true,"configured":true,"startedAt":"…"}
+curl https://updates.konclui.com/v1/mac/releases # [] until the first release, then that release
+```
+
+A push to `main` redeploys the service (the webhook fires on every push; Easypanel always builds `main`). Easypanel's
+automatic deploy fails silently when the image does not build, so after a change to `updates/` check that `startedAt` in
+`/health` moved, not only that the push went through. The webhook's deliveries are on GitHub: repository Settings →
+Webhooks.
+
+Managing it without the UI: Easypanel's API (`POST /api/trpc/<procedure>`, `{"json": …}`) with `services.app.inspectService`,
+`services.app.updateEnv`, `services.app.deployService`, `domains.listDomains`, `domains.createDomain`. `inspectService` returns
+the environment, the token included: print only the fields you need.
 
 ## Pulling a release back
 

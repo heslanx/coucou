@@ -44,7 +44,10 @@ test('health says it is configured, without the token', async () => {
   const res = await fetch(`${base}/health`);
   assert.equal(res.status, 200);
   const text = await res.text();
-  assert.deepEqual(JSON.parse(text), { ok: true, configured: true });
+  const health = JSON.parse(text);
+  assert.equal(health.ok, true);
+  assert.equal(health.configured, true);
+  assert.ok(!Number.isNaN(Date.parse(health.startedAt)), 'startedAt is a date');
   assert.ok(!text.includes(TOKEN));
 });
 
@@ -96,7 +99,8 @@ test('nothing but GET and HEAD', async () => {
 test('without a token every release request answers 503', async () => {
   const bare = createServer(createService(config({ GITHUB_TOKEN: '' })).handle);
   const url = `http://127.0.0.1:${await listen(bare)}`;
-  assert.deepEqual(await (await fetch(`${url}/health`)).json(), { ok: true, configured: false });
+  const health = await (await fetch(`${url}/health`)).json();
+  assert.equal(health.configured, false);
   assert.equal((await fetch(`${url}/v1/mac/releases`)).status, 503);
   bare.close();
 });
