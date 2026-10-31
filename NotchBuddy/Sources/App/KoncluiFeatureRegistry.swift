@@ -87,13 +87,11 @@ enum KoncluiFeatureRegistry {
     }
 }
 
+#if !APPSTORE
 /// What the settings search may offer: only what the window can show. A page or block whose flag is off has no
 /// result, and neither has the open/close hotkey, which the hub shows on Atalhos only (SettingsView, `embeddedSection`).
 enum KoncluiSettingsSearch {
     static func isShown(_ id: String, page: HubPage) -> Bool {
-        #if APPSTORE
-        return true
-        #else
         guard KoncluiFeatures.isOn(page.featureId) else { return false }
         switch id {
         case "general.hotkey": return false
@@ -103,9 +101,15 @@ enum KoncluiSettingsSearch {
         case "general.iphone": return KoncluiFeatures.isOn("block_iphone")
         default:               return true
         }
-        #endif
+    }
+
+    /// An entry's words without the services whose pill is off (Integrations lists them by name).
+    static func terms(_ entry: SettingsSearchEntry) -> [String] {
+        let off = Set(PillCatalog.all.filter { !KoncluiFeatures.isOn($0.id) }.map(\.name))
+        return entry.terms.filter { !off.contains($0) }
     }
 }
+#endif
 
 #if !APPSTORE
 extension HubPage {

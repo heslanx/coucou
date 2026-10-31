@@ -50,7 +50,7 @@ final class SettingsSearch: ObservableObject {
         var labels: [SettingsSearchHit] = []
         for entry in Self.entries where KoncluiSettingsSearch.isShown(entry.id, page: entry.page) {   // Koncluí
             switch SettingsSearchMatch.match(words, title: Self.text(entry.title), page: entry.page.title,
-                                             labels: entry.terms.map(Self.text)) {
+                                             labels: KoncluiSettingsSearch.terms(entry).map(Self.text)) {   // Koncluí
             case .box?: boxes.append(SettingsSearchHit(entry: entry, label: nil))
             case .label(let label)?: labels.append(SettingsSearchHit(entry: entry, label: label))
             case nil: break
