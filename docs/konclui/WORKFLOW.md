@@ -163,8 +163,16 @@ Once `block_updates` is on and the person said yes to looking (once, in the notc
 Upstream's workflows came with the fork (`.github/workflows/build.yml` runs on a push or a pull request to `main`, on
 `macos-latest`). On `konclui/konclui-notch` every run fails in seconds and never starts: "The job was not started because an
 Actions budget is preventing further use" (the check run's annotation, 2026-10-31; a macOS runner on a private repository
-uses paid minutes). CI runs once the owner raises the organization's Actions budget (Settings, Billing). Until then each
-pull request lists the checks that ran locally, and protecting `main` cannot require status checks.
+uses paid minutes). They run again once the owner raises the organization's Actions budget (Settings, Billing).
+
+Koncluí's own checks do run: `.github/workflows/konclui-checks.yml`, on a push or a pull request to `main`, on the
+organization's Linux server (Contabo, Ubuntu 24.04), through the self-hosted runner `vps-ci-contabo-notch` (label
+`konclui-notch`, service `actions.runner.konclui-konclui-notch.vps-ci-contabo-notch` in `/opt/actions-runner-konclui-notch`,
+user `github-runner`; registered 2026-10-31). A self-hosted runner spends no Actions minutes. It runs what needs no Mac:
+gitleaks on the new commits, `rebrand.py --check`, the copy rules, localization, What's new, the updater rules against
+Coucou, the Orca relay hook and the update service's tests. The build and the Swift tests need macOS (build.yml): until a
+Mac runner exists or the budget is raised, each pull request lists the ones that ran locally. The server's root password
+is in the owner's Keychain (`konclui-ci-207.180.224.192`), never in git.
 
 ## Where things stand (2026-10-31)
 
