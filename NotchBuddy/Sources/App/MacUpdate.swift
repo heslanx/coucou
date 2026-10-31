@@ -4,13 +4,16 @@ import Foundation
 // Store updates its own build). Pure Foundation so tests/MacUpdateTests.swift checks the rules:
 // which release is the Mac's, whether it is newer, what to say about it. The Mac's tags are
 // `vX.Y.Z` with a `Coucou.zip`; Windows, Linux and Android have their own prefixed tags.
-// Koncluí: only Koncluí's releases. Its public releases repository, its `konclui-vX.Y.Z` tags with a `Konclui.zip`
-// (upstream's `vX.Y.Z` tags reach this repository with every sync), its team. scripts/konclui/release.sh publishes there.
+// Koncluí: only Koncluí's releases, through its update service (updates/, ADR-002): the releases stay in the private
+// repository and the service, which holds the token, answers in GitHub's shape. Tags `konclui-vX.Y.Z` with a `Konclui.zip`
+// (upstream's `vX.Y.Z` tags reach the repository with every sync), its team. scripts/konclui/release.sh publishes.
 
 enum MacUpdate {
-    static let owner = "konclui"            // Koncluí: public, releases only; `konclui/konclui-notch` is private
-    static let repo = "konclui-releases"
-    static let releasesURL = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases?per_page=20")!
+    /// Koncluí: its update service, in front of the private repository (the app holds no token).
+    static let service = "https://updates.konclui.com"
+    static let releasesURL = URL(string: "\(service)/v1/mac/releases")!
+    /// Koncluí: "See what's new" before any release is known.
+    static let latestPageURL = URL(string: "\(service)/v1/mac/notes/latest")!
     /// What the downloaded app must be signed as: Koncluí's bundle id, Koncluí's Developer ID team.
     static let bundleId = "com.konclui.mac"
     static let teamId = "5M8RG3BCX2"        // Koncluí: scripts/konclui/signing.sh's team
@@ -85,9 +88,10 @@ enum MacUpdate {
     }
 
     /// Only GitHub serves the update (its assets redirect to githubusercontent.com).
+    /// Koncluí: and its update service, which redirects to GitHub's short-lived link.
     static func allowedHost(_ host: String?) -> Bool {
         guard let h = host?.lowercased() else { return false }
-        return h == "github.com" || h == "api.github.com" || h.hasSuffix(".githubusercontent.com")
+        return h == "updates.konclui.com" || h == "github.com" || h == "api.github.com" || h.hasSuffix(".githubusercontent.com")
     }
 
     /// Coucou replaces itself only where it was installed by hand: /Applications or ~/Applications.

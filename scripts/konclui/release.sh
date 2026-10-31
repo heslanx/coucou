@@ -5,15 +5,16 @@
 #   ./scripts/konclui/release.sh 0.6.0            build, sign, notarize, staple, tag, publish
 #   ./scripts/konclui/release.sh 0.6.0 --finish   finish after an interrupted notarization wait
 #
-# Only Koncluí: its team, its notary profile, Konclui.zip, a konclui-vX.Y.Z tag pushed to the private `konclui` remote,
-# the release published to Koncluí's public releases repository, the one MacUpdate reads. Never `origin`, never
-# Louis-CFM/coucou, no Homebrew cask. Upstream's scripts/release.sh is Coucou's and refuses to run in this fork.
-# Run it from a clean checkout of main, up to date with konclui/main.
+# Only Koncluí: its team, its notary profile, Konclui.zip, a konclui-vX.Y.Z tag pushed to the private `konclui` remote and
+# the release published there, in the same private repository; the app reads it through Koncluí's update service
+# (updates/, ADR-002). Never `origin`, never Louis-CFM/coucou, no Homebrew cask. Upstream's scripts/release.sh is Coucou's
+# and refuses to run in this fork. Run it from a clean checkout of main, up to date with konclui/main.
 set -euo pipefail
 
 TEAM="5M8RG3BCX2"                          # scripts/konclui/signing.sh; MacUpdate.teamId
 BUNDLE_ID="com.konclui.mac"                # MacUpdate.bundleId
-RELEASES_REPO="konclui/konclui-releases"   # public, releases only; MacUpdate.owner/repo
+RELEASES_REPO="konclui/konclui-notch"      # private: the code and its releases, one repository
+SERVICE="https://updates.konclui.com"      # MacUpdate.service: the app asks it, it asks RELEASES_REPO
 NOTARY_PROFILE="konclui-notary"            # xcrun notarytool store-credentials konclui-notary --team-id 5M8RG3BCX2 …
 REMOTE="konclui"                           # the private repository, where the tag goes
 TAG_PREFIX="konclui-v"                     # MacUpdate.tagPrefix; upstream's vX.Y.Z tags arrive with every sync
@@ -65,16 +66,15 @@ preflight() {
   need $ok "Koncluí's version is its own (today project.yml follows Coucou's at every sync)" \
     "pin CFBundleShortVersionString with a FIXED rule in scripts/konclui/rebrand.py"
 
-  ok=1; [ "$(gh repo view "$RELEASES_REPO" --json visibility -q .visibility 2>/dev/null || true)" = "PUBLIC" ] && ok=0
-  need $ok "the public releases repository $RELEASES_REPO" \
-    "gh repo create $RELEASES_REPO --public --add-readme (the app reads releases without a token)"
+  ok=1; curl -fsS --max-time 10 "$SERVICE/health" 2>/dev/null | grep -q '"configured":true' && ok=0
+  need $ok "the update service answers with a token ($SERVICE/health)" \
+    "deploy updates/ on Easypanel with GITHUB_TOKEN (updates/README.md, \"Deploy on Easypanel\")"
 
   ok=1
   grep -q "static let teamId = \"$TEAM\"" NotchBuddy/Sources/App/MacUpdate.swift \
     && grep -q "static let tagPrefix = \"$TAG_PREFIX\"" NotchBuddy/Sources/App/MacUpdate.swift \
-    && grep -q "static let owner = \"${RELEASES_REPO%%/*}\"" NotchBuddy/Sources/App/MacUpdate.swift \
-    && grep -q "static let repo = \"${RELEASES_REPO##*/}\"" NotchBuddy/Sources/App/MacUpdate.swift && ok=0
-  need $ok "the app's updater reads this repository, this team and these tags" "NotchBuddy/Sources/App/MacUpdate.swift"
+    && grep -q "static let service = \"$SERVICE\"" NotchBuddy/Sources/App/MacUpdate.swift && ok=0
+  need $ok "the app's updater asks this service and wants this team and these tags" "NotchBuddy/Sources/App/MacUpdate.swift"
 }
 
 if [ "${1:-}" = "--check" ]; then
@@ -175,3 +175,4 @@ git tag -a "$TAG" "$COMMIT" -m "Koncluí $VERSION"
 git push "$REMOTE" "$TAG"
 gh release create "$TAG" "$ZIP" --repo "$RELEASES_REPO" --title "Koncluí $VERSION" --latest --notes "$NOTES"
 echo "✓ $TAG released: https://github.com/$RELEASES_REPO/releases/tag/$TAG"
+echo "  Macs see it within $((300 / 60)) minutes: $SERVICE/v1/mac/releases (the service keeps the list 5 minutes)"

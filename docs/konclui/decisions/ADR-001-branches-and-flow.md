@@ -55,9 +55,8 @@ GitHub Flow on the private repository. The commands are in [WORKFLOW.md](../WORK
 6. **Releases.** A tag `konclui-vX.Y.Z` on `main` (its own prefix: every sync brings upstream's `vX.Y.Z` tags), with the
    CHANGELOG section, the README row and the What's new entry that [CLAUDE.md](../../../CLAUDE.md) asks for. A
    `release/x.y` branch exists only to fix a released version while `main` holds changes not ready to ship. The update
-   channel must be public, because the app reads releases without a token: a public releases repository or a feed of
-   Koncluí's own, set up with the steps of KONCLUI.md "Distributing Koncluí" (Developer ID, notarization, `MacUpdater` pointed
-   at it with Koncluí's team). Until then `block_updates` stays off and a Mac gets Koncluí by building it with
+   channel is [ADR-002](ADR-002-update-service.md) (amended 2026-10-30): the releases stay in this private repository and the
+   app asks Koncluí's update service, with the steps of KONCLUI.md "Distributing Koncluí" (Developer ID, notarization). Until then `block_updates` stays off and a Mac gets Koncluí by building it with
    `scripts/konclui/dev-install.sh`.
 
 ## Alternatives considered

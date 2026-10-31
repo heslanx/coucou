@@ -13,10 +13,10 @@ enum MacUpdateTests {
         var assets: [[String: Any]] = [["name": "notes.txt", "browser_download_url": "https://github.com/x/notes.txt", "size": 3]]
         if zip {
             assets.append(["name": "Konclui.zip", "size": 34_000_000,
-                           "browser_download_url": "https://github.com/konclui/konclui-releases/releases/download/\(tag)/Konclui.zip"])
+                           "browser_download_url": "https://updates.konclui.com/v1/mac/download/\(tag)/Konclui.zip"])
         }
         return ["tag_name": tag, "draft": draft, "prerelease": pre, "assets": assets, "body": body,
-                "html_url": "https://github.com/konclui/konclui-releases/releases/tag/\(tag)"]
+                "html_url": "https://updates.konclui.com/v1/mac/notes/\(tag)"]
     }
 
     static func json(_ list: [[String: Any]]) -> Data { try! JSONSerialization.data(withJSONObject: list) }
@@ -50,7 +50,7 @@ enum MacUpdateTests {
             let r = MacUpdate.latest(json(list))
             check("picks v0.10.0 over 0.6.2 and 0.5.1", r?.version == "0.10.0" && r?.tag == "konclui-v0.10.0")
             check("its Konclui.zip", r?.zipURL.lastPathComponent == "Konclui.zip" && r?.size == 34_000_000)
-            check("its page", r?.pageURL.absoluteString == "https://github.com/konclui/konclui-releases/releases/tag/konclui-v0.10.0")
+            check("its page", r?.pageURL.absoluteString == "https://updates.konclui.com/v1/mac/notes/konclui-v0.10.0")
             check("headline from the bold part", r?.headline == "One-click update")
             check("nothing for drafts and others only", MacUpdate.latest(json([release("konclui-v0.9.0", draft: true), release("windows-v1.0")])) == nil)
             check("garbage", MacUpdate.latest(Data("{\"message\":\"rate limited\"}".utf8)) == nil)
@@ -69,6 +69,8 @@ enum MacUpdateTests {
         check("not evilgithubusercontent.com", !MacUpdate.allowedHost("evilgithubusercontent.com"))
         check("not github.com.evil.io", !MacUpdate.allowedHost("github.com.evil.io"))
         check("nil", !MacUpdate.allowedHost(nil))
+        check("updates.konclui.com", MacUpdate.allowedHost("updates.konclui.com"))
+        check("not updates.konclui.com.evil.io", !MacUpdate.allowedHost("updates.konclui.com.evil.io"))
 
         print("\nWhere Coucou may replace itself")
         check("/Applications", MacUpdate.canReplace(bundlePath: "/Applications/Coucou.app", home: "/Users/l"))
@@ -108,7 +110,8 @@ enum MacUpdateTests {
         check("another version", !MacUpdate.matches(infoPlist: ["CFBundleIdentifier": "com.konclui.mac", "CFBundleShortVersionString": "0.5.9"], version: "0.6.0"))
         check("requirement names Koncluí's team", MacUpdate.codeRequirement.contains("5M8RG3BCX2") && MacUpdate.codeRequirement.contains("anchor apple generic"))
         check("never Louis's team", !MacUpdate.codeRequirement.contains("256AUJ9555"))
-        check("only Koncluí's releases", MacUpdate.releasesURL.absoluteString == "https://api.github.com/repos/konclui/konclui-releases/releases?per_page=20")
+        check("only Koncluí's update service", MacUpdate.releasesURL.absoluteString == "https://updates.konclui.com/v1/mac/releases")
+        check("its notes page", MacUpdate.latestPageURL.absoluteString == "https://updates.konclui.com/v1/mac/notes/latest")
 
         if failures > 0 {
             print("\n\(failures) failure(s)")

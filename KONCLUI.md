@@ -262,7 +262,7 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Codex app-server client name | `CodexPlanGauge` | changed: `konclui` | Codex sees who asks |
 | WhatsApp gateway device/session | `WhatsAppProvider` | changed: `konclui` | users see it in the gateway; separate device from Coucou's |
 | GOWA port / webhook port | Settings (`127.0.0.1:3000`, webhook port) | kept | user setting; with both apps on, give one of them other ports |
-| MacUpdater | `MacUpdate.owner/repo/bundleId/teamId/tagPrefix`, asset `Konclui.zip` | changed: `konclui/konclui-releases` (public, releases only), `com.konclui.mac`, team `5M8RG3BCX2`, tags `konclui-vX.Y.Z` | only Koncluí's releases: a Coucou tag (`v0.5.6`) or Louis's team never passes. `scripts/konclui/release.sh` publishes there; WORKFLOW.md "How the app finds and installs an update" |
+| MacUpdater | `MacUpdate.service/bundleId/teamId/tagPrefix`, asset `Konclui.zip`, `WhatsNew.releasePage` | changed: Koncluí's update service `https://updates.konclui.com` (in front of the private `konclui/konclui-notch`, ADR-002), `com.konclui.mac`, team `5M8RG3BCX2`, tags `konclui-vX.Y.Z`, the service's notes page | only Koncluí's releases: a Coucou tag (`v0.5.6`) or Louis's team never passes. `scripts/konclui/release.sh` publishes; WORKFLOW.md "How the app finds and installs an update" |
 | Weekly recap watermark | `WeeklyRecapView` | changed: `Koncluí · github.com/heslanx/coucou`, `konclui-weekly-recap.png` | users share it |
 | Wake word | `WakePhrase` patterns and spellings, `WakeSpotter` hints, `VoiceQuery` fillers, every label | changed: "OK Koru" / "hey Koru" (also "ok coru", "corú", "koroo", "kourou", "ko ru"…); "OK Coucou" no longer wakes Koncluí | the two apps never answer the same phrase |
 | iCloud container, CloudKit zone, Live Activity relay | `iCloud.fr.louisraille.Coucou`, zone `Coucou`, `coucou-relay.raillelouis.workers.dev` | kept | iPhone link, compiled only with `PHONE_LINK` (DebugCloud/Release); out of scope until Koncluí has its own container and relay |
@@ -291,7 +291,7 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Canvas rate when the window is not the front one | `KoncluiMotion.rate`; audit items A2-09 (30 Hz) and A3-18 (pause) | 30 Hz | the window can sit beside another one, and a frozen Koru reads as a bug |
 | "Gravar uma chamada" while dictation needs setup | `FlowHubHome.swift`; audit items A1-22 (secondary button while the setup card shows) and A2-08 (no setup card) | A2-08: the setup card is no longer drawn, the band's one primary is the setup | one primary per region; recording a call is the primary only when dictation works |
 | Orca approvals | `KoncluiOrcaCards.showsInNotch(isOrca:otherTerminalsOn:)` (`KoncluiPageRules.swift`), UserDefaults `konclui.orcaCards`, used by `HookServer.processPermissionRequest` and `processQuestionRequest` | added: on by default for Orca sessions only (Koncluí's own key; the switch is in Agents → Orca); every other terminal keeps `terminalCardsEnabled`, off by default | the owner runs many agents in Orca, and their permission requests and questions wait in the notch for up to 2 minutes (answering in the terminal still works); every Warp or iTerm session would otherwise wait on the notch |
-| Updater | `AppDelegate` (`MacUpdater.shared.start()`), the "Atualizações" block (`UpdateSettingsSection`), flag `block_updates` | ships off; the code and its fail-closed signature check are untouched | `MacUpdate` asks the releases of `konclui/konclui-releases` and `MacUpdater` verifies every download against Koncluí's team `5M8RG3BCX2`; there is no Developer ID or public releases repository yet, so the flag stays off (A3-13) |
+| Updater | `AppDelegate` (`MacUpdater.shared.start()`), the "Atualizações" block (`UpdateSettingsSection`), flag `block_updates` | ships off; the code and its fail-closed signature check are untouched | `MacUpdate` asks Koncluí's update service and `MacUpdater` verifies every download against Koncluí's team `5M8RG3BCX2`; there is no Developer ID, notarization or deployed service yet, so the flag stays off (A3-13) |
 | Remove integrations | `KoncluiRemoveIntegrations` (end of Geral) | goes through the installers' own removal steps (preview, the same fingerprint check and dated backup, only Koncluí's entries), one file at a time, and says what happened to each file | UX.md 1.5 and CLAUDE.md: another app's settings file is never written without a preview and a confirmation |
 | Key `hub.notch.reminders` | `Localizable.xcstrings`, `HubPage.reminders` | added with the owner's own key name (from the owner's main checkout), the one new key outside the `konclui.` namespace | the later merge of that checkout is a no-op; its catalog line has the key itself as the English text: replace it with this one |
 | Answer language | UserDefaults `voiceLanguage` | "pt" is a third value; absent means the Mac's language (pt, fr or en), else English | "OK Koru" in Portuguese (the owner speaks pt-BR) |
@@ -316,10 +316,10 @@ the feature is deleted for good (below). No network: nothing is fetched, nothing
 - **Ships off**: `integration_crypto`, `integration_calcom`, `integration_stripe`, `integration_github`,
   `integration_vercel`, `integration_n8n`, `integration_resend`, `integration_notion`, `integration_portfolio`,
   `block_updates`. Everything else ships on.
-- **Why `block_updates` ships off**: it is the Settings block "Atualizações" (`UpdateSettingsSection`). `MacUpdate` asks the
-  releases of Koncluí's public `konclui/konclui-releases` (tags `konclui-vX.Y.Z`) and `MacUpdater` verifies every download
-  against Koncluí's team `5M8RG3BCX2`, but that repository, the Developer ID and notarization do not exist yet: the block
-  would promise updates nobody can publish. Turn the flag on once `scripts/konclui/release.sh --check` is ready and the first
+- **Why `block_updates` ships off**: it is the Settings block "Atualizações" (`UpdateSettingsSection`). `MacUpdate` asks
+  Koncluí's update service (`updates/`, ADR-002; tags `konclui-vX.Y.Z`) and `MacUpdater` verifies every download against
+  Koncluí's team `5M8RG3BCX2`, but the Developer ID, notarization and the deployed service do not exist yet: the block would
+  promise updates nobody can publish. Turn the flag on once `scripts/konclui/release.sh --check` is ready and the first
   release is out (A3-13).
   `AppDelegate.swift` (`MacUpdater.shared.start()`) follows the flag too (hook table below).
 - **Always on**: `integration_claude` (the main workspace pill until the user picks another). `KoncluiFeatures.required`.
@@ -458,7 +458,10 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/AppDelegate.swift` | a `Task` warming `KoncluiVoiceBrainLive.shared.refreshProxy()` at launch | the pages name the right Claude source on first read |
 | `App/HookServer.swift` | `processPermissionRequest` and `processQuestionRequest`: `isTerminal` uses `KoncluiOrcaCards.showsInNotch(isOrca:otherTerminalsOn:)` | Orca sessions' approvals and questions show in the notch by default (switch on the Orca row); other terminals keep their own switch |
 | `App/AppDelegate.swift` | `MacUpdater.shared.start()` only when `KoncluiFeatures.isOn("block_updates")` | the updater stays off until Koncluí has its own Developer ID and release channel |
-| `App/MacUpdate.swift` | `owner`/`repo` `konclui/konclui-releases`, `teamId` `5M8RG3BCX2`, `tagPrefix` `konclui-v` used by `macVersion` | the updater reads and accepts only Koncluí's releases (`tests/MacUpdateTests.swift` follows: Coucou's `v0.5.6` and Louis's team are rejected) |
+| `App/MacUpdate.swift` | `service` (`releasesURL`, `latestPageURL`), `teamId` `5M8RG3BCX2`, `tagPrefix` `konclui-v` used by `macVersion`, the service in `allowedHost` | the updater reads and accepts only Koncluí's releases, through its update service (`tests/MacUpdateTests.swift` follows: Coucou's `v0.5.6` and Louis's team are rejected) |
+| `App/MacUpdater.swift` | `openReleasePage`: `MacUpdate.latestPageURL` when no release is known | the private repository's page would be a 404 for anyone else |
+| `App/WhatsNew.swift` | `releasePage`: the service's notes page of `konclui-v<version>` | same reason (`tests/WhatsNewTests.swift` follows) |
+| (rules) | `scripts/konclui/updater-rules.py` writes the `>>> updater rules` / `>>> updater inserts` blocks of `rebrand.py` for these five files | a Coucou sync gives them back; `scripts/konclui/test-updater-rules.sh` checks it. After changing one of them: `python3 scripts/konclui/updater-rules.py` |
 | `scripts/release.sh` | first line: stops when `scripts/konclui/release.sh` exists | Coucou's release can never run from this fork (it would push to the public `origin` and publish to `Louis-CFM/coucou`) |
 | `App/FlowHubHome.swift` | `KoncluiConnectAgentsHome(router:)` at the top of the home content | agents found but not connected |
 | `App/Voice/IntentParser.swift` | first line of `parse`, first line of `parseMultiAction` | Portuguese phrases first (`KoncluiVoicePT.parse`, `parseMulti`); nil for anything else |
@@ -628,13 +631,15 @@ Today only this Mac can run Koncluí: Debug builds are signed with the owner's A
 2. Release and ReleaseCloud signed with that team (a `FIXED` rule in `scripts/konclui/rebrand.py` on `NotchBuddy/project.yml`,
    so upstream merges keep it), hardened runtime on, and Koncluí's own iCloud container if the iPhone link is wanted.
 3. Notarization (`xcrun notarytool submit … --wait`, then `xcrun stapler staple`) for every build that leaves this Mac.
-4. A public release channel (releases of a public repository or a feed of Koncluí's own), then `MacUpdater` pointed at it
-   with Koncluí's team in its signature check, and only then `block_updates` switched on by default.
-5. `FORK` in `rebrand.py` set to that public repository, so the weekly recap image links to it.
-6. Releases with `scripts/konclui/release.sh` (only Koncluí: its team, notary profile, `Konclui.zip`, `konclui-vX.Y.Z` tags on
-   `konclui`, the release on `konclui/konclui-releases`). `--check` lists what is still missing of the steps above. Upstream's
-   `scripts/release.sh` (Coucou's profile, `Coucou.zip`, pushes to the public `origin`, publishes to `Louis-CFM/coucou`) stops
-   at its first line in this fork. [WORKFLOW.md](docs/konclui/WORKFLOW.md), "Releases".
+4. Koncluí's update service (`updates/`) deployed on Easypanel at `updates.konclui.com` with its read-only token
+   (updates/README.md), and only then `block_updates` switched on by default. `MacUpdater` already asks it (ADR-002).
+5. `FORK` in `rebrand.py` (the weekly recap image's link, today the public Coucou fork `heslanx/coucou`) pointed at
+   Koncluí's public page, its website: there is no public repository (ADR-002).
+6. Releases with `scripts/konclui/release.sh` (only Koncluí: its team, notary profile, `Konclui.zip`, `konclui-vX.Y.Z` tags
+   and the release in the private `konclui/konclui-notch`), read by the app through Koncluí's update service (`updates/` on
+   Easypanel, ADR-002). `--check` lists what is still missing. Upstream's `scripts/release.sh` (Coucou's profile,
+   `Coucou.zip`, pushes to the public `origin`, publishes to `Louis-CFM/coucou`) stops at its first line in this fork.
+   [WORKFLOW.md](docs/konclui/WORKFLOW.md), "Releases".
 
 ## Orca and klaude, as found on this Mac (read-only)
 
