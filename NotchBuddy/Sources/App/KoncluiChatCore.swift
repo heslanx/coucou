@@ -260,8 +260,10 @@ enum KoncluiCodexCLI {
             if line.hasPrefix("[") { return nil }   // a table starts: the top level is over
             guard line.hasPrefix("model"), let eq = line.firstIndex(of: "=") else { continue }
             guard line[..<eq].trimmingCharacters(in: .whitespaces) == "model" else { continue }
+            // A TOML string: "basic" or 'literal' (a model id has no escape in it), then maybe a comment.
             let value = line[line.index(after: eq)...].trimmingCharacters(in: .whitespaces)
-            guard value.hasPrefix("\""), let end = value.dropFirst().firstIndex(of: "\"") else { return nil }
+            guard let quote = value.first, quote == "\"" || quote == "'",
+                  let end = value.dropFirst().firstIndex(of: quote) else { return nil }
             let model = String(value[value.index(after: value.startIndex)..<end])
             return model.isEmpty ? nil : model
         }

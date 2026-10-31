@@ -191,6 +191,9 @@ enum KoncluiChatTests {
         expect(KoncluiCodexCLI.model(fromConfig: "# x\n[profiles.fast]\nmodel = \"gpt-mini\"\n"), nil,
                "a profile's model is not the top-level choice")
         expect(KoncluiCodexCLI.model(fromConfig: "model_provider = \"openai\"\n"), nil, "model_provider is not model")
+        expect(KoncluiCodexCLI.model(fromConfig: "model = 'gpt-6.1-sol' # chosen\n"), "gpt-6.1-sol", "a TOML literal string")
+        expect(KoncluiCodexCLI.model(fromConfig: "  model=\"gpt-6-luna\"   # x\n"), "gpt-6-luna", "spaces and a comment")
+        expect(KoncluiCodexCLI.model(fromConfig: "# model = \"old\"\nmodel = \"new\"\n"), "new", "a commented line is skipped")
         let next = KoncluiCodexCLI.arguments(model: "gpt-6.1-sol", resume: "01a1-uuid", images: ["/tmp/a.png"])
         expect(Array(next.prefix(4)), ["exec", "resume", "01a1-uuid", "--json"], "codex exec resume <id>")
         expect(next[next.firstIndex(of: "-m")! + 1], "gpt-6.1-sol", "codex model")
