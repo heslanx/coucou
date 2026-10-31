@@ -18,6 +18,8 @@ export function config(env = process.env) {
 
 export function createService(cfg) {
   let cache = { at: 0, etag: null, releases: [] };
+  // When this process started: after a push to main it must change, the proof that the automatic deploy ran.
+  const startedAt = new Date().toISOString();
 
   const github = (path, extra = {}) =>
     fetch(`${cfg.api}/repos/${cfg.repo}${path}`, {
@@ -56,7 +58,7 @@ export function createService(cfg) {
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method not allowed' });
     const parts = url.pathname.split('/').filter(Boolean);
 
-    if (url.pathname === '/health') return send(res, 200, { ok: true, configured: Boolean(cfg.token) });
+    if (url.pathname === '/health') return send(res, 200, { ok: true, configured: Boolean(cfg.token), startedAt });
     if (!cfg.token) return send(res, 503, { error: 'the service has no GITHUB_TOKEN' });
 
     try {
