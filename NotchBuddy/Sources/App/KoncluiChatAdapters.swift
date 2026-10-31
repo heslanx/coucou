@@ -210,6 +210,13 @@ enum KoncluiChatEngine {
         }
     }
 
+    /// A running turn stops when the provider picked now is not the one it runs for. `current` is read when the change
+    /// is handled, never the value a late notification carries, so a quick A, B, C cannot stop C's own turn.
+    static func stopsTurn<Provider: Equatable>(runningFor: Provider?, current: Provider) -> Bool {
+        guard let runningFor else { return false }
+        return runningFor != current
+    }
+
     /// The canonical path of `folder` when Koncluí may delete it as its own: a real folder, not a link, whose canonical
     /// path lies inside `root`'s. Nil otherwise (missing, a link, or reached through a link that leads out of `root`).
     static func ownedFolder(_ folder: URL, inside root: URL) -> String? {

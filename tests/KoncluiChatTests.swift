@@ -571,6 +571,12 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: []),
                KoncluiTurnShape(resume: nil, history: []), "a cleared chat never continues an old thread")
 
+        // A provider switch stops the running turn; a late notification (A, B, then C) cannot stop C's own turn.
+        expectTrue(KoncluiChatEngine.stopsTurn(runningFor: "anthropic", current: "cursor"), "another provider picked: the turn stops")
+        expectTrue(!KoncluiChatEngine.stopsTurn(runningFor: "cursor", current: "cursor"),
+                   "the late notification of an older switch, read against the provider picked now: C's turn goes on")
+        expectTrue(!KoncluiChatEngine.stopsTurn(runningFor: String?.none, current: "cursor"), "nothing running, nothing to stop")
+
         // Email or a dropped file in the conversation: a CLI that can run without saving sends it all and saves nothing.
         expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: transcript, keepsNothing: true),
                KoncluiTurnShape(resume: nil, history: transcript, persist: false),

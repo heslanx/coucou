@@ -153,14 +153,15 @@ final class KoncluiChat {
         Self.removeCursorChats()
         providerObserver = AppState.shared.$chatProvider.removeDuplicates().dropFirst()
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] provider in
-                MainActor.assumeIsolated { self?.stop(unless: provider) }
+            .sink { [weak self] _ in
+                // A late delivery (A, then B, then C) carries a value already replaced: the provider picked now decides.
+                MainActor.assumeIsolated { self?.stop(unless: AppState.shared.chatProvider) }
             }
     }
 
     /// Another provider was picked: the old one's turn (and its CLI) stops, so it cannot keep writing to the chat.
     private func stop(unless provider: ChatProvider) {
-        guard running != nil, provider != runningProvider else { return }
+        guard running != nil, KoncluiChatEngine.stopsTurn(runningFor: runningProvider, current: provider) else { return }
         running?.cancel()
         running = nil
     }
