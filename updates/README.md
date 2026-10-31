@@ -49,12 +49,19 @@ Deployed on 2026-10-30 on the KNC Easypanel (`epanel.konclui.com`), the same way
 | Domains | `updates.konclui.com` (the app's address; needs its DNS record, below) and `backend-updates.2i27md.easypanel.host` (works without any DNS, for checks) → port 3000, HTTPS |
 | Environment | `PUBLIC_URL=https://updates.konclui.com`, `REPO=konclui/konclui-notch`, `PORT=3000`, and `GITHUB_TOKEN` (below) |
 
-What is left to the owner:
+DNS: `updates` → the KNC server, proxied, in Cloudflare (created 2026-10-30, like `bos-api.konclui.com`). The server's Let's
+Encrypt certificate is issued once the record exists: a domain added before its record keeps Easypanel's own certificate
+(Cloudflare answers 526) until a redeploy makes the proxy ask again.
 
-1. **The token**: github.com → Settings → Developer settings → Fine-grained tokens → Generate. Resource owner `konclui`, only
-   `konclui/konclui-notch`, Repository permissions → Contents: Read-only, an expiry you will remember to renew. In Easypanel,
-   `backend` → `updates` → Environment: add `GITHUB_TOKEN=<the token>`, Save, Deploy. Never in git, never in a message.
-2. **The DNS record** in Cloudflare, like `bos-api.konclui.com`: `updates` → the KNC server, proxied.
+**The token**, the owner's step:
+
+1. github.com → Settings → Developer settings → Fine-grained tokens → Generate. Resource owner `konclui`, only
+   `konclui/konclui-notch`, Repository permissions → Contents: Read-only, an expiry you will remember to renew.
+2. Into the Mac's Keychain, typed at a hidden prompt (nothing in the shell history):
+   `security add-generic-password -U -a konclui -s konclui-updates-github-token -w`
+3. `python3 updates/scripts/set-github-token.py`: accepts only a fine-grained token, checks that it reads the releases, puts it
+   in Easypanel's environment, redeploys and waits for `/health` to say `configured`. Nothing is printed. Run it again to
+   rotate the token.
 
 Checks, from any Mac:
 
