@@ -18,18 +18,22 @@ permissions:
 
 jobs:
   checks:
+    # The runner is a persistent machine: code from a fork's pull request never runs on it.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux, konclui-notch]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: No secret in the new commits (gitleaks)
         env:
           RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
         run: |
-          case "$RANGE" in 0000000000000000000000000000000000000000..*) RANGE="${RANGE#*..}~1..${RANGE#*..}";; esac
+          # A branch created by this push has no "before": every commit it brings is new.
+          case "$RANGE" in 0000000000000000000000000000000000000000..*) RANGE="${RANGE#*..}";; esac
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/repo" -w /repo ghcr.io/gitleaks/gitleaks:v8.30.1 \
             git /repo --no-banner --redact --log-opts="$RANGE"
 
