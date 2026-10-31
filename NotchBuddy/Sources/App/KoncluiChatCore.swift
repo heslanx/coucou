@@ -25,7 +25,10 @@ enum KoncluiCLI {
         "CLAUDE_CODE_USE_ANTHROPIC_AWS", "CLAUDECODE", "CLAUDE_CODE_SESSION_ID",
         "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN",
         "OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_API_KEY",
-        "GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL",
+        "GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL", "GOOGLE_GENAI_USE_VERTEXAI",
+        "CURSOR_API_KEY", "CURSOR_API_ENDPOINT",
+        // Copilot CLI takes these before its own login, silently (docs.github.com, "Authenticate Copilot CLI").
+        "COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN",
     ]
 
     /// Where the app looks for a CLI: it does not get the shell's PATH.
@@ -82,8 +85,10 @@ enum KoncluiCLI {
     }
 
     /// A resumed thread the CLI no longer has (its session file is gone): the next turn must start a new one.
+    /// Claude Code, Codex, then Gemini CLI (`packages/cli/src/utils/sessionUtils.ts`). Cursor starts a new chat itself.
     static func isLostThread(stderr: String) -> Bool {
-        stderr.contains("No conversation found") || stderr.contains("no rollout found")
+        ["No conversation found", "no rollout found", "Invalid session identifier", "No previous sessions found"]
+            .contains { stderr.contains($0) }
     }
 
     static func jsonObject(_ text: String) -> [String: Any]? {
@@ -110,8 +115,9 @@ enum KoncluiClaudeCLI {
     /// `web: false` (the conversation holds email or a dropped file) turns the web tools off: that text could
     /// otherwise steer the model into sending what it read to a website. `readDir`: the folder holding a copy of the
     /// dropped file (CLIRelay.isolate, as Coucou's relay does); Read is the only tool then, limited to that folder.
+    /// `persist: false` (the conversation holds email or a dropped file): nothing is saved to disk, as Coucou's relay runs it.
     static func arguments(model: String, resume sessionID: String?, systemPrompt: String,
-                          safeMode: Bool = true, web: Bool = true, readDir: URL? = nil) -> [String] {
+                          safeMode: Bool = true, web: Bool = true, readDir: URL? = nil, persist: Bool = true) -> [String] {
         var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
                     "--permission-mode", "dontAsk",
                     // As Coucou's relay, and kept when an older CLI is retried without --safe-mode: no settings
@@ -127,6 +133,7 @@ enum KoncluiClaudeCLI {
         }
         args += ["--system-prompt", systemPrompt]
         if safeMode { args.append("--safe-mode") }
+        if !persist { args.append("--no-session-persistence") }
         if !model.isEmpty, model != "default" { args += ["--model", model] }
         if let sessionID, !sessionID.isEmpty { args += ["--resume", sessionID] }
         return args
@@ -232,10 +239,12 @@ enum KoncluiCodexCLI {
     /// (so none of their MCP servers either), no shell (a read-only sandbox still reads the whole disk), no apps,
     /// plugins or web search, and hooks off so the chat does not show up as a Codex session in the notch. `model`:
     /// the one chosen in Codex (`configuredModel`), passed on since its config is not read.
-    static func arguments(model: String, resume threadID: String?, images: [String] = []) -> [String] {
+    /// `persist: false`: no session file, as Coucou's relay runs it (`--ephemeral`).
+    static func arguments(model: String, resume threadID: String?, images: [String] = [], persist: Bool = true) -> [String] {
         var args = ["exec"]
         if let threadID, !threadID.isEmpty { args += ["resume", threadID] }
         args += ["--json", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules"]
+        if !persist { args.append("--ephemeral") }
         for feature in ["hooks", "shell_tool", "unified_exec", "apps", "plugins"] { args += ["--disable", feature] }
         args += ["-c", #"sandbox_mode="read-only""#, "-c", #"web_search="disabled""#]
         if !model.isEmpty, model != "default" { args += ["-m", model] }
@@ -443,6 +452,14 @@ enum KoncluiProxy {
 // MARK: - Prompt for a CLI turn
 
 enum KoncluiPrompt {
+    /// A prompt passed as an argument (`agy -p`): one that starts with "-" (a continued thread gets the question alone,
+    /// "- list three…", "--verbose please") gets a line break first, so no option parser can take it for a flag.
+    /// Antigravity documents `-p`, `--print` and `--prompt` but not whether they take a value, so `--prompt=` is not
+    /// used there; Claude Code, Codex and Cursor take the prompt on stdin, Copilot's starts with `<instructions>`.
+    static func argument(_ prompt: String) -> String {
+        prompt.hasPrefix("-") ? "\n" + prompt : prompt
+    }
+
     /// The text of one CLI turn. On the first turn it carries the persona (Codex has no system
     /// prompt option) and the window or file context; later turns are just the question, the CLI's
     /// session already holds the rest.
