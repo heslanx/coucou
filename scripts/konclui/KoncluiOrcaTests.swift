@@ -127,7 +127,7 @@ enum KoncluiOrcaTests {
         cards.shown(task: "agent_orca", session: "b")
         check("the pill follows the session the board shows now", cards.terminal(task: "agent_orca")?.handle == "term_b")
         cards.forget(session: "b")
-        check("a card whose session ended opens nothing", cards.terminal(task: "agent_orca#b") == nil)
+        check("a card whose session ended has no terminal to switch to", cards.terminal(task: "agent_orca#b") == nil)
 
         let aged = OrcaTerminals()
         aged.note(session: "old", handle: "term_old", worktree: nil, now: t0)

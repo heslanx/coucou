@@ -103,10 +103,13 @@ enum KoncluiSettingsSearch {
         }
     }
 
-    /// An entry's words without the services whose pill is off (Integrations lists them by name).
+    /// An entry's words without the services whose pill is off: Integrations lists them by name, and some by their
+    /// own keys too ("crypto.exchange" for Crypto).
     static func terms(_ entry: SettingsSearchEntry) -> [String] {
-        let off = Set(PillCatalog.all.filter { !KoncluiFeatures.isOn($0.id) }.map(\.name))
-        return entry.terms.filter { !off.contains($0) }
+        let off = PillCatalog.all.filter { !KoncluiFeatures.isOn($0.id) }.map(\.name)
+        return entry.terms.filter { term in
+            !off.contains { term == $0 || term.lowercased().hasPrefix($0.lowercased() + ".") }
+        }
     }
 }
 #endif
