@@ -596,7 +596,9 @@ struct KoncluiGeminiAdapter: KoncluiCLIAdapter {
     let droppedFile = KoncluiDroppedFile.text
 
     func plan(_ turn: KoncluiCLITurn) -> KoncluiCLIPlan {
-        var args = ["-p", turn.prompt, "--output-format", "stream-json", "--approval-mode", "plan", "--skip-trust",
+        // `--prompt=` (a yargs string option, packages/cli/src/config/config.ts): a question that starts with "-" on a
+        // continued thread is the value, never a flag.
+        var args = ["--prompt=" + turn.prompt, "--output-format", "stream-json", "--approval-mode", "plan", "--skip-trust",
                     "--extensions", "none", "--allowed-mcp-server-names", "coucou-none", "--policy", policyPath]
         if let id = turn.resume, !id.isEmpty { args += ["--resume", id] }
         return KoncluiCLIPlan(arguments: args, stdin: nil, environment: ["NO_COLOR": "1"],
@@ -701,7 +703,8 @@ struct KoncluiAntigravityAdapter: KoncluiCLIAdapter {
     let droppedFile = KoncluiDroppedFile.text
 
     func plan(_ turn: KoncluiCLITurn) -> KoncluiCLIPlan {
-        var args = ["-p", turn.prompt, "--output-format", "stream-json", "--mode", "plan", "--disable-slash-commands"]
+        var args = ["-p", KoncluiPrompt.argument(turn.prompt), "--output-format", "stream-json", "--mode", "plan",
+                    "--disable-slash-commands"]
         if let id = turn.resume, !id.isEmpty { args += ["--conversation", id] }
         return KoncluiCLIPlan(arguments: args, stdin: nil, environment: ["NO_COLOR": "1"])
     }

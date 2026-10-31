@@ -348,7 +348,7 @@ enum KoncluiChatTests {
 
         let gemini = KoncluiGeminiAdapter(policyPath: "/K/gemini/chat-policy.toml")
         let geminiPlan = gemini.plan(turn)
-        expect(Array(geminiPlan.arguments.prefix(2)), ["-p", "Q"], "gemini: the prompt as the relay passes it")
+        expect(geminiPlan.arguments.first, "--prompt=Q", "gemini: the prompt as the value of --prompt")
         for (flag, value) in [("--output-format", "stream-json"), ("--approval-mode", "plan"), ("--extensions", "none"),
                               ("--allowed-mcp-server-names", "coucou-none"), ("--policy", "/K/gemini/chat-policy.toml")] {
             expect(geminiPlan.arguments[geminiPlan.arguments.firstIndex(of: flag)! + 1], value, "gemini: \(flag) \(value)")
@@ -366,6 +366,28 @@ enum KoncluiChatTests {
 
         let agyPlan = KoncluiAntigravityAdapter().plan(turn)
         expect(Array(agyPlan.arguments.prefix(2)), ["-p", "Q"], "antigravity: the prompt as the relay passes it")
+
+        // A continued thread gets the question alone: one that starts with "-" must never read as a flag.
+        for question in ["- list three fruits", "--verbose please", "-p"] {
+            let raw = KoncluiCLITurn(prompt: question, resume: "thread-1")
+            let gem = gemini.plan(raw).arguments
+            expect(gem.first, "--prompt=" + question, "gemini: \"\(question)\" is --prompt's value")
+            expectTrue(!gem.contains(question), "gemini: \"\(question)\" is never an argument of its own")
+            let agy = KoncluiAntigravityAdapter().plan(raw).arguments
+            expect(agy[1], "\n" + question, "antigravity: \"\(question)\" no longer starts with a dash")
+            expectTrue(agy.dropFirst().allSatisfy { $0 != question }, "antigravity: never an argument of its own (after its -p)")
+            let plain = KoncluiCLITurn(prompt: "x", resume: "thread-1")
+            let claudeA = KoncluiClaudeAdapter(model: "default"), codexA = KoncluiCodexAdapter(model: "")
+            let cursorA = KoncluiCursorAdapter(workDir: "", configDir: "", currentConfig: nil, userConfig: nil)
+            for (name, plan, same) in [("claude", claudeA.plan(raw), claudeA.plan(plain)), ("codex", codexA.plan(raw), codexA.plan(plain)),
+                                       ("cursor", cursorA.plan(raw), cursorA.plan(plain))] {
+                expectTrue(plan.stdin == question && plan.arguments == same.arguments,
+                           "\(name): \"\(question)\" goes on stdin, the arguments are those of any prompt")
+            }
+            let copilotArgs = KoncluiCopilotAdapter().plan(KoncluiCLITurn(prompt: question, system: "S")).arguments
+            expectTrue(copilotArgs[1].hasPrefix("<instructions>"), "copilot: \"\(question)\" sits after the relay's instructions")
+        }
+        expect(KoncluiPrompt.argument("Q"), "Q", "a plain question passes as is")
         expect(agyPlan.arguments[agyPlan.arguments.firstIndex(of: "--output-format")! + 1], "stream-json", "antigravity: stream-json")
         expect(agyPlan.arguments[agyPlan.arguments.firstIndex(of: "--mode")! + 1], "plan", "antigravity: plan mode")
         expectTrue(agyPlan.arguments.contains("--disable-slash-commands"), "antigravity: no slash commands or skills")

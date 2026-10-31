@@ -452,6 +452,14 @@ enum KoncluiProxy {
 // MARK: - Prompt for a CLI turn
 
 enum KoncluiPrompt {
+    /// A prompt passed as an argument (`agy -p`): one that starts with "-" (a continued thread gets the question alone,
+    /// "- list three…", "--verbose please") gets a line break first, so no option parser can take it for a flag.
+    /// Antigravity documents `-p`, `--print` and `--prompt` but not whether they take a value, so `--prompt=` is not
+    /// used there; Claude Code, Codex and Cursor take the prompt on stdin, Copilot's starts with `<instructions>`.
+    static func argument(_ prompt: String) -> String {
+        prompt.hasPrefix("-") ? "\n" + prompt : prompt
+    }
+
     /// The text of one CLI turn. On the first turn it carries the persona (Codex has no system
     /// prompt option) and the window or file context; later turns are just the question, the CLI's
     /// session already holds the rest.

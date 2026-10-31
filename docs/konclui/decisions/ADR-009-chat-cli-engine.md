@@ -66,14 +66,17 @@ turn ends the CLI and the 27 processes under it. Signed out (an empty `HOME`): n
 Authentication required. Please run 'agent login' first" on stderr, shown as Coucou's "sign in once" line. A dropped PDF
 or image is named, not read (no folder can be allowed while all reads are denied); text files go in the prompt.
 
-**Gemini CLI.** As the relay (`-p`, plan mode, `--skip-trust`, `--extensions none`, `--allowed-mcp-server-names
+**Gemini CLI.** As the relay (the prompt as `--prompt=<prompt>`, so a continued thread's question that starts with "-"
+is never read as a flag: `prompt` is a yargs string option in `packages/cli/src/config/config.ts`; plan mode, `--skip-trust`, `--extensions none`, `--allowed-mcp-server-names
 coucou-none`) with `--output-format stream-json` and a policy on every turn (`…/Konclui/gemini/chat-policy.toml`): no
 file tool, no shell, no memory, and no `exit_plan_mode`, which a run with no one to ask allows and which leaves plan mode
 for one that runs everything; the web tools are denied too while the conversation holds outside text. A lost session
 ("Invalid session identifier") starts a new thread.
 
 **Antigravity.** As the relay (`-p`, `--mode plan`, `--disable-slash-commands`) with `--output-format stream-json` and
-`--conversation`. The result's `response` is the answer when it differs from the streamed text, as the relay shows it.
+`--conversation`. Its docs list `-p`, `--print` and `--prompt` without saying they take a value, so a prompt that starts
+with "-" gets a line break before it (`KoncluiPrompt.argument`): no option parser takes it for a flag. Claude Code, Codex
+and Cursor read the prompt on stdin; Copilot's starts with the relay's `<instructions>`. The result's `response` is the answer when it differs from the streamed text, as the relay shows it.
 
 **Copilot.** Its `-p --output-format json` events are not documented, so it keeps the relay's command line
 (`CLIRelay.arguments`) and plain text, its conversation sent again each turn, now stoppable. `--session-id` (1.0.51)
