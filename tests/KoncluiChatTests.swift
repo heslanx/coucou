@@ -161,6 +161,7 @@ enum KoncluiChatTests {
         adapterStreams()
         engineRules()
         conversationThreads()
+        ownedFolders()
         await subprocesses()
         print("KoncluiChatTests: \(executedCaseCount) cases passed")
     }
@@ -636,6 +637,34 @@ enum KoncluiChatTests {
                                               shape: KoncluiTurnShape(resume: nil, history: []))
         expect(relay.prompt, "Q", "relay format: the prompt")
         expect(relay.system, "PX", "relay format: its system prompt beside it")
+    }
+
+    // MARK: Folders Koncluí may delete
+
+    static func ownedFolders() {
+        let fm = FileManager.default
+        let sandbox = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-owned-\(getpid())")
+        defer { try? fm.removeItem(at: sandbox) }
+        let root = sandbox.appendingPathComponent("Konclui")
+        let elsewhere = sandbox.appendingPathComponent("elsewhere")
+        try? fm.createDirectory(at: root.appendingPathComponent("cursor/chats"), withIntermediateDirectories: true)
+        try? fm.createDirectory(at: elsewhere.appendingPathComponent("chats"), withIntermediateDirectories: true)
+
+        let real = KoncluiChatEngine.ownedFolder(root.appendingPathComponent("cursor/chats"), inside: root)
+        expectTrue(real?.hasSuffix("/Konclui/cursor/chats") == true, "a real folder inside Koncluí's may go")
+
+        // Konclui/linked → elsewhere: its chats are not Koncluí's.
+        try? fm.createSymbolicLink(at: root.appendingPathComponent("linked"), withDestinationURL: elsewhere)
+        expect(KoncluiChatEngine.ownedFolder(root.appendingPathComponent("linked/chats"), inside: root), nil,
+               "a folder reached through a link that leads out is refused")
+        // Konclui/cursor/chats itself a link.
+        let linkedChats = root.appendingPathComponent("other")
+        try? fm.createDirectory(at: linkedChats, withIntermediateDirectories: true)
+        try? fm.createSymbolicLink(at: linkedChats.appendingPathComponent("chats"), withDestinationURL: elsewhere.appendingPathComponent("chats"))
+        expect(KoncluiChatEngine.ownedFolder(linkedChats.appendingPathComponent("chats"), inside: root), nil, "a link is never deleted as a folder")
+        expect(KoncluiChatEngine.ownedFolder(root.appendingPathComponent("missing"), inside: root), nil, "nothing there")
+        expect(KoncluiChatEngine.ownedFolder(root, inside: root), nil, "never the root itself")
+        expectTrue(fm.fileExists(atPath: elsewhere.appendingPathComponent("chats").path), "the folder elsewhere is untouched")
     }
 
     // MARK: CLI output

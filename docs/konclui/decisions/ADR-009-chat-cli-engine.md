@@ -82,7 +82,7 @@ in its own database). The others have no such switch:
 | CLI | What it keeps of a turn | Removed by Koncluí |
 |---|---|---|
 | Claude Code, Codex | a plain conversation: their usual sessions (the thread: Claude's files under `~/.claude/projects`, Codex's database); with email or a file: nothing | no (their stores) |
-| Cursor | the chat, in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`); its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the chats, when the conversation is cleared and when Koncluí starts; not Cursor's transcripts |
+| Cursor | the chat, in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`); its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the chats, when the conversation is cleared and when Koncluí starts, only as a real folder inside Koncluí's own (`KoncluiChatEngine.ownedFolder`: never through a link); not Cursor's transcripts |
 | Gemini CLI | the session, under `~/.gemini/tmp/<the chat folder's hash>/chats` (deleted by Gemini after 30 days by default) | no (Gemini's store) |
 | Antigravity | its conversation, in its own store; it never answers a conversation with email or a dropped file | no |
 | Copilot | a session per turn under `~/.copilot/session-state` (no thread: each holds the conversation so far) | no (Copilot's store) |

@@ -84,11 +84,16 @@ enum KoncluiCLILocator {
     /// Where the CLI turns run: one folder of their own, so the chat never reads a project's files.
     static var chatDirectory: URL { folder("chat") }
 
-    /// A folder of Koncluí's own under Application Support (the chat's, a CLI's config or policy).
-    static func folder(_ name: String) -> URL {
+    /// Koncluí's own folder under Application Support.
+    static var root: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
-        let dir = base.appendingPathComponent("Konclui/\(name)", isDirectory: true)
+        return base.appendingPathComponent("Konclui", isDirectory: true)
+    }
+
+    /// A folder of Koncluí's own under Application Support (the chat's, a CLI's config or policy).
+    static func folder(_ name: String) -> URL {
+        let dir = root.appendingPathComponent(name, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -212,10 +217,12 @@ final class KoncluiChat {
 
     /// A thread lives as long as the conversation: Cursor's copies of Koncluí's chats go when it is cleared and when
     /// Koncluí starts. They are Koncluí's to remove; what other CLIs keep in their own stores is not (ADR-009).
+    /// Only a real folder inside Koncluí's own: a link in its place must never send the deletion elsewhere.
     private static func removeCursorChats() {
         #if !APPSTORE
-        let chats = cursorConfig.appendingPathComponent("chats")
-        if FileManager.default.fileExists(atPath: chats.path) { try? FileManager.default.removeItem(at: chats) }
+        guard let chats = KoncluiChatEngine.ownedFolder(cursorConfig.appendingPathComponent("chats"),
+                                                        inside: KoncluiCLILocator.root) else { return }
+        try? FileManager.default.removeItem(atPath: chats)
         #endif
     }
 

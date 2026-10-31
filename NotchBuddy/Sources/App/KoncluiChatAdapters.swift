@@ -210,6 +210,21 @@ enum KoncluiChatEngine {
         }
     }
 
+    /// The canonical path of `folder` when Koncluí may delete it as its own: a real folder, not a link, whose canonical
+    /// path lies inside `root`'s. Nil otherwise (missing, a link, or reached through a link that leads out of `root`).
+    static func ownedFolder(_ folder: URL, inside root: URL) -> String? {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: folder.path)   // does not follow a last link
+        guard attributes?[.type] as? FileAttributeType == .typeDirectory,
+              let path = canonical(folder.path), let base = canonical(root.path) else { return nil }
+        return path.hasPrefix(base + "/") ? path : nil
+    }
+
+    private static func canonical(_ path: String) -> String? {
+        guard let resolved = realpath(path, nil) else { return nil }
+        defer { free(resolved) }
+        return String(cString: resolved)
+    }
+
     /// A dropped file as a turn carries it, in the relay's words: its text whole when it has one
     /// (`CLIRelay.inlineText`: up to 200 KB of UTF-8), else its name. Every CLI takes it: Claude Code, Codex and Cursor
     /// on stdin, the others as the `-p` argument (the Mac's argument space is 1 MiB).
