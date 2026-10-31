@@ -52,7 +52,7 @@ jobs:
           bash scripts/konclui/test-updater-rules.sh
 
       - name: Orca relay hook
-        run: python3 scripts/konclui/test-orca-relay.py
+        run: python3 -I scripts/konclui/test-orca-relay.py NotchBuddy/Sources/App/HookServer.swift
 
       - uses: actions/setup-node@v4
         with:
