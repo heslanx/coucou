@@ -92,7 +92,9 @@ Sources, read on 2026-10-31:
 - What no CLI lets a run switch off stays as with the relay: the user's hooks for Cursor (`~/.cursor/hooks.json`; checked:
   `CURSOR_CONFIG_DIR` does not move them), Gemini CLI, Antigravity and Copilot; GEMINI.md; Antigravity's MCP servers,
   plugins and web (its headless defaults refuse them unless the user's settings allow them).
-- A dropped text file goes in the prompt up to 24,000 characters, as for Claude Code and Codex (the relay took 200 KB).
+- A dropped text file goes in the prompt whole up to the relay's limit, 200 KB of UTF-8 (`CLIRelay.inlineText`, one
+  source for every CLI; Claude Code and Codex cut it at 24,000 characters before), else by its name. Claude Code, Codex
+  and Cursor get it on stdin, the others in the `-p` argument as the relay sends it (the Mac's argument space is 1 MiB).
 - A conversation that moves from Antigravity to Gemini CLI (Mail turned on mid-way) starts Gemini's own thread without
   the turns before.
 - With the web off, the system prompt no longer says the model can search the web (Claude Code included).

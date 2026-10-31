@@ -127,6 +127,14 @@ extension SubscriptionCLI {
 // MARK: - Engine rules that hold for every CLI
 
 enum KoncluiChatEngine {
+    /// A dropped file as a turn carries it, in the relay's words: its text whole when it has one
+    /// (`CLIRelay.inlineText`: up to 200 KB of UTF-8), else its name. Every CLI takes it: Claude Code, Codex and Cursor
+    /// on stdin, the others as the `-p` argument (the Mac's argument space is 1 MiB).
+    static func fileContext(name: String, text: String?) -> String {
+        guard let text, !text.isEmpty else { return "File: \(name)" }
+        return "File: \(name)\nFile contents:\n\(text)"
+    }
+
     /// The tool that answers a provider's turn: the first installed one, or, for a conversation that holds email,
     /// the first installed one that can answer with no web at all.
     static func cli(_ candidates: [SubscriptionCLI], offline: Bool,

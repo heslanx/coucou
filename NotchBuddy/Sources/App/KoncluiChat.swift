@@ -475,13 +475,12 @@ final class KoncluiChat {
             if let url { text += ", URL: \(url)" }
             return text
         case .file(let name, let fileURL):
-            let ext = fileURL?.pathExtension.lowercased() ?? ""
-            let binary = ["pdf", "jpg", "jpeg", "png", "gif", "webp"]
-            if let fileURL, !binary.contains(ext), let text = try? String(contentsOf: fileURL, encoding: .utf8), !text.isEmpty {
-                let shown = text.count > 24_000 ? String(text.prefix(24_000)) + "\n[truncated]" : text
-                return "File: \(name)\n\n\(shown)"
-            }
-            return "File: \(name)"
+            // Coucou's relay reads the file (up to 200 KB of UTF-8 text): one limit for every CLI.
+            #if !APPSTORE
+            return KoncluiChatEngine.fileContext(name: name, text: fileURL.flatMap(CLIRelay.inlineText))
+            #else
+            return KoncluiChatEngine.fileContext(name: name, text: nil)
+            #endif
         }
     }
 

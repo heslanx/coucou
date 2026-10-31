@@ -9,7 +9,8 @@ cd "$(dirname "$0")/.."
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/konclui-chat.XXXXXX")"
 trap 'rm -rf "$TEST_DIR"' EXIT
 CORE=(NotchBuddy/Sources/App/KoncluiChatCore.swift NotchBuddy/Sources/App/KoncluiChatAdapters.swift
-      NotchBuddy/Sources/App/CLIRelay.swift NotchBuddy/Sources/App/KoncluiChatProcess.swift)
+      NotchBuddy/Sources/App/CLIRelay.swift NotchBuddy/Sources/App/CLIRelayRun.swift
+      NotchBuddy/Sources/App/KoncluiChatProcess.swift)
 swiftc -swift-version 6 -warnings-as-errors "${CORE[@]}" tests/KoncluiChatTests.swift -o "$TEST_DIR/konclui-chat-tests"
 "$TEST_DIR/konclui-chat-tests"
 if [ "${KONCLUI_CHAT_LIVE:-}" = 1 ]; then

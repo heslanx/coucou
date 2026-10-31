@@ -467,6 +467,24 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.cli([.cursor], offline: true) { _ in true }, .cursor, "Cursor with email: its web is off in Koncluí's config")
         expect(KoncluiChatEngine.cli([.copilot], offline: false) { _ in false }, nil, "nothing installed")
 
+        // A dropped text file goes whole up to the relay's 200 KB (it was cut at 24,000 characters).
+        let dropDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-drop-\(getpid())")
+        try? FileManager.default.createDirectory(at: dropDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dropDir) }
+        let big = String(repeating: "word ", count: 30_000) + "THE-END"   // 150,007 bytes
+        let bigURL = dropDir.appendingPathComponent("notes.txt")
+        try? big.write(to: bigURL, atomically: true, encoding: .utf8)
+        let carried = KoncluiChatEngine.fileContext(name: "notes.txt", text: CLIRelay.inlineText(bigURL))
+        expectTrue(carried.hasPrefix("File: notes.txt\nFile contents:\nword ") && carried.hasSuffix("THE-END"),
+                   "a 150 KB text file goes whole")
+        let huge = dropDir.appendingPathComponent("huge.txt")
+        try? String(repeating: "x", count: 200_001).write(to: huge, atomically: true, encoding: .utf8)
+        expect(KoncluiChatEngine.fileContext(name: "huge.txt", text: CLIRelay.inlineText(huge)), "File: huge.txt",
+               "over the relay's 200 KB: its name only, as the relay")
+        let png = dropDir.appendingPathComponent("a.png")
+        try? Data([0x89, 0x50, 0x4E, 0x47, 0x00, 0x01]).write(to: png)
+        expect(KoncluiChatEngine.fileContext(name: "a.png", text: CLIRelay.inlineText(png)), "File: a.png", "a binary file: its name")
+
         // The fallback is the adapter's: the relay's reading of its own CLI, else the plain lines.
         let gemini = KoncluiGeminiAdapter(policyPath: "")
         expect(gemini.fallbackAnswer(stdout: ["Plain answer", "second line"], exitCode: 0),
@@ -708,6 +726,11 @@ enum KoncluiChatTests {
 
         let env = await KoncluiProcess.capture("/bin/sh", ["-c", "echo \"${KONCLUI_PROBE:-unset}\""], environment: ["KONCLUI_PROBE": "yes", "PATH": "/usr/bin:/bin"], timeout: 10)
         expect(env?.stdout, "yes", "environment passed")
+
+        // Gemini CLI, Antigravity and Copilot take the prompt as an argument: a 200 KB file fits in it.
+        let longArgument = String(repeating: "a", count: 210_000)
+        let counted = await KoncluiProcess.capture("/bin/sh", ["-c", "printf %s \"$1\" | /usr/bin/wc -c", "sh", longArgument], timeout: 10)
+        expect(counted?.stdout.trimmingCharacters(in: .whitespaces), "210000", "a 210 KB argument reaches the CLI whole")
 
         let missing = await KoncluiProcess.capture("/nonexistent/claude", [], timeout: 5)
         expectTrue(missing == nil, "a missing binary is nil, not a hang")
