@@ -96,3 +96,9 @@ References: [SSML audio requirements](https://developer.amazon.com/en-US/docs/al
   contents were checked. `git diff --check` passed.
 - APL rendering, invocation recognition and playback on an actual Echo Show
   remain unverified. Amazon sign-in is required before simulator/device tests.
+
+## Broader Koru product
+
+See the [Koru product documentation](../docs/koru/README.md) for the intended
+operational assistant, MCP integrations, workspace credits and device strategy.
+This Alexa prototype implements only the demonstration described above.
