@@ -631,8 +631,9 @@ Today only this Mac can run Koncluí: Debug builds are signed with the owner's A
 2. Release and ReleaseCloud signed with that team (a `FIXED` rule in `scripts/konclui/rebrand.py` on `NotchBuddy/project.yml`,
    so upstream merges keep it), hardened runtime on, and Koncluí's own iCloud container if the iPhone link is wanted.
 3. Notarization (`xcrun notarytool submit … --wait`, then `xcrun stapler staple`) for every build that leaves this Mac.
-4. Koncluí's update service (`updates/`) deployed on Easypanel at `updates.konclui.com` with its read-only token
-   (updates/README.md), and only then `block_updates` switched on by default. `MacUpdater` already asks it (ADR-002).
+4. Koncluí's update service (`updates/`): deployed on 2026-10-30 (KNC Easypanel, `backend/updates`, automatic deploy from
+   `main`, `https://updates.konclui.com` live). Missing: its read-only GitHub token (`updates/scripts/set-github-token.py`,
+   updates/README.md). Then `block_updates` can ship on. `MacUpdater` already asks it (ADR-002).
 5. `FORK` in `rebrand.py` (the weekly recap image's link, today the public Coucou fork `heslanx/coucou`) pointed at
    Koncluí's public page, its website: there is no public repository (ADR-002).
 6. Releases with `scripts/konclui/release.sh` (only Koncluí: its team, notary profile, `Konclui.zip`, `konclui-vX.Y.Z` tags
