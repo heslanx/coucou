@@ -222,6 +222,8 @@ final class ClaudeService {
     private var conversationMessages: [[String: Any]] = []
     /// Koncluí: the conversation carries email (Mail on): no web tool on any route until it is cleared (KoncluiChat's record).
     private var conversationHoldsMail: Bool { KoncluiChat.shared.outside.mail }
+    /// Koncluí: email or a dropped file in the conversation: no web tool on any route until it is cleared.
+    private var conversationHoldsOutsideText: Bool { KoncluiChat.shared.outside.any }
 
     func clearConversation() {
         conversationMessages = []
@@ -293,7 +295,7 @@ final class ClaudeService {
             model: provider == .anthropic ? model : nil,
             system: systemPrompt + extraSystem,
             prompt: CLIRelay.chatPrompt(history: relayHistory, context: contextLine, query: query),
-            web: !readsFile && !conversationHoldsMail,   // Koncluí: email is untrusted text too
+            web: !readsFile && !conversationHoldsOutsideText,   // Koncluí: email and earlier files are untrusted text too
             readDir: readDir,
             noWebPolicy: nil,
             timeout: 180
@@ -412,7 +414,7 @@ final class ClaudeService {
             "system": systemPrompt + extraSystem,
             "messages": conversationMessages,
         ]
-        if !conversationHoldsMail { body["tools"] = webSearchTools }   // Koncluí: no web search with email in the conversation
+        if !conversationHoldsOutsideText { body["tools"] = webSearchTools }   // Koncluí: no web search with email or a file in the conversation
 
         do {
             let data = try await callAPI(body: body, key: key, beta: "web-search-2025-03-05")
