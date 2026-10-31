@@ -58,7 +58,15 @@ enum KoncluiProxyAccess {
 // MARK: - CLI locations
 
 enum KoncluiCLILocator {
+    /// Where Settings found the tool (Coucou's CLILocator: asdf, fnm, the login shell…) is where it runs from;
+    /// Koncluí's own folders are the fallback.
     static func find(_ name: String) -> String? {
+        #if !APPSTORE
+        if let cli = SubscriptionCLI.allCases.first(where: { $0.binaries.first == name }),
+           let path = CLILocator.shared.path(cli) {
+            return path
+        }
+        #endif
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let nvm = (try? FileManager.default.contentsOfDirectory(atPath: "\(home)/.nvm/versions/node")) ?? []
         return KoncluiCLI.find(name, home: home, nvmVersions: nvm) {
@@ -257,7 +265,8 @@ final class KoncluiChat {
         var stream = KoncluiCodexStream()
         let ended = await consume(
             KoncluiProcess.stream(codex,
-                                  KoncluiCodexCLI.arguments(model: "", resume: codexThread, images: images),
+                                  KoncluiCodexCLI.arguments(model: KoncluiCodexCLI.configuredModel() ?? "",
+                                                            resume: codexThread, images: images),
                                   environment: KoncluiCLILocator.environment(for: codex),
                                   directory: KoncluiCLILocator.chatDirectory,
                                   input: Data(prompt.utf8), timeout: 300),

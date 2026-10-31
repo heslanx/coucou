@@ -113,9 +113,15 @@ enum KoncluiClaudeCLI {
     static func arguments(model: String, resume sessionID: String?, systemPrompt: String,
                           safeMode: Bool = true, web: Bool = true, readDir: URL? = nil) -> [String] {
         var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-                    "--permission-mode", "dontAsk"]
+                    "--permission-mode", "dontAsk",
+                    // As Coucou's relay, and kept when an older CLI is retried without --safe-mode: no settings
+                    // file (so no hooks or permissions of the user's), no MCP server, no slash command.
+                    "--setting-sources", "", "--strict-mcp-config", "--disable-slash-commands"]
         if let readDir {
-            args += ["--tools", "Read", "--allowedTools", "Read", "--add-dir", readDir.path]
+            // `--add-dir` only adds a folder; the rule is what keeps Read inside it (`//` = an absolute path), and
+            // dontAsk refuses everything else. Checked live on Claude Code 2.1.314: a read outside is denied.
+            let dir = readDir.resolvingSymlinksInPath().path
+            args += ["--tools", "Read", "--allowedTools", "Read(/\(dir)/**)", "--add-dir", dir]
         } else {
             args += web ? ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] : ["--tools", ""]
         }
@@ -222,13 +228,14 @@ struct KoncluiClaudeStream {
 // MARK: - Codex
 
 enum KoncluiCodexCLI {
-    /// `codex exec --json` with the prompt on stdin. It can only answer: no shell (a read-only sandbox still reads
-    /// the whole disk), no apps, plugins or web search, and hooks off so the chat does not show up as a Codex session
-    /// in the notch. The model is the one chosen in Codex (`model` empty), as Coucou's relay does.
+    /// `codex exec --json` with the prompt on stdin. It can only answer: the user's config and rules are not loaded
+    /// (so none of their MCP servers either), no shell (a read-only sandbox still reads the whole disk), no apps,
+    /// plugins or web search, and hooks off so the chat does not show up as a Codex session in the notch. `model`:
+    /// the one chosen in Codex (`configuredModel`), passed on since its config is not read.
     static func arguments(model: String, resume threadID: String?, images: [String] = []) -> [String] {
         var args = ["exec"]
         if let threadID, !threadID.isEmpty { args += ["resume", threadID] }
-        args += ["--json", "--skip-git-repo-check"]
+        args += ["--json", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules"]
         for feature in ["hooks", "shell_tool", "unified_exec", "apps", "plugins"] { args += ["--disable", feature] }
         args += ["-c", #"sandbox_mode="read-only""#, "-c", #"web_search="disabled""#]
         if !model.isEmpty, model != "default" { args += ["-m", model] }
@@ -238,6 +245,28 @@ enum KoncluiCodexCLI {
     }
 
     static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp"]
+
+    /// The top-level `model = "…"` of Codex's config.toml (`$CODEX_HOME`, else `~/.codex`), nil when it sets none.
+    static func configuredModel(environment: [String: String] = ProcessInfo.processInfo.environment,
+                                home: String = NSHomeDirectory()) -> String? {
+        let dir = environment["CODEX_HOME"].flatMap { $0.isEmpty ? nil : $0 } ?? "\(home)/.codex"
+        guard let text = try? String(contentsOfFile: "\(dir)/config.toml", encoding: .utf8) else { return nil }
+        return model(fromConfig: text)
+    }
+
+    static func model(fromConfig text: String) -> String? {
+        for raw in text.split(whereSeparator: \.isNewline) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("[") { return nil }   // a table starts: the top level is over
+            guard line.hasPrefix("model"), let eq = line.firstIndex(of: "=") else { continue }
+            guard line[..<eq].trimmingCharacters(in: .whitespaces) == "model" else { continue }
+            let value = line[line.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+            guard value.hasPrefix("\""), let end = value.dropFirst().firstIndex(of: "\"") else { return nil }
+            let model = String(value[value.index(after: value.startIndex)..<end])
+            return model.isEmpty ? nil : model
+        }
+        return nil
+    }
 }
 
 /// Reads `codex exec --json` (JSONL) line by line. Codex gives each message whole, not token by token.
@@ -436,6 +465,11 @@ enum KoncluiChatMigration {
             defaults.set(provider, forKey: "chatProvider")
             // ChatSubscription.swift's key for the provider's switch
             defaults.set(true, forKey: "chat.useSubscription.\(provider)")
+            // The Claude model chosen for Claude Code is Anthropic's model now ("default" leaves Anthropic's as it is).
+            if old == "claude-code", let model = defaults.string(forKey: "claudeCodeChatModel"),
+               !model.isEmpty, model != "default" {
+                defaults.set(model, forKey: "claudeModel")
+            }
         }
         defaults.removeObject(forKey: "claudeCodeChatModel")
         defaults.removeObject(forKey: "codexChatModel")
