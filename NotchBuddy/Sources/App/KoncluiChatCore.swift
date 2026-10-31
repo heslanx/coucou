@@ -25,7 +25,10 @@ enum KoncluiCLI {
         "CLAUDE_CODE_USE_ANTHROPIC_AWS", "CLAUDECODE", "CLAUDE_CODE_SESSION_ID",
         "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN",
         "OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_API_KEY",
-        "GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL",
+        "GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL", "GOOGLE_GENAI_USE_VERTEXAI",
+        "CURSOR_API_KEY", "CURSOR_API_ENDPOINT",
+        // Copilot CLI takes these before its own login, silently (docs.github.com, "Authenticate Copilot CLI").
+        "COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN",
     ]
 
     /// Where the app looks for a CLI: it does not get the shell's PATH.
@@ -82,8 +85,10 @@ enum KoncluiCLI {
     }
 
     /// A resumed thread the CLI no longer has (its session file is gone): the next turn must start a new one.
+    /// Claude Code, Codex, then Gemini CLI (`packages/cli/src/utils/sessionUtils.ts`). Cursor starts a new chat itself.
     static func isLostThread(stderr: String) -> Bool {
-        stderr.contains("No conversation found") || stderr.contains("no rollout found")
+        ["No conversation found", "no rollout found", "Invalid session identifier", "No previous sessions found"]
+            .contains { stderr.contains($0) }
     }
 
     static func jsonObject(_ text: String) -> [String: Any]? {

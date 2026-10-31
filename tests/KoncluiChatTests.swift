@@ -79,6 +79,69 @@ key="$(security find-generic-password -a "$USER" -s klaude-api-key -w 2>/dev/nul
 export ANTHROPIC_BASE_URL="$proxy_url"
 """
 
+// Captured live 2026-10-31 from cursor-agent 2026.10.19-6bbf2c4 (`-p --output-format stream-json
+// --stream-partial-output --mode ask`): a streamed answer, then a turn with a file read between two texts.
+let cursorStreamOK = [
+    #"{"type":"system","subtype":"init","apiKeySource":"login","cwd":"/private/tmp/kchat-cursor","session_id":"61ca2569-182e-4b68-b456-cf598d41592c","model":"Auto","permissionMode":"default"}"#,
+    #"{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Count from 1 to 15 in words, one per line."}]},"session_id":"61ca2569-182e-4b68-b456-cf598d41592c"}"#,
+    #"{"type":"thinking","subtype":"delta","text":"I","session_id":"61ca2569-182e-4b68-b456-cf598d41592c","timestamp_ms":1793484125434}"#,
+    #"{"type":"thinking","subtype":"completed","session_id":"61ca2569-182e-4b68-b456-cf598d41592c","timestamp_ms":1793484125436}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"one\ntwo\nthree"}]},"session_id":"61ca2569-182e-4b68-b456-cf598d41592c","timestamp_ms":1793484125436}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"\nfour\nfive"}]},"session_id":"61ca2569-182e-4b68-b456-cf598d41592c","timestamp_ms":1793484125437}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"one\ntwo\nthree\nfour\nfive"}]},"session_id":"61ca2569-182e-4b68-b456-cf598d41592c"}"#,
+    #"{"type":"result","subtype":"success","duration_ms":5875,"duration_api_ms":5875,"is_error":false,"result":"one\ntwo\nthree\nfour\nfive","session_id":"61ca2569-182e-4b68-b456-cf598d41592c","request_id":"4b0f2abe-b261-4e6d-8ada-0f77ab2a90cc"}"#,
+]
+
+let cursorStreamWithTool = [
+    #"{"type":"system","subtype":"init","session_id":"46257452-a900-4204-848c-5ec6e1dfdf13","model":"Auto"}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I'll read that file."}]},"session_id":"46257452-a900-4204-848c-5ec6e1dfdf13","timestamp_ms":1793484230289}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I'll read that file."}]},"session_id":"46257452-a900-4204-848c-5ec6e1dfdf13","model_call_id":"9d28ab44-0-l7ba","timestamp_ms":1793484230290}"#,
+    #"{"type":"tool_call","subtype":"started","call_id":"c1","tool_call":{"readToolCall":{"args":{"path":"/tmp/secret.txt"}}},"model_call_id":"9d28ab44-0-l7ba","session_id":"46257452-a900-4204-848c-5ec6e1dfdf13","timestamp_ms":1793484230369}"#,
+    #"{"type":"tool_call","subtype":"completed","call_id":"c1","tool_call":{"readToolCall":{"args":{"path":"/tmp/secret.txt"},"result":{"error":{"errorMessage":"Permission denied"}}}},"model_call_id":"9d28ab44-0-l7ba","session_id":"46257452-a900-4204-848c-5ec6e1dfdf13","timestamp_ms":1793484230400}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"CANNOT"}]},"session_id":"46257452-a900-4204-848c-5ec6e1dfdf13","timestamp_ms":1793484237247}"#,
+    #"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"CANNOT"}]},"session_id":"46257452-a900-4204-848c-5ec6e1dfdf13"}"#,
+    #"{"type":"result","subtype":"success","is_error":false,"result":"I'll read that file.CANNOT","session_id":"46257452-a900-4204-848c-5ec6e1dfdf13"}"#,
+]
+
+/// Cursor signed out: nothing on stdout, exit 1, this on stderr (captured with an empty HOME).
+let cursorSignedOutStderr = "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n"
+
+// Gemini CLI `-p --output-format stream-json`: the event types of packages/core/src/output/types.ts and the example
+// lines of google-gemini/gemini-cli PR #10883 (v0.11.0). Not captured: gemini is not installed here.
+let geminiStreamOK = [
+    #"{"type":"init","timestamp":"2026-10-31T10:00:00.000Z","session_id":"5f0c3a52-1d6e-4c1b-9a43-2b8c1f0e7d10","model":"gemini-3-pro"}"#,
+    #"{"type":"message","timestamp":"2026-10-31T10:00:00.010Z","role":"user","content":"What is new in Swift?"}"#,
+    #"{"type":"message","timestamp":"2026-10-31T10:00:01.000Z","role":"assistant","content":"Let me search.","delta":true}"#,
+    #"{"type":"tool_use","timestamp":"2026-10-31T10:00:01.100Z","tool_name":"google_web_search","tool_id":"t1","parameters":{"query":"Swift news"}}"#,
+    #"{"type":"tool_result","timestamp":"2026-10-31T10:00:02.000Z","tool_id":"t1","status":"success","output":"…"}"#,
+    #"{"type":"message","timestamp":"2026-10-31T10:00:03.000Z","role":"assistant","content":"Swift 7 ","delta":true}"#,
+    #"{"type":"message","timestamp":"2026-10-31T10:00:03.100Z","role":"assistant","content":"is out.","delta":true}"#,
+    #"{"type":"result","timestamp":"2026-10-31T10:00:03.200Z","status":"success","stats":{"total_tokens":120,"input_tokens":100,"output_tokens":20,"duration_ms":3200,"tool_calls":1}}"#,
+]
+
+let geminiStreamFailed = [
+    #"{"type":"init","timestamp":"2026-10-31T10:00:00.000Z","session_id":"s-err","model":"gemini-3-pro"}"#,
+    #"{"type":"error","timestamp":"2026-10-31T10:00:01.000Z","severity":"warning","message":"Loop detected, stopping execution"}"#,
+    #"{"type":"result","timestamp":"2026-10-31T10:00:01.100Z","status":"error","error":{"type":"FatalTurnLimitedError","message":"Maximum session turns exceeded"},"stats":{"total_tokens":0}}"#,
+]
+
+/// Gemini CLI with no sign-in, stream-json: stderr only, exit 41 (packages/cli/src/validateNonInterActiveAuth.ts).
+let geminiSignedOutStderr = "Please set an Auth method in your /Users/me/.gemini/settings.json or specify one of the following environment variables before running: GEMINI_API_KEY, GOOGLE_GENAI_USE_VERTEXAI, GOOGLE_GENAI_USE_GCA\n"
+
+// Antigravity CLI `-p --output-format stream-json`: the lines of antigravity.google/docs/cli/headless (v1.1.8+).
+// Not captured: agy is not installed here.
+let antigravityStreamOK = [
+    #"{"event":"init","conversation_id":"c3b6e2a4-7d1f-4f7a-9a52-1f6d0b9e8c21","init":{"cwd":"/Users/me/Library/Application Support/Konclui/chat","tools":["view_file"],"permission_mode":"request-review"}}"#,
+    #"{"event":"step_update","step_update":{"conversation_id":"c3b6e2a4-7d1f-4f7a-9a52-1f6d0b9e8c21","step_index":1,"state":"DONE","step_type":"user_input"}}"#,
+    #"{"event":"step_update","step_update":{"conversation_id":"c3b6e2a4-7d1f-4f7a-9a52-1f6d0b9e8c21","step_index":2,"state":"ACTIVE","step_type":"agent_response","text_delta":"app"}}"#,
+    #"{"event":"step_update","step_update":{"conversation_id":"c3b6e2a4-7d1f-4f7a-9a52-1f6d0b9e8c21","step_index":2,"state":"ACTIVE","step_type":"agent_response","text_delta":"le"}}"#,
+    #"{"event":"result","result":{"conversation_id":"c3b6e2a4-7d1f-4f7a-9a52-1f6d0b9e8c21","status":"SUCCESS","response":"apple\n","duration_seconds":1.43,"num_turns":1,"usage":{}}}"#,
+]
+
+let antigravityStreamFailed = [
+    #"{"event":"result","result":{"conversation_id":"","status":"ERROR","response":"","error":"invalid model selection","duration_seconds":0.2,"num_turns":0}}"#,
+]
+
 func feedAll<S>(_ stream: inout S, _ lines: [String], _ feed: (inout S, String) -> Bool) -> [Bool] {
     lines.map { feed(&stream, $0) }
 }
@@ -94,6 +157,9 @@ enum KoncluiChatTests {
         proxyStreams()
         promptAndModels()
         migration()
+        adapterCommandLines()
+        adapterStreams()
+        engineRules()
         await subprocesses()
         print("KoncluiChatTests: \(executedCaseCount) cases passed")
     }
@@ -201,6 +267,230 @@ enum KoncluiChatTests {
         expect(next.last, "-", "resume prompt from stdin")
     }
 
+    // MARK: Adapters
+
+    static func adapterCommandLines() {
+        let turn = KoncluiCLITurn(prompt: "Q", system: "S", resume: nil, web: true)
+        let resumed = KoncluiCLITurn(prompt: "Q2", resume: "thread-1", web: true)
+
+        let claude = KoncluiClaudeAdapter(model: "opus")
+        let claudePlan = claude.plan(turn)
+        expect(claudePlan.stdin, "Q", "claude: the prompt on stdin")
+        expect(claudePlan.arguments[claudePlan.arguments.firstIndex(of: "--system-prompt")! + 1], "S", "claude: system prompt flag")
+        expectTrue(claudePlan.arguments.contains("--safe-mode"), "claude: safe mode first")
+        let older = claude.fallback(turn, stderr: "error: unknown option '--safe-mode'")
+        expectTrue(older != nil && !older!.arguments.contains("--safe-mode") && older!.arguments.contains("--strict-mcp-config"),
+                   "claude: an older CLI runs again without --safe-mode, isolation kept")
+        expect(claude.fallback(turn, stderr: "error: unknown option '--bogus'"), nil, "claude: no retry for another error")
+        expect(claude.needsSignIn(stderr: "please log in"), false, "claude: its stream says sign-in, not stderr")
+
+        let codex = KoncluiCodexAdapter(model: "gpt-6")
+        let codexPlan = codex.plan(KoncluiCLITurn(prompt: "Q", resume: "t1", images: ["/tmp/a.png"]))
+        expect(Array(codexPlan.arguments.prefix(3)), ["exec", "resume", "t1"], "codex: resume")
+        expect(codexPlan.arguments[codexPlan.arguments.firstIndex(of: "-i")! + 1], "/tmp/a.png", "codex: image")
+        expect(codexPlan.stdin, "Q", "codex: the prompt on stdin")
+        expect(codex.searchesWeb, false, "codex: no web tool to tell the model about")
+
+        let cursor = KoncluiCursorAdapter(workDir: "/K/chat", configDir: "/K/cursor", currentConfig: nil, userConfig: nil)
+        let cursorPlan = cursor.plan(turn)
+        expect(Array(cursorPlan.arguments.prefix(6)), ["-p", "--output-format", "stream-json", "--stream-partial-output", "--mode", "ask"],
+               "cursor: print mode, streamed text deltas, ask mode")
+        expectTrue(cursorPlan.arguments.contains("--trust"), "cursor: trusts Koncluí's chat folder without asking")
+        for flag in ["--force", "--yolo", "--approve-mcps", "--auto-review"] {
+            expectTrue(!cursorPlan.arguments.contains(flag), "cursor: never \(flag)")
+        }
+        expect(cursorPlan.stdin, "Q", "cursor: the prompt on stdin")
+        expectTrue(!cursorPlan.arguments.contains("Q"), "cursor: the prompt is not in the arguments")
+        expect(cursorPlan.environment["CURSOR_CONFIG_DIR"], "/K/cursor", "cursor: Koncluí's own config folder")
+        expect(Set(cursorPlan.files.keys), ["/K/chat/.cursor/cli.json", "/K/cursor/cli-config.json"], "cursor: both permission files")
+        expect(Array(cursor.plan(resumed).arguments.suffix(2)), ["--resume", "thread-1"], "cursor: resume its chat")
+
+        let open = KoncluiCLI.jsonObject(KoncluiCursorCLI.projectConfig(web: true))?["permissions"] as? [String: [String]]
+        expect(open?["deny"], ["Read(/**)", "Read(**)", "Write(/**)", "Write(**)", "Shell(*)", "Mcp(*:*)"],
+               "cursor: no read, write, shell or MCP tool, anywhere")
+        expect(open?["allow"], ["WebFetch(*)"], "cursor: web fetch for the chat")
+        let closed = KoncluiCLI.jsonObject(KoncluiCursorCLI.projectConfig(web: false))?["permissions"] as? [String: [String]]
+        expectTrue(closed?["deny"]?.contains("WebFetch(*)") == true && closed?["allow"] == [], "cursor: no web fetch with outside text")
+
+        let user = #"{"model":{"modelId":"gpt-6","displayName":"GPT-6"},"selectedModel":{"modelId":"gpt-6"},"approvalMode":"unrestricted","autoAcceptWebSearch":true,"permissions":{"allow":["Read(**)","Shell(*)"],"deny":[]}}"#
+        let current = #"{"version":1,"serverConfigCache":{"k":1},"model":{"modelId":"old"}}"#
+        let config = KoncluiCLI.jsonObject(KoncluiCursorCLI.config(current: current, user: user, web: false))
+        expect((config?["model"] as? [String: Any])?["modelId"] as? String, "gpt-6", "cursor: the model chosen in Cursor is kept")
+        expect((config?["selectedModel"] as? [String: Any])?["modelId"] as? String, "gpt-6", "cursor: and its selection")
+        expectTrue(config?["serverConfigCache"] != nil, "cursor: what Cursor keeps in Koncluí's config stays")
+        expect(config?["approvalMode"] as? String, "allowlist", "cursor: the user's approval mode is not carried")
+        expect(config?["autoAcceptWebSearch"] as? Bool, false, "cursor: no web search with outside text, whatever the user chose")
+        expect((config?["permissions"] as? [String: [String]])?["allow"], [], "cursor: the user's allow list is not carried")
+        let fresh = KoncluiCLI.jsonObject(KoncluiCursorCLI.config(current: "not json", user: nil, web: true))
+        expect(fresh?["autoAcceptWebSearch"] as? Bool, true, "cursor: web search for the chat")
+        expect(fresh?["version"] as? Int, 1, "cursor: a config Cursor accepts (version)")
+        expectTrue(fresh?["model"] == nil, "cursor: no model chosen, Cursor's default")
+        expect(KoncluiCursorCLI.userConfigPath(environment: [:], home: "/Users/me"), "/Users/me/.cursor/cli-config.json", "cursor: user config")
+        expect(KoncluiCursorCLI.userConfigPath(environment: ["CURSOR_CONFIG_DIR": "/x"], home: "/Users/me"), "/x/cli-config.json",
+               "cursor: user config under CURSOR_CONFIG_DIR")
+
+        // `cursor-agent about --format json`, captured signed in and with an empty HOME (signed out).
+        expect(KoncluiCursorCLI.parseLogin(output: #"{"cliVersion":"2026.10.19-6bbf2c4","model":"Auto","subscriptionTier":"Ultra","userEmail":"me@example.com"}"#),
+               .signedIn("Ultra"), "cursor: signed in, its plan")
+        expect(KoncluiCursorCLI.parseLogin(output: #"{"cliVersion":"2026.10.19-6bbf2c4","subscriptionTier":null,"userEmail":null}"#),
+               .signedOut, "cursor: signed out")
+        expect(KoncluiCursorCLI.parseLogin(output: #"{"userEmail":"me@example.com","subscriptionTier":""}"#), .signedIn(nil), "cursor: no plan")
+        expect(KoncluiCursorCLI.parseLogin(output: #"{"status":"unauthenticated","isAuthenticated":false,"message":"Not logged in"}"#),
+               .signedOut, "cursor: status --format json, signed out")
+        expect(KoncluiCursorCLI.parseLogin(output: "✓ Logged in"), nil, "cursor: text output is not read as a status")
+
+        let gemini = KoncluiGeminiAdapter(policyPath: "/K/gemini/chat-policy.toml")
+        let geminiPlan = gemini.plan(turn)
+        expect(Array(geminiPlan.arguments.prefix(2)), ["-p", "Q"], "gemini: the prompt as the relay passes it")
+        for (flag, value) in [("--output-format", "stream-json"), ("--approval-mode", "plan"), ("--extensions", "none"),
+                              ("--allowed-mcp-server-names", "coucou-none"), ("--policy", "/K/gemini/chat-policy.toml")] {
+            expect(geminiPlan.arguments[geminiPlan.arguments.firstIndex(of: flag)! + 1], value, "gemini: \(flag) \(value)")
+        }
+        expectTrue(geminiPlan.arguments.contains("--skip-trust"), "gemini: Koncluí's folder needs no trust prompt")
+        expectTrue(!geminiPlan.arguments.contains("--yolo") && !geminiPlan.arguments.contains("--resume"), "gemini: first turn")
+        expect(Array(gemini.plan(resumed).arguments.suffix(2)), ["--resume", "thread-1"], "gemini: resume its session")
+        let policy = geminiPlan.files["/K/gemini/chat-policy.toml"] ?? ""
+        for tool in ["exit_plan_mode", "run_shell_command", "write_file", "read_file"] {
+            expectTrue(policy.contains("\"\(tool)\""), "gemini: \(tool) denied on every turn")
+        }
+        expectTrue(policy.contains(#"decision = "deny""#) && !policy.contains("google_web_search"), "gemini: web for the chat")
+        let noWebPolicy = gemini.plan(KoncluiCLITurn(prompt: "Q", web: false)).files["/K/gemini/chat-policy.toml"] ?? ""
+        expectTrue(noWebPolicy.contains(#""google_web_search""#) && noWebPolicy.contains(#""web_fetch""#), "gemini: no web with outside text")
+
+        let agyPlan = KoncluiAntigravityAdapter().plan(turn)
+        expect(Array(agyPlan.arguments.prefix(2)), ["-p", "Q"], "antigravity: the prompt as the relay passes it")
+        expect(agyPlan.arguments[agyPlan.arguments.firstIndex(of: "--output-format")! + 1], "stream-json", "antigravity: stream-json")
+        expect(agyPlan.arguments[agyPlan.arguments.firstIndex(of: "--mode")! + 1], "plan", "antigravity: plan mode")
+        expectTrue(agyPlan.arguments.contains("--disable-slash-commands"), "antigravity: no slash commands or skills")
+        expect(Array(KoncluiAntigravityAdapter().plan(resumed).arguments.suffix(2)), ["--conversation", "thread-1"],
+               "antigravity: continue its conversation")
+
+        let copilot = KoncluiCopilotAdapter()
+        let copilotPlan = copilot.plan(KoncluiCLITurn(prompt: "Q", system: "S", web: false))
+        expect(copilotPlan.arguments[1], "<instructions>\nS\n</instructions>\n\nQ", "copilot: the relay's prompt, system on top")
+        expect(copilotPlan.arguments[copilotPlan.arguments.firstIndex(of: "--available-tools")! + 1], "view",
+               "copilot: no web tool with outside text (the relay's rule)")
+        for flag in ["--silent", "--no-custom-instructions", "--disable-builtin-mcps", "--no-ask-user"] {
+            expectTrue(copilotPlan.arguments.contains(flag), "copilot: \(flag), as the relay")
+        }
+        expectTrue(copilot.plan(turn).arguments.contains("web_fetch"), "copilot: web fetch for the chat")
+        expect(copilot.systemPrompt, .everyTurn, "copilot: no thread, the conversation goes with every turn")
+    }
+
+    static func adapterStreams() {
+        var cursor = KoncluiCursorStream()
+        let grew = cursorStreamOK.map { cursor.feed($0) }
+        expect(cursor.text, "one\ntwo\nthree\nfour\nfive", "cursor: text from the deltas, the end-of-turn flush not repeated")
+        expect(grew.filter { $0 }.count, 2, "cursor: grew once per delta")
+        expect(cursor.threadID, "61ca2569-182e-4b68-b456-cf598d41592c", "cursor: its chat id")
+        expectTrue(!cursor.failed && cursor.finished, "cursor: finished")
+
+        var tool = KoncluiCursorStream()
+        cursorStreamWithTool.forEach { _ = tool.feed($0) }
+        expect(tool.text, "I'll read that file.\n\nCANNOT", "cursor: texts around a tool call, apart, flushes skipped")
+
+        var whole = KoncluiCursorStream()
+        for line in [#"{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}"#,
+                     #"{"type":"assistant","message":{"content":[{"type":"text","text":"Done."}]}}"#] { _ = whole.feed(line) }
+        expect(whole.text, "Hello\n\nDone.", "cursor: without partial output, whole messages")
+
+        var bare = KoncluiCursorStream()
+        _ = bare.feed(#"{"type":"result","subtype":"success","is_error":false,"result":"Only this"}"#)
+        expect(bare.text, "Only this", "cursor: the result when nothing streamed")
+
+        var refused = KoncluiCursorStream()
+        _ = refused.feed(#"{"type":"result","is_error":true,"result":"You've hit your usage limit"}"#)
+        expectTrue(refused.failed && refused.failure == "You've hit your usage limit" && !refused.needsSignIn,
+                   "cursor: an error result is a failure in its own words")
+
+        var signedOut = KoncluiCursorStream()
+        signedOut.end(exitCode: 1)
+        expectTrue(signedOut.failed && signedOut.text.isEmpty, "cursor: exit 1 with no result failed")
+        expectTrue(KoncluiCursorAdapter(workDir: "", configDir: "", currentConfig: nil, userConfig: nil)
+                    .needsSignIn(stderr: cursorSignedOutStderr), "cursor: its stderr asks for a sign-in")
+        var cut = KoncluiCursorStream()
+        _ = cut.feed(cursorStreamOK[4])
+        cut.end(exitCode: 1)
+        expectTrue(cut.failed, "cursor: a stream cut before its result failed, partial text not shown as the answer")
+
+        var gemini = KoncluiGeminiStream()
+        let geminiGrew = geminiStreamOK.map { gemini.feed($0) }
+        expect(gemini.text, "Let me search.\n\nSwift 7 is out.", "gemini: assistant deltas, apart around a tool, the user's message left out")
+        expect(geminiGrew.filter { $0 }.count, 3, "gemini: grew once per delta")
+        expect(gemini.threadID, "5f0c3a52-1d6e-4c1b-9a43-2b8c1f0e7d10", "gemini: session id from init")
+        expectTrue(!gemini.failed, "gemini: success")
+        var repeated = KoncluiGeminiStream()
+        _ = repeated.feed(geminiStreamOK[2])
+        _ = repeated.feed(#"{"type":"message","role":"assistant","content":"Let me search."}"#)
+        expect(repeated.text, "Let me search.", "gemini: a whole message after its deltas is not repeated")
+        var geminiFailed = KoncluiGeminiStream()
+        geminiStreamFailed.forEach { _ = geminiFailed.feed($0) }
+        expectTrue(geminiFailed.failed && geminiFailed.failure == "Maximum session turns exceeded",
+                   "gemini: an error result, its message (the warning before it is not the failure)")
+        var geminiOut = KoncluiGeminiStream()
+        geminiOut.end(exitCode: 41)
+        expectTrue(geminiOut.failed, "gemini: exit 41 with no result failed")
+        expectTrue(KoncluiGeminiAdapter(policyPath: "").needsSignIn(stderr: geminiSignedOutStderr), "gemini: its stderr asks for a sign-in")
+
+        var agy = KoncluiAntigravityStream()
+        let agyGrew = antigravityStreamOK.map { agy.feed($0) }
+        expect(agy.text, "apple", "antigravity: text deltas; the result's response matches")
+        expect(agyGrew.filter { $0 }.count, 2, "antigravity: grew once per delta")
+        expect(agy.threadID, "c3b6e2a4-7d1f-4f7a-9a52-1f6d0b9e8c21", "antigravity: conversation id")
+        var agyDone = KoncluiAntigravityStream()
+        _ = agyDone.feed(antigravityStreamOK[2])
+        _ = agyDone.feed(#"{"event":"result","result":{"conversation_id":"c","status":"SUCCESS","response":"apple pie"}}"#)
+        expect(agyDone.text, "apple pie", "antigravity: the result's response is the answer the relay would show")
+        var agyFailed = KoncluiAntigravityStream()
+        antigravityStreamFailed.forEach { _ = agyFailed.feed($0) }
+        expectTrue(agyFailed.failed && agyFailed.failure == "invalid model selection", "antigravity: error is a string")
+        var agyCut = KoncluiAntigravityStream()
+        agyCut.end(exitCode: 3)
+        expectTrue(agyCut.failed, "antigravity: exit 3 (AGY_ERROR on stderr) failed")
+
+        var plain = KoncluiPlainStream()
+        for line in ["", "\u{1B}[1mHello\u{1B}[0m", "", "world"] { _ = plain.feed(line) }
+        plain.end(exitCode: 0)
+        expect(plain.text, "Hello\n\nworld", "copilot: plain lines, colours and leading blank lines dropped")
+        expectTrue(!plain.failed, "copilot: exit 0 answered")
+        var plainFailed = KoncluiPlainStream()
+        _ = plainFailed.feed("partial")
+        plainFailed.end(exitCode: 1)
+        expectTrue(plainFailed.failed, "copilot: exit 1 is no answer, as the relay")
+    }
+
+    static func engineRules() {
+        let google: [SubscriptionCLI] = [.antigravity, .gemini]
+        expect(KoncluiChatEngine.cli(google, offline: false) { _ in true }, .antigravity, "Google: Antigravity first")
+        expect(KoncluiChatEngine.cli(google, offline: true) { _ in true }, .gemini, "Google with email: Gemini CLI turns the web off")
+        expect(KoncluiChatEngine.cli(google, offline: true) { $0 == .antigravity }, nil, "only Antigravity: no tool for email")
+        expect(KoncluiChatEngine.cli([.cursor], offline: true) { _ in true }, .cursor, "Cursor with email: its web is off in Koncluí's config")
+        expect(KoncluiChatEngine.cli([.copilot], offline: false) { _ in false }, nil, "nothing installed")
+
+        expect(KoncluiChatEngine.fallbackAnswer(.gemini, stdout: ["Plain answer", "second line"], exitCode: 0),
+               "Plain answer\nsecond line", "an unread format: the plain lines, as the relay")
+        expect(KoncluiChatEngine.fallbackAnswer(.antigravity, stdout: [#"{"response":"From the JSON object"}"#], exitCode: 0),
+               "From the JSON object", "an older CLI that printed the relay's JSON: the relay's own reading")
+        expect(KoncluiChatEngine.fallbackAnswer(.cursor, stdout: [#"{"type":"something_new"}"#, #"{"type":"result","is_error":false,"result":"OK"}"#], exitCode: 0),
+               "OK", "cursor: the relay reads the last result object")
+        expect(KoncluiChatEngine.fallbackAnswer(.gemini, stdout: ["Some text"], exitCode: 1), nil, "a failed run has no fallback answer")
+        expect(KoncluiChatEngine.fallbackAnswer(.copilot, stdout: [#"{"type":"assistant.message"}"#], exitCode: 0), nil,
+               "copilot: JSON lines are never shown as an answer")
+        expect(KoncluiChatEngine.fallbackAnswer(.gemini, stdout: [#"{"type":"unknown"}"#, ""], exitCode: 0), nil,
+               "only unknown JSON: no answer rather than a blank one")
+
+        let env = KoncluiCLI.environment(base: [
+            "PATH": "/usr/bin", "CURSOR_API_KEY": "k", "CURSOR_API_ENDPOINT": "https://x", "GH_TOKEN": "t", "GITHUB_TOKEN": "t",
+            "COPILOT_GITHUB_TOKEN": "t", "GOOGLE_GENAI_USE_VERTEXAI": "true", "GOOGLE_CLOUD_PROJECT": "p",
+        ], executable: "/usr/local/bin/cursor-agent", home: "/Users/me")
+        for name in ["CURSOR_API_KEY", "CURSOR_API_ENDPOINT", "GH_TOKEN", "GITHUB_TOKEN", "COPILOT_GITHUB_TOKEN", "GOOGLE_GENAI_USE_VERTEXAI"] {
+            expect(env[name], nil, "environment drops \(name): the CLI's own login answers")
+        }
+        expect(env["GOOGLE_CLOUD_PROJECT"], "p", "a Code Assist project is the login's, kept")
+        expectTrue(!SubscriptionCLI.antigravity.koncluiTurnsWebOff && SubscriptionCLI.cursor.koncluiTurnsWebOff,
+                   "only Antigravity cannot turn its web off")
+    }
+
     // MARK: CLI output
 
     static func claudeStreams() {
@@ -254,6 +544,7 @@ enum KoncluiChatTests {
         expectTrue(silent.failed && silent.failure == nil && !silent.needsSignIn, "an error with no text of its own: stderr speaks")
         expectTrue(KoncluiCLI.isLostThread(stderr: "No conversation found with session ID: 0000"), "claude lost thread")
         expectTrue(KoncluiCLI.isLostThread(stderr: "Error: thread/resume failed: no rollout found for thread id 0000 (code -32600)"), "codex lost thread")
+        expectTrue(KoncluiCLI.isLostThread(stderr: "Invalid session identifier \"5f0c3a52\".\n  Searched for sessions in /x."), "gemini lost session")
         expectTrue(!KoncluiCLI.isLostThread(stderr: "Reading additional input from stdin..."), "other stderr is not a lost thread")
         var garbage = KoncluiClaudeStream()
         expect(garbage.feed("not json at all"), false, "non-JSON line ignored")
