@@ -990,6 +990,7 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
+                    .koncluiShown(!(chatAccess.signIn(installed)?.isReady ?? false))   // Koncluí: not once signed in
             } else {
                 HStack(spacing: 6) {
                     Text(String(format: String(localized: "chat.subscriptions.missing"), tool.displayName))
