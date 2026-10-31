@@ -172,7 +172,8 @@ final class KoncluiChat {
         guard let running else { return }
         running.cancel()
         self.running = nil
-        threads.cancelRunning()
+        // Its bubble goes now, before the next turn reads the chat: the stopped task removes it only once it resumes.
+        if let bubble = threads.cancelRunning() { abandon(bubble, state: AppState.shared) }
     }
 
     /// The conversation carries text from outside (email with Mail on, a dropped file): no web tool until it is
@@ -308,6 +309,7 @@ final class KoncluiChat {
     /// `sensitive`: the conversation holds email or a dropped file; a CLI that can run without saving does.
     private func run<A: KoncluiCLIAdapter>(_ adapter: A, query: String, context contextArgument: PromptContext?,
                                            state: AppState, extra: String, web: Bool, sensitive: Bool) async {
+        if Task.isCancelled { return }   // stopped before it began: nothing to start
         let cli = adapter.cli
         guard let executable = KoncluiCLILocator.find(cli) else { return fail(adapter.notInstalledMessage, state: state) }
         let transcript = Self.transcript(state)
@@ -485,6 +487,8 @@ final class KoncluiChat {
                     continue
                 }
             }
+            // Stopped while the last bytes came: its bubble is gone, and the conversation must not record it.
+            try Task.checkCancellation()
             let final = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !final.isEmpty else { throw ProxyFailure.empty }
             proxyMessages.append(["role": "assistant", "content": final])
@@ -571,25 +575,28 @@ final class KoncluiChat {
         let bubble = ChatMessage(role: .assistant, content: "")
         state.chatHistory.append(bubble)
         state.stateOverride = .thinking
+        threads.shows(bubble.id)
         return bubble.id
     }
 
+    /// A stopped turn's bubble is already gone: its late lines change nothing, not even the next turn's typing dots.
     private func show(_ text: String, placeholder: UUID, state: AppState) {
+        guard let index = state.chatHistory.firstIndex(where: { $0.id == placeholder }) else { return }
         if !text.isEmpty, state.stateOverride == .thinking { state.stateOverride = nil }
-        if let index = state.chatHistory.firstIndex(where: { $0.id == placeholder }) {
-            state.chatHistory[index].content = text
-        }
+        state.chatHistory[index].content = text
     }
 
     private func finish(_ text: String, placeholder: UUID, state: AppState) {
+        guard state.chatHistory.contains(where: { $0.id == placeholder }) else { return }
         show(text, placeholder: placeholder, state: state)
         state.stateOverride = nil
         state.view = .prompt
         NotificationCenter.default.post(name: .triggerEmote, object: BotEmote.happy)
     }
 
-    /// Drops the bubble of an answer that did not come.
+    /// Drops the bubble of an answer that did not come. Already gone (a stopped turn): the next turn's state stays.
     private func abandon(_ placeholder: UUID, state: AppState) {
+        guard state.chatHistory.contains(where: { $0.id == placeholder }) else { return }
         state.chatHistory.removeAll { $0.id == placeholder }
         if state.stateOverride == .thinking { state.stateOverride = nil }
     }

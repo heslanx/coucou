@@ -620,6 +620,23 @@ enum KoncluiChatTests {
         let resumedAfterStop = KoncluiChatEngine.shape(.flag, thread: book[.claude], transcript: transcript)
         expect(resumedAfterStop.resume, nil, "back on the stopped CLI: a new thread with the visible chat")
 
+        // A stopped turn's partial answer leaves the chat at once, before the next turn reads it.
+        var running = KoncluiThreads()
+        let bubble = UUID()
+        running.start(.copilot)
+        running.shows(bubble)
+        expect(running.cancelRunning(), bubble, "stopping hands back the bubble to remove now")
+        expect(running.bubble, nil, "and forgets it")
+        running.start(.cursor)
+        running.shows(UUID())
+        running.finish()
+        expect(running.cancelRunning(), nil, "a turn that ended keeps its answer")
+        let withPartial: [(fromUser: Bool, text: String)] = [(true, "Q1"), (false, "Half an answ"), (true, "Q2")]
+        expect(KoncluiChatEngine.transcript(withPartial), [KoncluiExchange(user: "Q1", assistant: "Half an answ")],
+               "left in the chat, the partial answer would read as the answer to Q1")
+        let settled: [(fromUser: Bool, text: String)] = [(true, "Q1"), (true, "Q2")]
+        expect(KoncluiChatEngine.transcript(settled), [], "removed at the stop, the next turn's history has no false answer")
+
         // A provider switch stops the running turn; a late notification (A, B, then C) cannot stop C's own turn.
         expectTrue(KoncluiChatEngine.stopsTurn(runningFor: "anthropic", current: "cursor"), "another provider picked: the turn stops")
         expectTrue(!KoncluiChatEngine.stopsTurn(runningFor: "cursor", current: "cursor"),

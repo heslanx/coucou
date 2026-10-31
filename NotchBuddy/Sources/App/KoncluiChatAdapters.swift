@@ -162,10 +162,12 @@ enum KoncluiAttachment: Equatable, Sendable {
     case image
 }
 
-/// The CLIs' threads of one conversation, and the CLI whose turn is running.
+/// The CLIs' threads of one conversation, and the turn running: its CLI and its answer bubble.
 struct KoncluiThreads: Sendable {
     private var threads: [SubscriptionCLI: KoncluiThread] = [:]
     private(set) var running: SubscriptionCLI?
+    /// The running turn's answer bubble in the chat (`ChatMessage.id`).
+    private(set) var bubble: UUID?
 
     subscript(cli: SubscriptionCLI) -> KoncluiThread? {
         get { threads[cli] }
@@ -173,16 +175,28 @@ struct KoncluiThreads: Sendable {
     }
 
     /// A turn starts; nil for one that keeps no CLI thread (the proxy's).
-    mutating func start(_ cli: SubscriptionCLI?) { running = cli }
+    mutating func start(_ cli: SubscriptionCLI?) {
+        running = cli
+        bubble = nil
+    }
+
+    /// The running turn's answer bubble is in the chat.
+    mutating func shows(_ bubble: UUID) { self.bubble = bubble }
 
     /// The running turn ended on its own.
-    mutating func finish() { running = nil }
+    mutating func finish() {
+        running = nil
+        bubble = nil
+    }
 
     /// The running turn was stopped (a new message, another provider, Clear): its CLI may already hold part of that
     /// turn, which the chat will never show, so its thread goes and the next turn starts one with the visible chat.
-    mutating func cancelRunning() {
+    /// Returns its bubble, which the caller removes at once: a partial answer must not read as an answered turn.
+    @discardableResult
+    mutating func cancelRunning() -> UUID? {
         if let running { threads[running] = nil }
-        running = nil
+        defer { running = nil; bubble = nil }
+        return bubble
     }
 }
 
