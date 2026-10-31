@@ -29,4 +29,4 @@ Proposta técnica: teto por tarefa/sessão, consumo medido, preço versionado, c
 
 Billing precisa definir unidade e tarifa antes da oferta comercial. Ledger inteiro/positivo atual exige estudo de compatibilidade para frações, reservas e estornos. Sem saldo ou sem direito são erros diferentes. Histórico financeiro não autoriza acesso ao conteúdo de conversas.
 
-Detalhamento: [créditos](../../koru/CREDITS.md). Este ADR não substitui o ADR-0037 da plataforma.
+Detalhamento: [créditos](../../koru/CREDITS.md). Este ADR não substitui o ADR-0017 da plataforma.

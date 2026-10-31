@@ -18,7 +18,7 @@ Repositório local: `konclui-project/konclui-platform`, HEAD observado `ba01f139
 | `apps/bi-mcp/src/datasources/query.service.ts` | `executar(datasource, sqlBruto)` e controles de consulta |
 | `apps/bi-mcp/src/auth/bi-auth.service.ts` | Identidade administrativa e revalidação do vínculo |
 | `specs/20260728-internal-bi-mcp/spec.md` | Intenção de acesso interno de líderes, somente leitura e OAuth |
-| `docs/architecture/ADR-0037-ai-credit-wallet.md` | Contexto e decisão de carteira por workspace; contrato inicial por análise de evidência |
+| `docs/architecture/ADR-0017-ai-credit-wallet.md` | Contexto e decisão de carteira por workspace; contrato inicial por análise de evidência |
 | `apps/ai-agents/src/services/ai_credit_wallet.py` | Consumo com idempotência e ator; distingue falta de saldo e falta de direito |
 | `supabase/schema/tables/ai_credit_usage.sql` | Quantidade inteira positiva, workspace, feature, referência, idempotência e usuário |
 

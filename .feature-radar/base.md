@@ -141,7 +141,7 @@ Contagens representam arquivos nessas pastas, não as capacidades do inventário
 5. Apresentar ranking e propostas conforme checkpoints. Priorizar não autoriza implementação, commit ou publicação.
 6. Em novas execuções, ler esta base, reconciliar arquivos/contagens/extrações e reavaliar Deferred conforme condições. Enquanto o status for bootstrap pendente, obter validação antes de avançar ao workflow.
 
-`.gitignore` permanece inalterado. Decisão de manter o radar apenas local ou versioná-lo está pendente; a recomendação depende do caráter interno dos dados futuros.
+`.gitignore` permanece inalterado. O radar é versionado no repositório privado `konclui/konclui-notch` desde 2026-10-30 (PR #6). Material interno sensível que surgir depois pede decisão própria antes de entrar aqui.
 
 ## Archive Extraction Checklist
 

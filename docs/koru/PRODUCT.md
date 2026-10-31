@@ -126,4 +126,4 @@ A Koru é calma, atenta, precisa, acolhedora e discreta, conforme o playbook da 
 | Hábitos | Gamificação validada, metas de qualidade, missões de equipe, aprendizagem e continuidade por turno |
 | Administração avançada | Limites por usuário, histórico administrativo com visibilidade definida, orçamentos por função e automações recorrentes |
 
-A ordem detalhada, equipe, prazos e pacote comercial ainda precisam de definição. Não vender “qualquer aplicativo”, “sempre ouvindo” ou “funciona offline” como capacidade universal.
+Os horizontes agrupam funcionalidades por tema, não definem ordem: a sequência proposta, com pré-requisitos, está em [entrega](DELIVERY.md#2-sequência-proposta). Equipe, prazos e pacote comercial ainda precisam de definição. Não vender “qualquer aplicativo”, “sempre ouvindo” ou “funciona offline” como capacidade universal.
