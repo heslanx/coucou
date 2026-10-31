@@ -87,6 +87,26 @@ enum KoncluiFeatureRegistry {
     }
 }
 
+/// What the settings search may offer: only what the window can show. A page or block whose flag is off has no
+/// result, and neither has the open/close hotkey, which the hub shows on Atalhos only (SettingsView, `embeddedSection`).
+enum KoncluiSettingsSearch {
+    static func isShown(_ id: String, page: HubPage) -> Bool {
+        #if APPSTORE
+        return true
+        #else
+        guard KoncluiFeatures.isOn(page.featureId) else { return false }
+        switch id {
+        case "general.hotkey": return false
+        case "general.update": return KoncluiFeatures.isOn("block_updates")
+        case "general.recap":  return KoncluiFeatures.isOn("block_recap")
+        case "general.vitals": return KoncluiFeatures.isOn("block_vitals")
+        case "general.iphone": return KoncluiFeatures.isOn("block_iphone")
+        default:               return true
+        }
+        #endif
+    }
+}
+
 #if !APPSTORE
 extension HubPage {
     /// The id of this page's flag. Reminders keeps the flag it had as a block of the standalone Settings window.

@@ -1675,7 +1675,7 @@ struct ModelPickerView: View {
             let visibleProviders = ChatProvider.allCases.filter { p in
                 // Cursor and Copilot answer only through the subscription switched on in Settings.
                 if p.subscriptionOnly { return state.usesSubscription(p) || state.chatProvider == p }
-                return access.status(p).isReady || state.chatProvider == p
+                return access.status(p).isReady || p.koncluiAnswersBySubscription(state) || state.chatProvider == p
             }
             ChipFlowLayout(spacing: 6) {
                 ForEach(visibleProviders, id: \.self) { provider in

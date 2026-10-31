@@ -210,4 +210,14 @@ extension ChatProvider {
     static var koncluiUpstreamSubscriptions: [ChatProvider] {
         subscriptionProviders.filter { $0 != .anthropic && $0 != .openai }
     }
+
+    /// Answers through Coucou's subscription switch (Gemini through its CLI) though no key is saved: the model picker
+    /// lists it then. Claude and ChatGPT go through Koncluí's own Claude Code and Codex instead.
+    @MainActor func koncluiAnswersBySubscription(_ state: AppState) -> Bool {
+        #if APPSTORE
+        return false
+        #else
+        return Self.koncluiUpstreamSubscriptions.contains(self) && state.usesSubscription(self) && installedCLI != nil
+        #endif
+    }
 }
