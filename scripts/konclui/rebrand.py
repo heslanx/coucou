@@ -197,8 +197,8 @@ FIXED = [
      '"~/Library/Application Support/NotchBuddy/nb.sock"', f'"~/Library/Application Support/{APP_ASCII}/nb.sock"'),
     ("scripts/coucou-mcp.py", 'SERVER_NAME = "coucou-reminders"', f'SERVER_NAME = "{SLUG}-reminders"'),
     ("NotchBuddy/Sources/App/HookServer.swift",
-     '/// Removes entries containing "nb-hook" from a Gemini-format groups array.',
-     "/// Removes Koncluí's own entries (KoncluiHook.owns) from a Gemini-format groups array."),
+     '/// Removes entries containing "nb-hook" from a Gemini- or Claude-format groups array\n',
+     "/// Removes Koncluí's own entries (KoncluiHook.owns) from a Gemini- or Claude-format groups array\n"),
     # Wake phrase "OK Koru": detector, recognizer hints, filler words, log label. Koncluí no longer
     # wakes on "OK Coucou", so the two apps never answer the same phrase.
     ("NotchBuddy/Sources/App/Voice/WakePhrase.swift",

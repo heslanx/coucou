@@ -42,7 +42,7 @@ enum KoncluiAgentRowsTests {
         }
         check("done is ready and not done is todo, in every kind", tones == [.ready, .ready, .ready, .todo, .todo, .todo])
 
-        print("Catalog — every key a row can say, in the 14 languages")
+        print("Catalog — every key a row can say, in Koncluí's 14 languages (Coucou's own keys may have more)")
         let catalogPath = "NotchBuddy/Resources/Localizable.xcstrings"
         let catalog = (try? JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: catalogPath)))) as? [String: Any]
         let strings = catalog?["strings"] as? [String: [String: Any]] ?? [:]
@@ -57,7 +57,7 @@ enum KoncluiAgentRowsTests {
         }).union(["konclui.agents.row.hint", "konclui.agents.door.hooks %@", "konclui.agents.door.plugin %@", "konclui.agents.door.hint %@",
                   Rows.checking.key])
         for key in keys.sorted() {
-            check("\(key)", languagesOf(key) == Set(languages))
+            check("\(key)", languagesOf(key).isSuperset(of: languages))
         }
         let dashed = keys.filter { key in
             (strings[key]?["localizations"] as? [String: [String: [String: String]]] ?? [:]).values

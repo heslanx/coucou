@@ -146,8 +146,8 @@ targets:
         CFBundleName: Koncluí
         CFBundleDisplayName: Koncluí
         CFBundleIdentifier: com.konclui.mac
-        CFBundleVersion: "20"
-        CFBundleShortVersionString: "0.5.3"
+        CFBundleVersion: "25"
+        CFBundleShortVersionString: "0.5.8"
         CFBundlePackageType: APPL
         LSUIElement: YES
         NSHighResolutionCapable: YES
@@ -170,6 +170,8 @@ targets:
           - fr
           - hi
           - id
+          - ja
+          - ko
           - pt-BR
           - ru
           - th
@@ -263,6 +265,8 @@ targets:
           - fr
           - hi
           - id
+          - ja
+          - ko
           - pt-BR
           - ru
           - th

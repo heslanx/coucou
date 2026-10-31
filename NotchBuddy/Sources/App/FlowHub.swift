@@ -7,6 +7,7 @@ import SwiftUI
 enum HubPage: String, CaseIterable, Identifiable {
     case dictation, notes, insights, dictionary, snippets, styles, settings
     case general, pills, agents, chat, integrations, reminders, voice, shortcuts   // Koncluí: .reminders (A1-13)
+    case mailOverview, mailRules, mailBanned, mailVIP
 
     var id: String { rawValue }
 
@@ -16,6 +17,9 @@ enum HubPage: String, CaseIterable, Identifiable {
     }
     static var notchPages: [HubPage] {
         [.general, .pills, .agents, .chat, .integrations, .reminders, .voice, .shortcuts].filter { KoncluiFeatures.isOn($0.featureId) }
+    }
+    static var mailPages: [HubPage] {
+        [.mailOverview, .mailRules, .mailBanned, .mailVIP].filter { KoncluiFeatures.isOn($0.featureId) }
     }
 
     /// The section of Settings this page shows, for the notch's pages.
@@ -55,6 +59,10 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .snippets:   return String(localized: "hub.page.snippets")
         case .styles:     return String(localized: "hub.page.styles")
         case .settings:   return String(localized: "hub.page.settings")
+        case .mailOverview: return String(localized: "hub.mail.overview")
+        case .mailRules:    return String(localized: "hub.mail.rules")
+        case .mailBanned:   return String(localized: "hub.mail.banned")
+        case .mailVIP:      return String(localized: "hub.mail.vip")
         }
     }
 
@@ -75,6 +83,10 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .reminders:    return "bell.badge"   // Koncluí
         case .voice:        return "waveform"
         case .shortcuts:    return "keyboard"
+        case .mailOverview: return "tray"
+        case .mailRules:    return "line.3.horizontal.decrease"
+        case .mailBanned:   return "nosign"
+        case .mailVIP:      return "star"
         }
     }
 }
@@ -277,6 +289,10 @@ struct FlowHubView: View {
         case .snippets:   HubSnippetsPage()
         case .styles:     HubStylesPage(router: router)
         case .settings:   HubSettingsPage()
+        case .mailOverview: HubMailOverviewPage()
+        case .mailRules:    HubMailRulesPage()
+        case .mailBanned:   HubMailBannedPage()
+        case .mailVIP:      HubMailVIPPage()
         default:
             if let section = router.page.settingsSection {
                 // Koncluí: the compact header is pinned over SettingsView's own scroll as a bar (KoncluiSettingsPage.swift).
@@ -294,6 +310,7 @@ private struct HubSidebar: View {
     // Koncluí: the sidebar lists only the pages that are on; ⌥-click the wordmark unlocks the Features screen.
     @ObservedObject private var features = KoncluiFeatureModel.shared
     @AppStorage(KoncluiFeatures.unlockedKey) private var featuresUnlocked = false
+    @ObservedObject private var search = SettingsSearch.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -318,22 +335,36 @@ private struct HubSidebar: View {
             .padding(.horizontal, 8)
             // Halfway between the window's buttons and "FLOW".
             .padding(.top, 25)
-            .padding(.bottom, 31)
+            .padding(.bottom, 16)
+
+            HubSearchField()
+                .padding(.bottom, 14)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    HubSidebarHeader(text: String(localized: "konclui.hub.section.flow"))
-                    ForEach(HubPage.flowPages) { page in
-                        HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
-                    }
-                    HubSidebarHeader(text: String(localized: "hub.section.notch"))
-                        .padding(.top, 14)
-                    ForEach(HubPage.notchPages) { page in
-                        HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
-                    }
-                    if featuresUnlocked {
-                        KoncluiFeaturesSidebarItem(selected: router.showFeatures) { router.showFeatures = true }
+                if !search.query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    HubSearchResults(router: router)
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HubSidebarHeader(text: String(localized: "konclui.hub.section.flow"))
+                        ForEach(HubPage.flowPages) { page in
+                            HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                        }
+                        HubSidebarHeader(text: String(localized: "hub.section.notch"))
                             .padding(.top, 14)
+                        ForEach(HubPage.notchPages) { page in
+                            HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                        }
+                        if !HubPage.mailPages.isEmpty {   // Koncluí: the Mail pages follow their flags too
+                            HubSidebarHeader(text: "Mail")
+                                .padding(.top, 14)
+                            ForEach(HubPage.mailPages) { page in
+                                HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                            }
+                        }
+                        if featuresUnlocked {
+                            KoncluiFeaturesSidebarItem(selected: router.showFeatures) { router.showFeatures = true }
+                                .padding(.top, 14)
+                        }
                     }
                 }
             }
@@ -430,17 +461,20 @@ struct HubPageScaffold<Trailing: View, Content: View>: View {
     @Environment(\.hubPage) private var page
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: KoncluiSpace.sectionGap) {
-                HubHero(page: page, title: title, subtitle: subtitle, trailing: trailing)
-                content()
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: KoncluiSpace.sectionGap) {
+                    HubHero(page: page, title: title, subtitle: subtitle, trailing: trailing)
+                    content()
+                }
+                .padding(.horizontal, KoncluiSpace.gutter)
+                .padding(.top, 24)
+                .padding(.bottom, 28)
+                .frame(maxWidth: 1100, alignment: .leading)
             }
-            .padding(.horizontal, KoncluiSpace.gutter)
-            .padding(.top, 24)
-            .padding(.bottom, 28)
-            .frame(maxWidth: 1100, alignment: .leading)
+            .scrollIndicators(.automatic)
+            .settingsSearchScroll(proxy)
         }
-        .scrollIndicators(.automatic)
     }
 }
 

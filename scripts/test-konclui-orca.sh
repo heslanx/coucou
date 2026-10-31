@@ -12,7 +12,7 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 SRC=NotchBuddy/Sources/App
 HOOK_SERVER=$SRC/HookServer.swift
 
-# --- Router: the routing chain of processEvent, from "Determine which pill" to the focus line.
+# --- Router: the routing chain of processEvent, from "Determine which pill" to the "terminal in front" comment.
 {
   echo 'import Foundation'
   echo 'enum Router {'
@@ -20,7 +20,7 @@ HOOK_SERVER=$SRC/HookServer.swift
   echo '    static func nbLog(_ message: String) {}'
   echo '    static func route(name: String, payload: [String: Any]) -> (pill: String, external: Bool, host: String?)? {'
   echo '        let projectName = "project"'
-  awk '/Determine which pill this event belongs to/{on=1} /let focused = state.focusId == agentId/{on=0} on{print}' "$HOOK_SERVER" \
+  awk '/Determine which pill this event belongs to/{on=1} /The user is looking at the session.s terminal: a finish or an error/{on=0} on{print}' "$HOOK_SERVER" \
     | sed 's/^\( *\)return$/\1return nil/'
   echo '        return (agentId, isExternalAgent, hostApp)'
   echo '    }'
@@ -38,6 +38,8 @@ grep -q 'isOrcaSession' "$TEST_DIR/Router.swift" \
   echo '    static let shared = HookServer()'
   echo '    static var hookScriptPath: String { "/Users/test/Library/Application Support/Konclui/nb-hook" }'
   awk '/MARK: - Claude Code settings.json hook installer/{on=1} /MARK: - Claude plan status line installer/{on=0} on{print}' "$HOOK_SERVER"
+  # the per-entry removal both installers call (Coucou 0.5.8), defined with the Gemini installer
+  awk '/private func removeNbHookEntries\(/{on=1} on{print} on&&/^    }$/{exit}' "$HOOK_SERVER"
   echo '}'
 } > "$TEST_DIR/HookServerInstaller.swift"
 grep -q 'func previewClaudeHooks(at' "$TEST_DIR/HookServerInstaller.swift" \

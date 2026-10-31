@@ -16,6 +16,7 @@ struct HubSettingsPage: View {
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.settings"), subtitle: String(localized: "konclui.settings.sub")) {   // Koncluí: a band with one word had no subtitle
             HubLabel(String(localized: "hub.settings.keys"))
+                .settingsHeading("flow.keys")
             HubCard {
                 // Koncluí: the permission shows only while dictation is on and macOS does not trust Koncluí yet, first, with its
                 // button (A2-19). It was a card of its own that also showed while dictation was off.
@@ -69,8 +70,10 @@ struct HubSettingsPage: View {
                 .buttonStyle(.plain)
                 .koncluiPointer()
             }
+                .settingsAnchor("flow.keys", cornerRadius: 14)
 
             HubLabel(String(localized: "flow.ai.title"))
+                .settingsHeading("flow.ai")
             HubCard {
                 HubRow(title: String(localized: "flow.prompt-mode"), detail: String(localized: "flow.prompt-mode-detail")) {
                     Toggle("", isOn: $store.promptMode)
@@ -103,13 +106,17 @@ struct HubSettingsPage: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+                .settingsAnchor("flow.ai", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.settings.recognition"))
+                .settingsHeading("flow.recognition")
             HubCard {
                 HubRecognitionSettings(language: $language)
             }
+                .settingsAnchor("flow.recognition", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.page.notes"))
+                .settingsHeading("flow.summary")
             HubCard {
                 HubSummaryEnginePicker()
                 // Koncluí: where a transcript goes with the Claude engine (subscription or key), and the last call that failed
@@ -125,8 +132,10 @@ struct HubSettingsPage: View {
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+                .settingsAnchor("flow.summary", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.settings.app"))
+                .settingsHeading("flow.app")
             HubCard {
                 HubRow(title: String(localized: "hub.settings.dock"), detail: String(localized: "hub.settings.dock-detail")) {
                     Toggle("", isOn: Binding(get: { showInDock }, set: { showInDock = $0; FlowHubController.showInDock = $0 }))
@@ -140,8 +149,10 @@ struct HubSettingsPage: View {
                         .labelsHidden()
                 }
             }
+                .settingsAnchor("flow.app", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.settings.privacy"))
+                .settingsHeading("flow.privacy")
             HubCard {
                 HubRow(title: String(localized: "hub.settings.keep")) {
                     Picker("", selection: $store.keepDays) {
@@ -166,6 +177,7 @@ struct HubSettingsPage: View {
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+                .settingsAnchor("flow.privacy", cornerRadius: 14)
         }
         .onAppear { flow.recheckTrust() }
         .koncluiUndoBar()

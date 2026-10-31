@@ -203,3 +203,11 @@ struct KoncluiChatSubscriptionsSection: View {
         }
     }
 }
+
+extension ChatProvider {
+    /// Coucou's "Your AI subscriptions" rows that Koncluí shows under its own section: Claude and ChatGPT are already
+    /// there as Claude Code and Codex, so only the rest (Gemini, Cursor, Copilot) is listed again.
+    static var koncluiUpstreamSubscriptions: [ChatProvider] {
+        subscriptionProviders.filter { $0 != .anthropic && $0 != .openai }
+    }
+}
