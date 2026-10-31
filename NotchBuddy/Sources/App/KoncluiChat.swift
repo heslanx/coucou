@@ -311,20 +311,22 @@ final class KoncluiChat {
         let transcript = Self.transcript(state)
         let shape = KoncluiChatEngine.shape(adapter.systemPrompt, thread: threads[cli], transcript: transcript,
                                             keepsNothing: sensitive && adapter.turnsPersistenceOff)
-        var context = Self.contextText(contextArgument)
+        let contextKey = Self.contextKey(contextArgument)
+        let carries = KoncluiChatEngine.carriesContext(contextKey, shape: shape, thread: threads[cli])
+        var context = carries ? Self.contextText(contextArgument) : nil
         var turn = KoncluiCLITurn(prompt: "", resume: shape.resume, web: web)
         turn.persist = shape.persist
-        if shape.resume == nil, case .file(let name, let url?) = contextArgument {
-            switch adapter.droppedFile {
-            case .readsCopy where Self.isBinary(url):
+        if case .file(let name, let url?) = contextArgument {
+            switch KoncluiChatEngine.attachment(adapter.droppedFile, file: url, carried: carries) {
+            case .readCopy:
                 // A dropped PDF or image: the CLI reads a copy of that one file (Coucou's relay does the same).
                 if let dir = try? CLIRelay.isolate(url) {
                     turn.readDir = dir
                     context = "File: \(name) (read it at \(dir.appendingPathComponent(url.lastPathComponent).path))"
                 }
-            case .images where KoncluiCodexCLI.imageExtensions.contains(url.pathExtension.lowercased()):
+            case .image:
                 turn.images = [url.path]
-            default:
+            case .none:
                 break
             }
         }
@@ -368,7 +370,9 @@ final class KoncluiChat {
         if Task.isCancelled { return abandon(placeholder, state: state) }
 
         if adapter.systemPrompt != .everyTurn, shape.persist, let id = stream.threadID, !stream.failed {
-            threads[cli] = KoncluiThread(id: id, answers: transcript.count + 1)
+            // The window or file this thread now holds: given on this turn, else what it held before.
+            let held = carries ? contextKey : (shape.resume == nil ? nil : threads[cli]?.context)
+            threads[cli] = KoncluiThread(id: id, answers: transcript.count + 1, context: held)
         }
         if threads[cli] != nil, adapter.lostThread(stderr: ended.stderr) { threads[cli] = nil }
         var text = stream.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -522,12 +526,16 @@ final class KoncluiChat {
 
     private static var tookTooLong: String { String(localized: "The chat took too long. Ask again.") }
 
-    /// The window or file the user attached, as text for the first turn.
-    /// A file Claude Code reads with its Read tool rather than as text in the prompt.
-    private static func isBinary(_ url: URL) -> Bool {
-        ["pdf", "jpg", "jpeg", "png", "gif", "webp"].contains(url.pathExtension.lowercased())
+    /// Which window or file the turn has, to tell whether a thread already received it.
+    private static func contextKey(_ context: PromptContext?) -> String? {
+        switch context {
+        case nil:                               return nil
+        case .window:                           return contextText(context).map { "window:" + $0 }
+        case .file(let name, let fileURL):      return "file:" + (fileURL?.path ?? name)
+        }
     }
 
+    /// The window or file the user attached, as the turn's text.
     private static func contextText(_ context: PromptContext?) -> String? {
         switch context {
         case nil:

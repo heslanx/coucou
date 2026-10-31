@@ -145,10 +145,21 @@ struct KoncluiExchange: Equatable, Sendable {
     var assistant: String
 }
 
-/// A CLI's own thread, and how many answered turns of the conversation it holds.
+/// A CLI's own thread, how many answered turns of the conversation it holds, and the window or file it was given.
 struct KoncluiThread: Equatable, Sendable {
     var id: String
     var answers: Int
+    /// `KoncluiChat.contextKey` of the window or file the thread received; nil: none.
+    var context: String? = nil
+}
+
+/// What the CLI is handed besides the prompt for a dropped file.
+enum KoncluiAttachment: Equatable, Sendable {
+    case none
+    /// A copy in a folder of its own, the only place Read may look (`.readsCopy`).
+    case readCopy
+    /// The image itself (`.images`).
+    case image
 }
 
 /// The CLIs' threads of one conversation, and the CLI whose turn is running.
@@ -215,11 +226,33 @@ enum KoncluiChatEngine {
         return KoncluiTurnShape(resume: nil, history: transcript)
     }
 
-    /// The prompt and the system prompt of a turn. `context` (the window, the dropped file) goes with the conversation's
-    /// first message on every turn that does not continue a thread, so a new thread has it too.
+    /// Whether a turn carries the window or the dropped file (`key`, nil: none): on every turn that does not continue a
+    /// thread, so a new thread has it, and on a continued one when that thread has not received it yet (a file dropped
+    /// mid-conversation). The same file is not sent again to a thread that has it.
+    static func carriesContext(_ key: String?, shape: KoncluiTurnShape, thread: KoncluiThread?) -> Bool {
+        guard let key else { return false }
+        return shape.resume == nil || thread?.context != key
+    }
+
+    /// Extensions Claude Code reads from an isolated copy rather than as text in the prompt.
+    static let copiedExtensions: Set<String> = ["pdf", "jpg", "jpeg", "png", "gif", "webp"]
+
+    /// What goes with a carried dropped file, as the CLI can take it.
+    static func attachment(_ droppedFile: KoncluiDroppedFile, file: URL?, carried: Bool) -> KoncluiAttachment {
+        guard carried, let file else { return .none }
+        let ext = file.pathExtension.lowercased()
+        switch droppedFile {
+        case .readsCopy where copiedExtensions.contains(ext):             return .readCopy
+        case .images where KoncluiCodexCLI.imageExtensions.contains(ext): return .image
+        default:                                                          return .none
+        }
+    }
+
+    /// The prompt and the system prompt of a turn. `context` (the window, the dropped file, when the turn carries it:
+    /// `carriesContext`) goes on the conversation's first message when the turn sends the conversation, else before
+    /// the question.
     static func compose(query: String, context: String?, persona: String, extra: String,
                         systemPrompt: KoncluiSystemPrompt, shape: KoncluiTurnShape) -> (prompt: String, system: String) {
-        let context = shape.resume == nil ? context : nil
         var history = shape.history
         if let context, !context.isEmpty, !history.isEmpty { history[0].user = context + "\n\n" + history[0].user }
         let body = history.isEmpty

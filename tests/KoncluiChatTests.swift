@@ -620,9 +620,37 @@ enum KoncluiChatTests {
                    && !KoncluiAntigravityAdapter().turnsPersistenceOff && !KoncluiCopilotAdapter().turnsPersistenceOff,
                    "Cursor, Gemini CLI, Antigravity and Copilot have none (ADR-009 says what they keep)")
 
-        let resumed = KoncluiChatEngine.compose(query: "Now?", context: "Context — App: Mail", persona: "P", extra: "",
+        let resumed = KoncluiChatEngine.compose(query: "Now?", context: nil, persona: "P", extra: "",
                                                 systemPrompt: .firstTurn, shape: KoncluiTurnShape(resume: "t", history: []))
         expect(resumed.prompt, "Now?", "a continued thread gets the question alone")
+
+        // A file dropped into a conversation that already has a thread goes with the continued turn.
+        let continued = KoncluiTurnShape(resume: "t", history: [])
+        let holding = KoncluiThread(id: "t", answers: 2, context: "file:/Users/me/a.txt")
+        expectTrue(KoncluiChatEngine.carriesContext("file:/Users/me/b.pdf", shape: continued, thread: holding),
+                   "a new file on a continued thread is sent")
+        expectTrue(KoncluiChatEngine.carriesContext("file:/Users/me/b.pdf", shape: continued,
+                                                    thread: KoncluiThread(id: "t", answers: 2)),
+                   "a thread that never had a file gets the one dropped now")
+        expectTrue(!KoncluiChatEngine.carriesContext("file:/Users/me/a.txt", shape: continued, thread: holding),
+                   "the file the thread already has is not sent again")
+        expectTrue(KoncluiChatEngine.carriesContext("file:/Users/me/a.txt", shape: KoncluiTurnShape(resume: nil, history: transcript),
+                                                    thread: holding), "a new thread always gets it")
+        expectTrue(!KoncluiChatEngine.carriesContext(nil, shape: KoncluiTurnShape(resume: nil, history: []), thread: nil),
+                   "nothing attached, nothing carried")
+        let newFile = KoncluiChatEngine.compose(query: "Summarize it.", context: "File: b.txt\nFile contents:\nB", persona: "P",
+                                                extra: "", systemPrompt: .firstTurn, shape: continued)
+        expect(newFile.prompt, "File: b.txt\nFile contents:\nB\n\nSummarize it.", "the continued turn: the file, then the question")
+        let newFileClaude = KoncluiChatEngine.compose(query: "Summarize it.", context: "File: b.txt\nFile contents:\nB", persona: "P",
+                                                      extra: "", systemPrompt: .flag, shape: continued)
+        expect(newFileClaude.prompt, "File: b.txt\nFile contents:\nB\n\nSummarize it.", "Claude Code's too")
+        let png = URL(fileURLWithPath: "/Users/me/shot.png"), pdf = URL(fileURLWithPath: "/Users/me/doc.pdf")
+        expect(KoncluiChatEngine.attachment(.images, file: png, carried: true), .image, "Codex gets the image on a continued turn")
+        expect(KoncluiChatEngine.attachment(.images, file: png, carried: false), .none, "not again once its thread has it")
+        expect(KoncluiChatEngine.attachment(.readsCopy, file: pdf, carried: true), .readCopy, "Claude Code reads a copy of the PDF")
+        expect(KoncluiChatEngine.attachment(.readsCopy, file: URL(fileURLWithPath: "/Users/me/a.txt"), carried: true), .none,
+               "a text file goes in the prompt")
+        expect(KoncluiChatEngine.attachment(.text, file: png, carried: true), .none, "Cursor and the others: text only")
         let mailExtra = KoncluiChatEngine.compose(query: "Now?", context: nil, persona: "P", extra: "PLAN",
                                                   systemPrompt: .firstTurn, shape: KoncluiTurnShape(resume: "t", history: []))
         expect(mailExtra.prompt, "PLAN\n\nNow?", "and Mail's plan format when it is on")
