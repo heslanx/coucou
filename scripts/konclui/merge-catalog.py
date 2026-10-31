@@ -47,7 +47,8 @@ def merge3(b, o, t, path, conflicts):
     if o == t: return o
     if o == b: return t
     if t == b: return o
-    if isinstance(o, dict) and isinstance(t, dict) and isinstance(b, dict):
+    if isinstance(o, dict) and isinstance(t, dict) and (isinstance(b, dict) or b is MISSING):
+        b = {} if b is MISSING else b   # both sides added the key: merge what each added
         out = {}
         keys = list(t.keys()) + [k for k in o.keys() if k not in t]
         for k in keys:
@@ -107,9 +108,10 @@ def main() -> int:
     bs, os_, ts = B["strings"], O["strings"], T["strings"]
     oneline = oneline_keys(ours_text)
     order = list(ts.keys())
-    # keys of ours that upstream does not have go where ours had them, after the key before them
+    # keys of ours that upstream does not have go where ours had them, after the key before them; the layout of a key
+    # (one line or Xcode's) changes only how it is written, never whether it is merged
     for i, k in enumerate(os_.keys()):
-        if k in ts or k in oneline:
+        if k in ts:
             continue
         prev = next((p for p in reversed(list(os_.keys())[:i]) if p in order), None)
         order.insert(order.index(prev) + 1 if prev else 0, k)
@@ -120,8 +122,6 @@ def main() -> int:
             removed.append(k)
         else:
             merged[k] = r
-    for k in oneline:
-        merged.setdefault(k, os_[k])
     final = {k: merged[k] for k in oneline if k in merged}
     final.update({k: v for k, v in merged.items() if k not in final})
     Path(out).write_text(render(final, oneline, ours_text) + ("\n" if ours_text.endswith("\n") else ""))

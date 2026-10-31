@@ -2,7 +2,8 @@
 # Right after `git merge upstream/main` stops on conflicts (docs/konclui/WORKFLOW.md, "Coucou updates"): merges each
 # conflicted file again, against the merge base and upstream with rebrand.py applied to both. A difference that is only
 # the brand then vanishes, and what is left is where a Koncluí hook meets an upstream change. The catalog is merged by
-# key and by language (merge-catalog.py). Files a person already started resolving are left alone.
+# key and by language (merge-catalog.py). Only a file still exactly as git left it is merged again: one a person (or an
+# earlier run) already touched is left alone, so the script can run twice.
 #
 #   scripts/konclui/sync-remerge.sh
 set -euo pipefail
@@ -36,21 +37,33 @@ for side in base theirs; do
 done
 
 CATALOG=NotchBuddy/Resources/Localizable.xcstrings
+STYLE=$(git config merge.conflictStyle || true)
+STYLE_FLAG=()
+case "$STYLE" in diff3) STYLE_FLAG=(--diff3);; zdiff3) STYLE_FLAG=(--zdiff3);; esac
+strip_markers() { grep -v -E '^(<<<<<<< |\|\|\|\|\|\|\| |=======$|>>>>>>> )' || true; }
+
 while read -r f; do
-  if [ ! -f "$WORK/base/$f" ] || [ ! -f "$WORK/theirs/$f" ]; then
-    echo "  $f: added or deleted on one side, by hand"
+  # Which versions git has: a file added on both sides has no base, one deleted on a side has no stage for it.
+  stages=$(git ls-files -u -- "$f" | awk '{print $3}' | sort -u | tr -d '\n')
+  if [ "$stages" != "123" ]; then
+    echo "  $f: added or deleted on one side (stages $stages), by hand"
     continue
   fi
-  if [ "$f" != "$CATALOG" ] && ! grep -q '^<<<<<<< ' "$f"; then
-    echo "  $f: no conflict marker left, already resolved by hand: not touched"
+  for n in 1 2 3; do git show ":$n:$f" > "$WORK/s$n"; done
+  # Untouched means the conflict git wrote, markers aside (git's merge diffs with histogram): anything else is someone's
+  # work in progress.
+  if ! cmp -s <(strip_markers < "$f") \
+              <({ git merge-file -p --diff-algorithm=histogram ${STYLE_FLAG[@]+"${STYLE_FLAG[@]}"} "$WORK/s2" "$WORK/s1" "$WORK/s3" || true; } \
+                 | strip_markers); then
+    echo "  $f: already touched since git's merge: left alone"
     continue
   fi
-  git show ":2:$f" > "$WORK/ours"
   if [ "$f" = "$CATALOG" ]; then
-    python3 scripts/konclui/merge-catalog.py "$WORK/base/$f" "$WORK/ours" "$WORK/theirs/$f" "$f" | sed 's/^/  /'
+    python3 scripts/konclui/merge-catalog.py "$WORK/base/$f" "$WORK/s2" "$WORK/theirs/$f" "$f" | sed 's/^/  /'
   else
-    cp "$WORK/ours" "$f"
-    git merge-file -L konclui -L base-branded -L upstream-branded "$f" "$WORK/base/$f" "$WORK/theirs/$f" || true
+    cp "$WORK/s2" "$f"
+    git merge-file --diff-algorithm=histogram -L konclui -L base-branded -L upstream-branded \
+      "$f" "$WORK/base/$f" "$WORK/theirs/$f" || true
     echo "  $f: $(grep -c '^<<<<<<< ' "$f" || true) conflict(s) left"
   fi
 done <<< "$CONFLICTS"
