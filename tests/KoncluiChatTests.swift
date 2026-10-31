@@ -500,6 +500,15 @@ enum KoncluiChatTests {
         expect(refusal?.keys.sorted(), languages, "the file refusal is in Coucou's 16 languages")
         expectTrue(refusal?.values.allSatisfy { $0["stringUnit"]?["value"]?.components(separatedBy: "%@").count == 2 } == true,
                    "each names the tool once")
+        let mailRefusal = (strings?["konclui.mail.needs-offline %@"] as? [String: Any])?["localizations"] as? [String: [String: [String: String]]]
+        for (name, entry) in [("file", refusal), ("mail", mailRefusal)] {
+            let zh = [entry?["zh-Hans"]?["stringUnit"]?["value"] ?? "", entry?["zh-Hant"]?["stringUnit"]?["value"] ?? ""]
+            expectTrue(zh.allSatisfy { !$0.contains("离开网络") && !$0.contains("離開網路") && ($0.contains("不联网") || $0.contains("不連網")) },
+                       "the \(name) refusal's Chinese says 'without the internet', not 'leave the network'")
+        }
+        expectTrue(refusal?["ko"]?["stringUnit"]?["value"]?.contains("없어요.") == true, "the file refusal's Korean in Coucou's -요 register")
+        expect(refusal?["ja"]?["stringUnit"]?["value"]?.replacingOccurrences(of: "ファイル", with: "メール"),
+               mailRefusal?["ja"]?["stringUnit"]?["value"], "its Japanese reads like the mail refusal's")
 
         // A dropped text file goes whole up to the relay's 200 KB (it was cut at 24,000 characters).
         let dropDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-drop-\(getpid())")
