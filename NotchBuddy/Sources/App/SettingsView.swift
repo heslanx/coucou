@@ -40,6 +40,8 @@ struct SettingsView: View {
     @State private var claudePendingInstall: Bool = true
 
     #if !APPSTORE
+    /// Bumped when a subscription tool is found or a switch moves: redraws Settings → Chat.
+    @State private var cliScan = 0
     @State private var showStatusLineDiff: Bool = false
     @State private var pendingStatusLineJSON: String = ""
     @State private var statusLinePendingInstall: Bool = true
@@ -248,14 +250,17 @@ struct SettingsView: View {
                         .padding(.top, 20)
                         .padding(.bottom, 12)
                 }
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        sectionContent
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 18) {
+                            sectionContent
+                        }
+                        .padding(.horizontal, embeddedSection == nil ? 20 : 28)
+                        .padding(.top, embeddedSection == nil ? 0 : 20)
+                        .padding(.bottom, 16)
+                        .frame(maxWidth: embeddedSection == nil ? .infinity : 1100, alignment: .leading)
                     }
-                    .padding(.horizontal, embeddedSection == nil ? 20 : 28)
-                    .padding(.top, embeddedSection == nil ? 0 : 20)
-                    .padding(.bottom, 16)
-                    .frame(maxWidth: embeddedSection == nil ? .infinity : 1100, alignment: .leading)
+                    .settingsSearchScroll(proxy)
                 }
                 if !statusMessage.isEmpty && !koncluiPopoverOpen {   // Koncluí: an open popover shows the message itself
                     Divider()
@@ -342,6 +347,7 @@ struct SettingsView: View {
         #endif
         // Koncluí: the demo is a first-run tool: first while nothing is connected, at the end (as a quiet button) after.
         demoBox(quiet: false)
+            .settingsAnchor("general.demo")
             .koncluiShown(koncluiHooks.loaded && !KoncluiGeneralPage.demoComesLast(anyAgentConnected: koncluiAnyAgentConnected))
 
         GroupBox("Sound") {
@@ -377,6 +383,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.sound")
 
         GroupBox("Behavior") {
             VStack(alignment: .leading, spacing: 10) {
@@ -401,6 +408,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.behavior")
 
         GroupBox("Display") {
             VStack(alignment: .leading, spacing: 10) {
@@ -422,6 +430,22 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                #if !APPSTORE
+                // The notch or a corner of the screen (IslandPlacement).
+                Picker(String(localized: "island.position"), selection: $state.islandPlacement) {
+                    Text("island.position.notch").tag(IslandPlacement.notch)
+                    Divider()
+                    Text("island.position.top-left").tag(IslandPlacement.topLeft)
+                    Text("island.position.top-right").tag(IslandPlacement.topRight)
+                    Text("island.position.bottom-left").tag(IslandPlacement.bottomLeft)
+                    Text("island.position.bottom-right").tag(IslandPlacement.bottomRight)
+                }
+                .frame(maxWidth: 360)
+                Text("island.position.hint")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                #endif
             }
             .padding(6)
             .onAppear { refreshConnectedScreens() }
@@ -430,6 +454,7 @@ struct SettingsView: View {
                 refreshConnectedScreens()
             }
         }
+            .settingsAnchor("general.display")
 
         GroupBox(String(localized: "vitals.title")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -443,6 +468,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.vitals")
         .koncluiShown(KoncluiFeatures.isOn("block_vitals"))
 
         GroupBox("Hotkey") {
@@ -472,6 +498,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.hotkey")
         .koncluiShown(embeddedSection == nil)   // Koncluí: in the hub window the Shortcuts page owns this switch (one switch, one place)
 
         GroupBox("Startup") {
@@ -479,9 +506,11 @@ struct SettingsView: View {
                 .onChange(of: launchAtStartup) { _, on in toggleStartup(on) }
                 .padding(6)
         }
+            .settingsAnchor("general.startup")
 
         #if !APPSTORE
         UpdateSettingsSection()
+            .settingsAnchor("general.update")
             .koncluiShown(KoncluiFeatures.isOn("block_updates"))   // Koncluí: ships off, the updater cannot install Koncluí yet (KONCLUI.md)
         #endif
 
@@ -506,6 +535,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.recap")
         .koncluiShown(KoncluiFeatures.isOn("block_recap"))
 
         GroupBox(String(localized: "Language")) {
@@ -526,6 +556,8 @@ struct SettingsView: View {
                     Text("Deutsch").tag("de")
                     Text("Türkçe").tag("tr")
                     Text("ไทย").tag("th")
+                    Text("한국어").tag("ko")
+                    Text("日本語").tag("ja")
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
@@ -555,6 +587,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.language")
 
         #if PHONE_LINK
         GroupBox("iPhone") {
@@ -584,12 +617,14 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("general.iphone")
         .koncluiShown(KoncluiFeatures.isOn("block_iphone"))
         #endif
 
         // Koncluí: an agent is connected already: the demo steps back to a quiet button here, and the way out of every
         // integration Koncluí wrote is one click away (previewed and confirmed, KoncluiRemoveIntegrations.swift).
         demoBox(quiet: true)
+            .settingsAnchor("general.demo")
             .koncluiShown(koncluiHooks.loaded && KoncluiGeneralPage.demoComesLast(anyAgentConnected: koncluiAnyAgentConnected))
         #if !APPSTORE
         KoncluiRemoveIntegrations(snapshot: koncluiHooks.snapshot, done: { koncluiHooks.refresh() })
@@ -668,6 +703,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("pills.main")
         // Koncluí: "Add…" sits at the page's outer edge on every list (Active pills, Agents, Chat, Integrations).
         KoncluiAddMenu(
             items: PillCatalog.available.filter { !koncluiPillShown($0, signals) }
@@ -721,6 +757,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("agents.claude")
         .koncluiShown(koncluiAgentShown(.claudeCode))
 
         #if !APPSTORE
@@ -729,6 +766,7 @@ struct SettingsView: View {
             .koncluiShown(koncluiTools.contains(.orca) || KoncluiAgentsDebug.opens("orca"))
 
         ClaudeDesktopChatSettingsSection()
+            .settingsAnchor("agents.claude-desktop")
             .koncluiShown(koncluiAgentShown(.claudeDesktop))
 
         koncluiAgentRow(.gemini, .hooks, installed: geminiHooksInstalled) {   // Koncluí: row + popover
@@ -736,6 +774,7 @@ struct SettingsView: View {
                                 preview: { triggerGeminiPreview(install: $0) }, confirm: { confirmGeminiOp() },
                                 cancel: { showGeminiDiff = false; pendingGeminiJSON = "" })
         }
+            .settingsAnchor("agents.gemini")
         .koncluiShown(koncluiAgentShown(.gemini))
 
         koncluiAgentRow(.antigravity, .hooks, installed: agyHooksInstalled) {   // Koncluí: row + popover
@@ -743,6 +782,7 @@ struct SettingsView: View {
                                 preview: { triggerAgyPreview(install: $0) }, confirm: { confirmAgyOp() },
                                 cancel: { showAgyDiff = false; pendingAgyJSON = "" })
         }
+            .settingsAnchor("agents.antigravity")
         .koncluiShown(koncluiAgentShown(.antigravity))
 
         koncluiAgentRow(.codex, .hooks, installed: codexHooksInstalled) {   // Koncluí: row + popover
@@ -750,6 +790,7 @@ struct SettingsView: View {
                                 preview: { triggerCodexPreview(install: $0) }, confirm: { confirmCodexOp() },
                                 cancel: { showCodexDiff = false; pendingCodexJSON = "" })
         }
+            .settingsAnchor("agents.codex")
         .koncluiShown(koncluiAgentShown(.codex))
 
         koncluiAgentRow(.copilot, .hooks, installed: copilotHooksInstalled) {   // Koncluí: row + popover
@@ -757,6 +798,7 @@ struct SettingsView: View {
                                 preview: { triggerCopilotPreview(install: $0) }, confirm: { confirmCopilotOp() },
                                 cancel: { showCopilotDiff = false; pendingCopilotJSON = "" })
         }
+            .settingsAnchor("agents.copilot")
         .koncluiShown(koncluiAgentShown(.copilot))
 
         koncluiAgentRow(.muse, .hooks, installed: museHooksInstalled) {   // Koncluí: row + popover
@@ -764,6 +806,7 @@ struct SettingsView: View {
                                 preview: { triggerMusePreview(install: $0) }, confirm: { confirmMuseOp() },
                                 cancel: { showMuseDiff = false; pendingMuseJSON = "" })
         }
+            .settingsAnchor("agents.muse")
         .koncluiShown(koncluiAgentShown(.muse))
 
         koncluiAgentRow(.opencode, .plugin, installed: openCodePluginInstalled) {   // Koncluí: row + popover
@@ -771,6 +814,7 @@ struct SettingsView: View {
                                 preview: { triggerOpenCodePreview(install: $0) }, confirm: { confirmOpenCodeOp() },
                                 cancel: { showOpenCodeDiff = false; pendingOpenCodeContent = "" })
         }
+            .settingsAnchor("agents.opencode")
         .koncluiShown(koncluiAgentShown(.opencode))
 
         koncluiAgentRow(.amp, .plugin, installed: ampPluginInstalled) {   // Koncluí: row + popover
@@ -778,6 +822,7 @@ struct SettingsView: View {
                                 preview: { triggerAmpPreview(install: $0) }, confirm: { confirmAmpOp() },
                                 cancel: { showAmpDiff = false; pendingAmpContent = "" })
         }
+            .settingsAnchor("agents.amp")
         .koncluiShown(koncluiAgentShown(.amp))
 
         koncluiAgentRow(.hermes, .plugin, installed: hermesPluginInstalled) {   // Koncluí: row + popover
@@ -825,6 +870,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("agents.hermes")
         #if !APPSTORE
         .task(id: hermesPluginInstalled) {
             guard hermesPluginInstalled else { hermesSupportsApprovals = false; return }
@@ -905,6 +951,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("agents.plan")
         .koncluiShown(koncluiAgentShown(.plan))
         #endif
 
@@ -915,10 +962,78 @@ struct SettingsView: View {
 
     // MARK: - Chat section
 
+    #if !APPSTORE
+    /// One provider under "Your AI subscriptions": its switch, and whether its tool is there.
+    @ViewBuilder private func subscriptionRow(_ provider: ChatProvider) -> some View {
+        let installed = provider.installedCLI
+        let tool = installed ?? provider.subscriptionCLIs[0]
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Circle().fill(Color(hex: provider.accentHex)).frame(width: 8, height: 8)
+                Text(provider.subscriptionName).font(.system(size: 12, weight: .semibold))
+                Spacer()
+                Toggle(String(localized: "chat.subscriptions.use"), isOn: Binding(
+                    get: { state.usesSubscription(provider) },
+                    set: { on in
+                        state.setUsesSubscription(on, for: provider)
+                        cliScan += 1
+                    }))
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+            }
+            if let installed {
+                Text(String(format: String(localized: "chat.subscriptions.found"), installed.displayName))
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(hex: "#22C55E"))
+                Text(String(format: String(localized: "chat.subscriptions.sign-in"), installed.signIn))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+            } else {
+                HStack(spacing: 6) {
+                    Text(String(format: String(localized: "chat.subscriptions.missing"), tool.displayName))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    Button(String(localized: "chat.subscriptions.install")) {
+                        if let url = URL(string: tool.installURL) { NSWorkspace.shared.open(url) }
+                    }
+                    .buttonStyle(.link)
+                    .font(.system(size: 11))
+                }
+            }
+            if !provider.subscriptionOnly && !state.usesSubscription(provider) {
+                Text(String(localized: "chat.subscriptions.off"))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    #endif
+
     @ViewBuilder private var chatSection: some View {
         // Koncluí: the chat through what this Mac is signed in to (unit K10); then only the key-based and local
         // providers that have a key or a server, or were added.
         KoncluiChatSubscriptionsSection()
+        #if !APPSTORE
+        // Koncluí: Coucou's subscriptions that the section above does not cover (Gemini, Cursor, Copilot)
+        GroupBox(String(localized: "chat.subscriptions.title")) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(String(localized: "chat.subscriptions.description"))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(ChatProvider.koncluiUpstreamSubscriptions, id: \.self) { provider in
+                    subscriptionRow(provider)
+                    if provider != ChatProvider.koncluiUpstreamSubscriptions.last { Divider() }
+                }
+            }
+            .padding(6)
+            .id(cliScan)
+        }
+            .settingsAnchor("chat.subscriptions")
+        .onAppear { CLILocator.shared.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: CLILocator.changed)) { _ in cliScan += 1 }
+        #endif
 
         GroupBox(String(localized: "chat.anthropic-api.title")) {
             VStack(alignment: .leading, spacing: 8) {
@@ -930,6 +1045,7 @@ struct SettingsView: View {
                                                                 saved: String(localized: "status.key-saved"))
                 }
                 .buttonStyle(.koncluiPrimary)
+
 
                 Divider().padding(.vertical, 2)
 
@@ -959,6 +1075,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("chat.anthropic")
         .koncluiShown(koncluiChatShown(.anthropic))
 
         GroupBox(String(localized: "chat.other-providers.title")) {
@@ -1043,6 +1160,7 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
         }
+            .settingsAnchor("chat.others")
         .koncluiShown(Self.koncluiKeyProviders.contains(where: koncluiChatShown))
 
         GroupBox(String(localized: "chat.local.title")) {
@@ -1124,6 +1242,7 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
         }
+            .settingsAnchor("chat.local")
         .koncluiShown(koncluiChatShown(.ollama) || koncluiChatShown(.lmstudio))
 
         KoncluiAddMenu(
@@ -1296,6 +1415,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("integrations.all")
         // Koncluí: "Add…" sits at the page's outer edge on every list (Active pills, Agents, Chat, Integrations).
         KoncluiAddMenu(
             items: Self.koncluiServices.filter { KoncluiFeatures.isOn($0) && !koncluiIntegrationShown($0, signals) }
@@ -1371,6 +1491,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("voice.wake")
         .onAppear {
             voicePermissionsGranted = VoiceSettings.micStatus == .granted
                 && VoiceSettings.speechStatus == .granted
@@ -1411,6 +1532,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("voice.language")
 
         GroupBox(String(localized: "voice.tts-engine")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -1491,6 +1613,7 @@ struct SettingsView: View {
             }
             .padding(6)
         }
+            .settingsAnchor("voice.tts")
     }
 
     #if !APPSTORE
@@ -1545,6 +1668,7 @@ struct SettingsView: View {
                     }
                     .padding(6)
                 }
+                    .settingsAnchor("voice.history")
             }
         }
     }

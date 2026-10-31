@@ -32,6 +32,8 @@ final class OrcaTerminals: @unchecked Sendable {
     private let lock = NSLock()
     private var entries: [String: Entry] = [:]
     private var focusSession: String?
+    /// The session each card shows now (Coucou 0.5.8's board: a pill shows one session, others pop out as cards).
+    private var taskSessions: [String: String] = [:]
 
     init() {}
 
@@ -55,6 +57,19 @@ final class OrcaTerminals: @unchecked Sendable {
     func focus(session: String?) {
         lock.lock(); defer { lock.unlock() }
         focusSession = session
+    }
+
+    /// The board put this session on this card (the pill's own, or a popped-out one).
+    func shown(task: String, session: String) {
+        lock.lock(); defer { lock.unlock() }
+        taskSessions[task] = session
+        if taskSessions.count > Self.maxSessions * 2 { taskSessions = [task: session] }
+    }
+
+    /// The terminal of the session a card shows, if it runs in Orca.
+    func terminal(task: String) -> OrcaTerminal? {
+        lock.lock(); defer { lock.unlock() }
+        return taskSessions[task].flatMap { entries[$0]?.terminal }
     }
 
     /// The terminal of one session.

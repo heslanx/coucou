@@ -149,6 +149,9 @@ final class KoncluiChat {
         #endif
     }
 
+    /// The conversation carries email (Mail on in the chat): no web tool until it is cleared.
+    private var holdsMail = false
+
     /// A new conversation: ends a running turn (and its subprocess) and forgets the threads.
     func clear() {
         running?.cancel()
@@ -156,16 +159,21 @@ final class KoncluiChat {
         claudeSession = nil
         codexThread = nil
         proxyMessages = []
+        holdsMail = false
     }
 
-    func chat(query: String, context: PromptContext?, state: AppState) async {
+    /// `extraSystem`: instructions added to the system prompt for this turn (Mail's plan format, MailAgentPrompt).
+    func chat(query: String, context: PromptContext?, state: AppState, extraSystem: String = "") async {
         running?.cancel()
+        if state.chatMailMode { holdsMail = true }
+        // What this turn sends is fixed here: a later turn cannot change it under a cancelled one.
+        let extra = extraSystem, web = !holdsMail
         let provider = state.chatProvider
         let turn = Task { @MainActor in
             switch provider {
-            case .claudeCode:   await self.claudeTurn(query: query, context: context, state: state)
-            case .codex:        await self.codexTurn(query: query, context: context, state: state)
-            case .koncluiProxy: await self.proxyTurn(query: query, context: context, state: state)
+            case .claudeCode:   await self.claudeTurn(query: query, context: context, state: state, extra: extra, web: web)
+            case .codex:        await self.codexTurn(query: query, context: context, state: state, extra: extra)
+            case .koncluiProxy: await self.proxyTurn(query: query, context: context, state: state, extra: extra)
             default: break
             }
         }
@@ -175,7 +183,7 @@ final class KoncluiChat {
 
     // MARK: Claude Code
 
-    private func claudeTurn(query: String, context: PromptContext?, state: AppState) async {
+    private func claudeTurn(query: String, context: PromptContext?, state: AppState, extra: String, web: Bool) async {
         #if !APPSTORE
         guard let claude = KoncluiCLILocator.find("claude") else {
             return fail(String(localized: "Claude Code is not installed. Install it to use your Claude subscription."), state: state)
@@ -184,7 +192,7 @@ final class KoncluiChat {
                                         context: claudeSession == nil ? Self.contextText(context) : nil)
         let placeholder = beginAnswer(state: state)
         let model = state.activeChatModel
-        let system = ClaudeService.makeSystemPrompt()
+        let system = ClaudeService.makeSystemPrompt() + extra
         var stream = KoncluiClaudeStream()
         var ended: (code: Int32, stderr: String, timedOut: Bool) = (0, "", false)
 
@@ -193,7 +201,8 @@ final class KoncluiChat {
             ended = await consume(
                 KoncluiProcess.stream(claude,
                                       KoncluiClaudeCLI.arguments(model: model, resume: claudeSession,
-                                                                 systemPrompt: system, safeMode: safeMode),
+                                                                 systemPrompt: system, safeMode: safeMode,
+                                                                 web: web),
                                       environment: KoncluiCLILocator.environment(for: claude),
                                       directory: KoncluiCLILocator.chatDirectory,
                                       input: Data(prompt.utf8), timeout: 300),
@@ -201,7 +210,8 @@ final class KoncluiChat {
                     stream.feed(line) ? stream.text : nil
                 }
             // An older Claude Code does not know --safe-mode: once more without it.
-            if safeMode, ended.code != 0, stream.text.isEmpty, KoncluiClaudeCLI.isUnknownSafeMode(stderr: ended.stderr) {
+            if safeMode, !Task.isCancelled, ended.code != 0, stream.text.isEmpty,
+               KoncluiClaudeCLI.isUnknownSafeMode(stderr: ended.stderr) {
                 continue
             }
             break
@@ -225,7 +235,7 @@ final class KoncluiChat {
 
     // MARK: Codex
 
-    private func codexTurn(query: String, context: PromptContext?, state: AppState) async {
+    private func codexTurn(query: String, context: PromptContext?, state: AppState, extra: String) async {
         #if !APPSTORE
         guard let codex = KoncluiCLILocator.find("codex") else {
             return fail(String(localized: "Codex is not installed. Install it to use your ChatGPT subscription."), state: state)
@@ -237,7 +247,8 @@ final class KoncluiChat {
         }
         let prompt = KoncluiPrompt.turn(
             query: query,
-            persona: firstTurn ? ClaudeService.makeSystemPrompt(webSearch: false) : nil,
+            persona: firstTurn ? ClaudeService.makeSystemPrompt(webSearch: false) + extra
+                               : (extra.isEmpty ? nil : extra),
             context: firstTurn ? Self.contextText(context) : nil)
         let placeholder = beginAnswer(state: state)
         var stream = KoncluiCodexStream()
@@ -297,7 +308,7 @@ final class KoncluiChat {
 
     // MARK: Koncluí Proxy
 
-    private func proxyTurn(query: String, context: PromptContext?, state: AppState) async {
+    private func proxyTurn(query: String, context: PromptContext?, state: AppState, extra: String) async {
         guard let base = KoncluiProxyAccess.baseURL() else {
             return fail(String(localized: "klaude is not installed. Install it to use the Koncluí Proxy."), state: state)
         }
@@ -320,7 +331,7 @@ final class KoncluiChat {
         proxyMessages.append(["role": "user", "content": content])
 
         guard let body = KoncluiProxy.messagesBody(model: state.activeChatModel,
-                                                   system: ClaudeService.makeSystemPrompt(webSearch: false),
+                                                   system: ClaudeService.makeSystemPrompt(webSearch: false) + extra,
                                                    messages: proxyMessages),
               let request = KoncluiProxy.messagesRequest(base: base, token: key, body: body) else {
             proxyMessages.removeLast()

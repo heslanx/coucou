@@ -209,7 +209,7 @@ enum KoncluiPageRulesTests {
               hooksOk.allSatisfy { !settings.contains("HookServer.\($0)(") })
         check("the pill rows read the last answer", settings.contains("koncluiHooks.snapshot") && settings.contains("hooksKnown"))
         check("the tab limit rule is used by the row", settings.contains("KoncluiTabLimit.blocks("))
-        check("the updater sits behind its flag", settings.contains("UpdateSettingsSection()\n            .koncluiShown(KoncluiFeatures.isOn(\"block_updates\"))"))
+        check("the updater sits behind its flag", settings.contains("UpdateSettingsSection()\n            .settingsAnchor(\"general.update\")\n            .koncluiShown(KoncluiFeatures.isOn(\"block_updates\"))"))
         check("the open/close hotkey box is not in the hub window", settings.contains(".koncluiShown(embeddedSection == nil)"))
         check("the demo steps back once an agent is connected", settings.contains("KoncluiGeneralPage.demoComesLast(anyAgentConnected"))
         check("the connect card and the removal are on Geral", settings.contains("KoncluiConnectAgentsCard(") && settings.contains("KoncluiRemoveIntegrations("))

@@ -3,7 +3,8 @@
 ## Status
 
 Accepted on 2026-10-30: the owner chose one primary branch, `main` of `konclui/konclui-notch`, with everything on it.
-`main` took all of the work that day (pull request #1). Still the owner's, on GitHub: protecting `main`.
+`main` took all of the work that day (pull request #1). `main` was protected on 2026-10-31, at the owner's request, by an
+agent with the owner's account (pull request required, admins included; no force push; no deletion).
 
 ## Date
 

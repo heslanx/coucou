@@ -220,15 +220,103 @@ final class ClaudeService {
 
     // Multi-turn conversation messages (for API)
     private var conversationMessages: [[String: Any]] = []
+    /// Koncluí: the conversation carries email (Mail on): no web tool on any route until it is cleared.
+    private var conversationHoldsMail = false
 
     func clearConversation() {
         conversationMessages = []
+        conversationHoldsMail = false
         KoncluiChat.shared.clear()
+        #if !APPSTORE
+        relayHistory = []
+        #endif
     }
+
+    /// Whether the chat can answer with Claude: an API key, or else Claude Code (GitHub build).
+    var canAnswer: Bool {
+        #if APPSTORE
+        return !(apiKey ?? "").isEmpty
+        #else
+        return !(apiKey ?? "").isEmpty || CLILocator.shared.isInstalled(.claude)
+        #endif
+    }
+
+    #if !APPSTORE
+    // MARK: - Chat through the user's subscription (CLIRelay.swift)
+
+    /// The relay's turns, as plain text: they never mix with the API's content blocks.
+    private var relayHistory: [(user: String, assistant: String)] = []
+
+    private func chatThroughSubscription(_ provider: ChatProvider, query: String, context: PromptContext?, state: AppState) async {
+        // Koncluí: with email in the conversation, only a tool that can work without the web (KoncluiChatAccess.swift)
+        if conversationHoldsMail, provider.installedCLI != nil, provider.koncluiMailCLI == nil {
+            await showError(String(format: String(localized: "konclui.mail.needs-offline %@"),
+                                   provider.installedCLI?.displayName ?? provider.displayName), state: state)
+            return
+        }
+        guard let cli = conversationHoldsMail ? provider.koncluiMailCLI : provider.installedCLI else {
+            let tool = provider.subscriptionCLIs.first?.displayName ?? provider.displayName
+            await showError(String(format: String(localized: "chat.subscriptions.error.missing"), tool), state: state)
+            return
+        }
+        var contextLine: String?
+        // What later turns see of this one: never a file's contents, which go out with
+        // the web search of the turns after it otherwise.
+        var historyContext: String?
+        var readDir: URL?
+        if relayHistory.isEmpty, let context {
+            switch context {
+            case .window(let app, let title, let url):
+                var text = "Context — App: \(app), Window: \(title)"
+                if let url { text += ", URL: \(url)" }
+                contextLine = text
+                historyContext = text
+            case .file(let name, let fileURL):
+                historyContext = "File: \(name)"
+                if cli == .claude, let fileURL, let dir = try? CLIRelay.isolate(fileURL) {
+                    readDir = dir
+                    contextLine = "File: \(name) (read it at \(dir.appendingPathComponent(fileURL.lastPathComponent).path))"
+                } else if let fileURL, let text = CLIRelay.inlineText(fileURL) {
+                    contextLine = "File: \(name)\nFile contents:\n\(text)"
+                } else {
+                    contextLine = "File: \(name) (its contents can't be read here)"
+                }
+            }
+        }
+        defer { if let readDir { try? FileManager.default.removeItem(at: readDir) } }
+        // A dropped file is read with no web at all: a file written to steer the model
+        // could otherwise send what it reads to a website.
+        let readsFile: Bool = {
+            if case .file = context, relayHistory.isEmpty { return true }
+            return false
+        }()
+        let request = CLIRequest(
+            model: provider == .anthropic ? model : nil,
+            system: systemPrompt + extraSystem,
+            prompt: CLIRelay.chatPrompt(history: relayHistory, context: contextLine, query: query),
+            web: !readsFile && !conversationHoldsMail,   // Koncluí: email is untrusted text too
+            readDir: readDir,
+            noWebPolicy: nil,
+            timeout: 180
+        )
+        do {
+            let text = try await CLIRelay.ask(cli, request)
+            relayHistory.append((user: historyContext.map { "\($0)\n\n\(query)" } ?? query, assistant: text))
+            state.chatHistory.append(ChatMessage(role: .assistant, content: text))
+            state.stateOverride = nil
+            state.view = .prompt
+            NotificationCenter.default.post(name: .triggerEmote, object: BotEmote.happy)
+        } catch {
+            await showError(error.localizedDescription, state: state)
+        }
+    }
+    #endif
 
     /// Resolved once: NSFullUserName() is a system call, and the name cannot change under us
     /// while the app runs.
     private let systemPrompt = ClaudeService.makeSystemPrompt()
+    /// Added to the system prompt for this turn (the chat's Mail switch).
+    private var extraSystem = ""
 
     /// Greets the user by their macOS first name when there is one worth using, and stays
     /// neutral otherwise — same wording as the Windows build.
@@ -260,10 +348,29 @@ final class ClaudeService {
             state.stateOverride = nil
             return
         }
+        var query = query
+        extraSystem = ""
+        #if !APPSTORE
+        // Mail on: the AI gets the latest messages under the request, and may answer with a
+        // plan of actions (MailPlan.swift) that runs only after the user's click.
+        if state.chatMailMode {
+            query = await MailAgent.shared.decorate(query)
+            extraSystem = MailAgentPrompt.instructions
+            conversationHoldsMail = true   // Koncluí: an email could steer a model with web tools to a URL
+        }
+        #endif
+        #if !APPSTORE
+        // "Use my subscription": the provider's own terminal tool answers, signed in with
+        // the user's account.
+        if state.usesSubscription(state.chatProvider) {
+            await chatThroughSubscription(state.chatProvider, query: query, context: context, state: state)
+            return
+        }
+        #endif
         guard state.chatProvider == .anthropic else {
             if state.chatProvider.isSubscription {
                 // Koncluí: Claude Code, Codex or the Koncluí Proxy, no API key
-                await KoncluiChat.shared.chat(query: query, context: context, state: state)
+                await KoncluiChat.shared.chat(query: query, context: context, state: state, extraSystem: extraSystem)
             } else {
                 await chatOpenAICompatible(query: query, context: context, state: state)
             }
@@ -295,13 +402,13 @@ final class ClaudeService {
 
         conversationMessages.append(["role": "user", "content": userContent])
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": 4096,
-            "tools": webSearchTools,
-            "system": systemPrompt,
+            "system": systemPrompt + extraSystem,
             "messages": conversationMessages,
         ]
+        if !conversationHoldsMail { body["tools"] = webSearchTools }   // Koncluí: no web search with email in the conversation
 
         do {
             let data = try await callAPI(body: body, key: key, beta: "web-search-2025-03-05")
@@ -330,7 +437,7 @@ final class ClaudeService {
             case .deepseek:  baseURL = "https://api.deepseek.com/v1"
             case .qwen:      baseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
             case .moonshot:  baseURL = "https://api.moonshot.cn/v1"
-            case .anthropic, .ollama, .lmstudio, .claudeCode, .codex, .koncluiProxy: baseURL = ""
+            case .anthropic, .ollama, .lmstudio, .cursor, .copilot, .claudeCode, .codex, .koncluiProxy: baseURL = ""
             }
         }
 
@@ -359,7 +466,7 @@ final class ClaudeService {
         }
 
         // Build messages
-        var msgs: [[String: Any]] = [["role": "system", "content": systemPrompt]]
+        var msgs: [[String: Any]] = [["role": "system", "content": systemPrompt + extraSystem]]
         for m in conversationMessages {
             var simplified = m
             if let content = m["content"] as? [[String: Any]],

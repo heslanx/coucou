@@ -85,6 +85,22 @@ struct AgentTask: Identifiable, Equatable {
     var sessionBundleId: String? = nil  // app the session runs in (hook bundle_id), for "Open terminal"
     var finalLine: String?   = nil  // last assistant message shown as static text after Stop
     var hostApp: String?     = nil  // bundle id of the terminal running a Claude Code session; nil = VS Code
+    /// The sessions sharing this pill, for the open card; empty while one session (or none) is behind it.
+    var sessionLines: [SessionLine] = []
+
+    /// The client pill this task belongs to: its id, or for a session's own pill
+    /// ("integration_claude#2") the pill of its client. Compare this, not `id`, to a pill ID.
+    var pill: String { PillCatalog.basePillId(id) }
+}
+
+/// One of several sessions behind a pill, as the open card lists them.
+struct SessionLine: Identifiable, Equatable {
+    var id: String
+    var title: String
+    var state: BotState
+    var lastStep: String
+    /// The session the pill shows (its name, steps and state are the pill's).
+    var isShown: Bool
 }
 
 enum AgentSource: Equatable {
@@ -108,6 +124,9 @@ enum ChatProvider: String, CaseIterable, Codable {
     case claudeCode   = "claude-code"
     case codex        = "codex"
     case koncluiProxy = "konclui-proxy"
+    // Answered only through the user's own subscription (CLIRelay.swift, GitHub build)
+    case cursor    = "cursor"
+    case copilot   = "copilot"
 
     var displayName: String {
         switch self {
@@ -122,6 +141,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .claudeCode:   "Claude Code"
         case .codex:        "Codex"
         case .koncluiProxy: "Koncluí Proxy"
+        case .cursor:    "Cursor"
+        case .copilot:   "GitHub Copilot"
         }
     }
 
@@ -138,6 +159,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .claudeCode:   "#D97757"
         case .codex:        "#38BDF8"
         case .koncluiProxy: "#2DD4BF"
+        case .cursor:    "#A1A1AA"
+        case .copilot:   "#8B5CF6"
         }
     }
 
@@ -155,6 +178,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .claudeCode:   "default"
         case .codex:        "default"
         case .koncluiProxy: "claude-sonnet-5-5"
+        case .cursor:    ""
+        case .copilot:   ""
         }
     }
 
@@ -170,6 +195,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .moonshot:  "moonshot-api-key"
         // No key of Koncluí's own: the CLIs keep their login, the proxy key stays in klaude's Keychain item
         case .claudeCode, .codex, .koncluiProxy: ""
+        case .cursor:    ""
+        case .copilot:   ""
         }
     }
 
@@ -195,6 +222,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case .claudeCode:   "ai_claude_code"
         case .codex:        "ai_codex"
         case .koncluiProxy: "ai_konclui_proxy"
+        case .cursor:    "ai_cursor"
+        case .copilot:   "ai_copilot"
         }
     }
 
@@ -211,6 +240,8 @@ enum ChatProvider: String, CaseIterable, Codable {
         case "ai_claude_code":    self = .claudeCode
         case "ai_codex":          self = .codex
         case "ai_konclui_proxy":  self = .koncluiProxy
+        case "ai_cursor":    self = .cursor
+        case "ai_copilot":   self = .copilot
         default:             return nil
         }
     }

@@ -119,6 +119,8 @@ TERMS: dict[str, list[tuple[str, str]]] = {
 NAMES_LOCAL = {
     "ar": [("موتشي", "كورو"), ("كوكو", APP)],
     "bn": [("মোচি", "কোরু")],
+    "de": [("Coucous", APP + "s")],
+    "ko": [("모찌", "코루")],
     "hi": [("मोची", "कोरू")],
     "ru": [("Мочи", "Кору")],
 }
@@ -156,8 +158,10 @@ def brand(text: str, lang: str = "en") -> str:
             for pat, rep in GRAMMAR.get(lang, []):
                 chunk = re.sub(pat, rep, chunk)
             chunk = WAKE.sub(r"\1\2" + CHAR, chunk)
-            chunk = re.sub(r"\bCoucou\b", APP, chunk)
-            chunk = re.sub(r"\bMochi(s?)\b", CHAR + r"\1", chunk)
+            # Not \b: Korean and Japanese write particles right after a name ("Coucou를"), and to Python a Hangul
+            # or kana letter is a word character too. A Latin letter, digit or _ around the name still blocks it.
+            chunk = re.sub(r"(?<![A-Za-z0-9_])Coucou(?![A-Za-z0-9_])", APP, chunk)
+            chunk = re.sub(r"(?<![A-Za-z0-9_])Mochi(s?)(?![A-Za-z0-9_])", CHAR + r"\1", chunk)
             for old, new in NAMES_LOCAL.get(lang, []):
                 chunk = chunk.replace(old, new)
             for pat, rep in AGREEMENT.get(lang, []):
@@ -197,8 +201,11 @@ FIXED = [
      '"~/Library/Application Support/NotchBuddy/nb.sock"', f'"~/Library/Application Support/{APP_ASCII}/nb.sock"'),
     ("scripts/coucou-mcp.py", 'SERVER_NAME = "coucou-reminders"', f'SERVER_NAME = "{SLUG}-reminders"'),
     ("NotchBuddy/Sources/App/HookServer.swift",
-     '/// Removes entries containing "nb-hook" from a Gemini-format groups array.',
-     "/// Removes Koncluí's own entries (KoncluiHook.owns) from a Gemini-format groups array."),
+     '/// Removes entries containing "nb-hook" from a Gemini- or Claude-format groups array\n',
+     "/// Removes Koncluí's own entries (KoncluiHook.owns) from a Gemini- or Claude-format groups array\n"),
+    # Mail plans' attachments live in a temporary folder the agent empties when it starts: Coucou's own would be emptied
+    # by Koncluí (and the reverse) when both run.
+    ("NotchBuddy/Sources/App/MailAgent.swift", '"coucou-mail-plans"', '"konclui-mail-plans"'),
     # Wake phrase "OK Koru": detector, recognizer hints, filler words, log label. Koncluí no longer
     # wakes on "OK Coucou", so the two apps never answer the same phrase.
     ("NotchBuddy/Sources/App/Voice/WakePhrase.swift",

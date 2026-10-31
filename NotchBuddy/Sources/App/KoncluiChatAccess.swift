@@ -203,3 +203,29 @@ struct KoncluiChatSubscriptionsSection: View {
         }
     }
 }
+
+extension ChatProvider {
+    /// Coucou's "Your AI subscriptions" rows that Koncluí shows under its own section: Claude and ChatGPT are already
+    /// there as Claude Code and Codex, so only the rest (Gemini, Cursor, Copilot) is listed again.
+    static var koncluiUpstreamSubscriptions: [ChatProvider] {
+        subscriptionProviders.filter { $0 != .anthropic && $0 != .openai }
+    }
+
+    #if !APPSTORE
+    /// The installed tool that can answer with no web at all, for a conversation that carries email: Antigravity and
+    /// Cursor have no switch for it (CLIRelay.arguments), so Gemini answers for Google and Cursor does not answer.
+    var koncluiMailCLI: SubscriptionCLI? {
+        subscriptionCLIs.first { $0 != .antigravity && $0 != .cursor && CLILocator.shared.isInstalled($0) }
+    }
+    #endif
+
+    /// Answers through Coucou's subscription switch (Gemini through its CLI) though no key is saved: the model picker
+    /// lists it then. Claude and ChatGPT go through Koncluí's own Claude Code and Codex instead.
+    @MainActor func koncluiAnswersBySubscription(_ state: AppState) -> Bool {
+        #if APPSTORE
+        return false
+        #else
+        return Self.koncluiUpstreamSubscriptions.contains(self) && state.usesSubscription(self) && installedCLI != nil
+        #endif
+    }
+}
