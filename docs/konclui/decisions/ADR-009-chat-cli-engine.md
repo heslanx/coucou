@@ -26,7 +26,9 @@ or Quit, retries once when the adapter has a fallback run (Claude Code without `
 every answered turn of the chat as the person sees it (`KoncluiChatEngine.shape`); otherwise, when another provider
 answered in between, a new thread starts with the conversation so far, as the relay sends it (`CLIRelay.chatPrompt`, the
 window or file on its first message). Picking another provider stops the running turn and its CLI, so it cannot keep
-writing to the chat. The Koncluí Proxy's conversation is rebuilt the same way. Never a blank answer: else the CLI's error, its
+writing to the chat (judged against the provider picked when the change is handled). A stopped turn, by a new message,
+another provider or Clear, also drops that CLI's thread (`KoncluiThreads.cancelRunning`): the CLI may hold part of a turn
+the chat never shows. The Koncluí Proxy's conversation is rebuilt the same way. Never a blank answer: else the CLI's error, its
 stderr or "No response text."; the 300 s timeout stays.
 
 Claude Code and Codex moved onto the adapter shape because it removed their two near-identical turns; their command

@@ -571,6 +571,25 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: []),
                KoncluiTurnShape(resume: nil, history: []), "a cleared chat never continues an old thread")
 
+        // A stopped turn takes its CLI's thread with it: the CLI may hold part of a turn the chat never shows.
+        var book = KoncluiThreads()
+        book[.claude] = KoncluiThread(id: "c", answers: 2)
+        book[.codex] = KoncluiThread(id: "x", answers: 1)
+        book.start(.claude)
+        book.cancelRunning()
+        expect(book[.claude], nil, "the stopped CLI's thread goes")
+        expect(book[.codex], KoncluiThread(id: "x", answers: 1), "another CLI's thread stays")
+        expect(book.running, nil, "nothing runs after the stop")
+        book.start(.codex)
+        book.finish()
+        book.cancelRunning()
+        expect(book[.codex], KoncluiThread(id: "x", answers: 1), "a turn that ended on its own keeps its thread")
+        book.start(nil)
+        book.cancelRunning()
+        expect(book[.codex], KoncluiThread(id: "x", answers: 1), "stopping the proxy's turn touches no CLI thread")
+        let resumedAfterStop = KoncluiChatEngine.shape(.flag, thread: book[.claude], transcript: transcript)
+        expect(resumedAfterStop.resume, nil, "back on the stopped CLI: a new thread with the visible chat")
+
         // A provider switch stops the running turn; a late notification (A, B, then C) cannot stop C's own turn.
         expectTrue(KoncluiChatEngine.stopsTurn(runningFor: "anthropic", current: "cursor"), "another provider picked: the turn stops")
         expectTrue(!KoncluiChatEngine.stopsTurn(runningFor: "cursor", current: "cursor"),

@@ -132,7 +132,7 @@ final class KoncluiChat {
     static let shared = KoncluiChat()
 
     /// Each CLI's own memory of the conversation, so a turn continues the same thread while it holds every turn.
-    private var threads: [SubscriptionCLI: KoncluiThread] = [:]
+    private var threads = KoncluiThreads()
     /// The proxy is stateless: the whole conversation goes with every request (Anthropic format).
     private var proxyMessages: [[String: Any]] = []
     /// How many answered turns of the visible conversation `proxyMessages` holds.
@@ -162,8 +162,16 @@ final class KoncluiChat {
     /// Another provider was picked: the old one's turn (and its CLI) stops, so it cannot keep writing to the chat.
     private func stop(unless provider: ChatProvider) {
         guard running != nil, KoncluiChatEngine.stopsTurn(runningFor: runningProvider, current: provider) else { return }
-        running?.cancel()
-        running = nil
+        stopRunning()
+    }
+
+    /// Ends the running turn and its CLI, and forgets that CLI's thread (`KoncluiThreads.cancelRunning`). Done here, at
+    /// once, so the next turn cannot continue it before the stopped one notices.
+    private func stopRunning() {
+        guard let running else { return }
+        running.cancel()
+        self.running = nil
+        threads.cancelRunning()
     }
 
     /// The conversation carries text from outside (email with Mail on, a dropped file): no web tool until it is
@@ -203,9 +211,8 @@ final class KoncluiChat {
 
     /// A new conversation: ends a running turn (and its subprocess) and forgets the threads.
     func clear() {
-        running?.cancel()
-        running = nil
-        threads = [:]
+        stopRunning()
+        threads = KoncluiThreads()
         proxyMessages = []
         proxyAnswers = 0
         holdsOutsideText = false
@@ -229,7 +236,7 @@ final class KoncluiChat {
 
     /// `extraSystem`: instructions added to the system prompt for this turn (Mail's plan format, MailAgentPrompt).
     func chat(_ route: Route, query: String, context: PromptContext?, state: AppState, extraSystem: String = "") async {
-        running?.cancel()
+        stopRunning()
         runningProvider = state.chatProvider
         if state.chatMailMode { holdsOutsideText = true; holdsMail = true }
         if case .file = context { holdsOutsideText = true }
@@ -250,7 +257,12 @@ final class KoncluiChat {
             }
         }
         running = turn
+        if case .cli(let cli) = route { threads.start(cli) } else { threads.start(nil) }
         await withTaskCancellationHandler { await turn.value } onCancel: { turn.cancel() }
+        if running == turn {
+            running = nil
+            threads.finish()
+        }
     }
 
     // MARK: Subscription CLIs

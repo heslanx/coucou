@@ -151,6 +151,30 @@ struct KoncluiThread: Equatable, Sendable {
     var answers: Int
 }
 
+/// The CLIs' threads of one conversation, and the CLI whose turn is running.
+struct KoncluiThreads: Sendable {
+    private var threads: [SubscriptionCLI: KoncluiThread] = [:]
+    private(set) var running: SubscriptionCLI?
+
+    subscript(cli: SubscriptionCLI) -> KoncluiThread? {
+        get { threads[cli] }
+        set { threads[cli] = newValue }
+    }
+
+    /// A turn starts; nil for one that keeps no CLI thread (the proxy's).
+    mutating func start(_ cli: SubscriptionCLI?) { running = cli }
+
+    /// The running turn ended on its own.
+    mutating func finish() { running = nil }
+
+    /// The running turn was stopped (a new message, another provider, Clear): its CLI may already hold part of that
+    /// turn, which the chat will never show, so its thread goes and the next turn starts one with the visible chat.
+    mutating func cancelRunning() {
+        if let running { threads[running] = nil }
+        running = nil
+    }
+}
+
 /// What a turn continues and what it carries.
 struct KoncluiTurnShape: Equatable, Sendable {
     /// The CLI's thread to continue; nil: a new thread (or none, for the relay format).
