@@ -81,15 +81,18 @@ would give it a thread; it waits for the JSON events to be documented or checked
 (`turnsPersistenceOff`), and every turn sends the conversation instead of continuing a thread, as the relay does: Claude
 Code with `--no-session-persistence` (checked: no session under `~/.claude/projects`) and Codex with `--ephemeral`
 (checked live: it answers, and its thread cannot be continued afterwards while a saved one can; Codex 0.166 keeps threads
-in its own database). The others have no such switch:
+in its own database). Cursor, Gemini CLI, Antigravity and Copilot have no per-run switch to stop saving, as with Coucou's
+relay (accepted): **a conversation with email or a dropped file can still be kept on disk by them, and Clear does not
+remove it**, except Cursor's chats in Koncluí's own folder.
 
-| CLI | What it keeps of a turn | Removed by Koncluí |
-|---|---|---|
-| Claude Code, Codex | a plain conversation: their usual sessions (the thread: Claude's files under `~/.claude/projects`, Codex's database); with email or a file: nothing | no (their stores) |
-| Cursor | the chat, in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`); its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the chats, when the conversation is cleared and when Koncluí starts, only as a real folder inside Koncluí's own (`KoncluiChatEngine.ownedFolder`: never through a link); not Cursor's transcripts |
-| Gemini CLI | the session, under `~/.gemini/tmp/<the chat folder's hash>/chats` (deleted by Gemini after 30 days by default) | no (Gemini's store) |
-| Antigravity | its conversation, in its own store; it never answers a conversation with email or a dropped file | no |
-| Copilot | a session per turn under `~/.copilot/session-state` (no thread: each holds the conversation so far) | no (Copilot's store) |
+| CLI | A conversation with email or a dropped file | A plain conversation | What Clear (and Koncluí's start) removes |
+|---|---|---|---|
+| Claude Code | not kept (`--no-session-persistence`) | its session files under `~/.claude/projects/<the chat folder>` | nothing (Claude Code's store) |
+| Codex | not kept (`--ephemeral`) | its thread, in Codex's database | nothing (Codex's store) |
+| Cursor | **kept**: the chat in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`), and its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the same | the chats in `…/Konclui/cursor/chats`, only as a real folder inside Koncluí's own (`KoncluiChatEngine.ownedFolder`, never through a link); **not** the transcripts under `~/.cursor/projects` |
+| Gemini CLI | **kept**: the session under `~/.gemini/tmp/<the chat folder's hash>/chats` (Gemini deletes sessions after 30 days by default) | the same | nothing (Gemini's store) |
+| Antigravity | never sent: such a turn goes to Gemini CLI or is refused | its conversation, in its own store | nothing (Antigravity's store) |
+| Copilot | **kept**: a session per turn under `~/.copilot/session-state`, each holding the conversation so far | the same | nothing (Copilot's store) |
 
 Sources, read on 2026-10-31:
 
