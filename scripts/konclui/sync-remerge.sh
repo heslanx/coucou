@@ -40,7 +40,8 @@ CATALOG=NotchBuddy/Resources/Localizable.xcstrings
 STYLE=$(git config merge.conflictStyle || true)
 STYLE_FLAG=()
 case "$STYLE" in diff3) STYLE_FLAG=(--diff3);; zdiff3) STYLE_FLAG=(--zdiff3);; esac
-strip_markers() { grep -v -E '^(<<<<<<< |\|\|\|\|\|\|\| |=======$|>>>>>>> )' || true; }
+# The marker lines stay (deleting them is a resolution too); only their labels go, git's and merge-file's differ.
+unlabel() { sed -E 's/^(<<<<<<<|\|\|\|\|\|\|\||>>>>>>>) .*/\1/'; }
 
 while read -r f; do
   # Which versions git has: a file added on both sides has no base, one deleted on a side has no stage for it.
@@ -50,11 +51,11 @@ while read -r f; do
     continue
   fi
   for n in 1 2 3; do git show ":$n:$f" > "$WORK/s$n"; done
-  # Untouched means the conflict git wrote, markers aside (git's merge diffs with histogram): anything else is someone's
+  # Untouched means the conflict git wrote, labels aside (git's merge diffs with histogram): anything else is someone's
   # work in progress.
-  if ! cmp -s <(strip_markers < "$f") \
+  if ! cmp -s <(unlabel < "$f") \
               <({ git merge-file -p --diff-algorithm=histogram ${STYLE_FLAG[@]+"${STYLE_FLAG[@]}"} "$WORK/s2" "$WORK/s1" "$WORK/s3" || true; } \
-                 | strip_markers); then
+                 | unlabel); then
     echo "  $f: already touched since git's merge: left alone"
     continue
   fi
