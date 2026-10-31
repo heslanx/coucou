@@ -1,8 +1,8 @@
-# ADR-003: Uma Koru multiplataforma com capacidades adaptadas por canal
+# ADR-005: Uma Koru multiplataforma com capacidades adaptadas por canal
 
 ## Status
 
-**Complementado pelo [ADR-005](ADR-005-koru-mobile-evolution.md):** Flutter existente como caminho inicial provável no mobile e exploração nativa em paralelo. Preserva-se abaixo o contexto original da decisão multiplataforma.
+**Complementado pelo [ADR-007](ADR-007-koru-mobile-evolution.md):** Flutter existente como caminho inicial provável no mobile e exploração nativa em paralelo. Preserva-se abaixo o contexto original da decisão multiplataforma.
 
 **Accepted — direção de produto:** apps para macOS, iPadOS, iOS, Android, Windows, Linux e web; explorar voz em tempo real, alertas e ativação “Koru” onde possível. **Proposed:** estratégia de implementação, ordem, fornecedores e uso de skill oficial no Echo comercial.
 
@@ -31,4 +31,4 @@ Proposta comercial: começar o Echo pelo caminho oficial e vinculação de conta
 
 Criar matriz de suporte com versões e casos reais de background/áudio. Não anunciar “sempre ouvindo”, “offline” ou alertas instantâneos universais. Oferecer opt-in de microfone, controle de custo e entrega multicanal. Modificar aparelho de cliente exige decisão específica; este ADR não a concede.
 
-Detalhamento: [plataformas](../koru/PLATFORMS.md).
+Detalhamento: [plataformas](../../koru/PLATFORMS.md).

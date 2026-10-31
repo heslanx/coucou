@@ -25,11 +25,11 @@ Este conjunto registra a direção solicitada pelo Erick: uma assistente útil n
 
 ## Decisões registradas
 
-- [ADR-001: integração por MCP e autorização](../decisions/ADR-001-koru-mcp-boundaries.md).
-- [ADR-002: créditos do workspace](../decisions/ADR-002-koru-workspace-credits.md).
-- [ADR-003: produto multiplataforma e canais de voz](../decisions/ADR-003-koru-platforms-and-voice.md).
-- [ADR-004: gamificação orientada à qualidade operacional](../decisions/ADR-004-koru-operational-gamification.md).
-- [ADR-005: Flutter existente e evolução nativa paralela](../decisions/ADR-005-koru-mobile-evolution.md).
+- [ADR-003: integração por MCP e autorização](../konclui/decisions/ADR-003-koru-mcp-boundaries.md).
+- [ADR-004: créditos do workspace](../konclui/decisions/ADR-004-koru-workspace-credits.md).
+- [ADR-005: produto multiplataforma e canais de voz](../konclui/decisions/ADR-005-koru-platforms-and-voice.md).
+- [ADR-006: gamificação orientada à qualidade operacional](../konclui/decisions/ADR-006-koru-operational-gamification.md).
+- [ADR-007: Flutter existente e evolução nativa paralela](../konclui/decisions/ADR-007-koru-mobile-evolution.md).
 
 Os ADRs distinguem **direção de produto aceita pelo pedido do usuário** de **desenho técnico proposto**. Nenhum deles autoriza migrações, mudanças de cobrança, adoção de dependências ou instalação em dispositivos.
 

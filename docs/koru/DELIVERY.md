@@ -22,7 +22,7 @@ Esta tarefa entrega documentação, não integração de produção. As bases en
 
 A pesquisa de voz, plataforma e gamificação pode ocorrer durante as primeiras etapas. Isso não dispensa as dependências de acesso, cobrança e qualidade antes de entregar cada recurso.
 
-A exploração nativa ocorre em paralelo ao caminho Flutter, conforme [ADR-005](../decisions/ADR-005-koru-mobile-evolution.md). Comparar benefícios e manutenção antes de migrar. Pesquisa externa segue o [protocolo de acompanhamento](../../.feature-radar/references/engineering-watchlist.md); incluir resultados negativos e distinguir triagem de experimento reproduzido.
+A exploração nativa ocorre em paralelo ao caminho Flutter, conforme [ADR-007](../konclui/decisions/ADR-007-koru-mobile-evolution.md). Comparar benefícios e manutenção antes de migrar. Pesquisa externa segue o [protocolo de acompanhamento](../../.feature-radar/references/engineering-watchlist.md); incluir resultados negativos e distinguir triagem de experimento reproduzido.
 
 ## 3. Casos de aceite do produto
 

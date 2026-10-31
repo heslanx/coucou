@@ -80,7 +80,7 @@ Esses papéis são personas; mapear para os papéis e permissões reais antes de
 
 ## 4. MCP do admin: base existente e lacuna concreta
 
-Na leitura local da plataforma [L1](SOURCES.md#l1-plataforma-konclui), o `apps/bi-mcp`:
+Na leitura local da plataforma [L1](SOURCES.md#l1-plataforma-koncluí), o `apps/bi-mcp`:
 
 - É um serviço separado, de BI somente leitura.
 - Expõe `list_datasources`, `list_datasets`, `describe_dataset` e `run_query`.

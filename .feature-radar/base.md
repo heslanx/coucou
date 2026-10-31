@@ -15,7 +15,7 @@ O produto pretendido conecta processos e aplicativos por MCP, respeita acesso po
 
 ### Linguagens e arquitetura observadas
 
-**Esclarecimento do usuário:** o app mobile existente em `konclui-platform/apps/mobile` é Flutter e deve ser considerado como caminho inicial provável para integrar a Koru. Experimentos nativos continuam em paralelo neste checkout. Não existe compromisso de reescrita nem prazo de abandono do Flutter. Ver [ADR-005](../docs/decisions/ADR-005-koru-mobile-evolution.md).
+**Esclarecimento do usuário:** o app mobile existente em `konclui-platform/apps/mobile` é Flutter e deve ser considerado como caminho inicial provável para integrar a Koru. Experimentos nativos continuam em paralelo neste checkout. Não existe compromisso de reescrita nem prazo de abandono do Flutter. Ver [ADR-007](../docs/konclui/decisions/ADR-007-koru-mobile-evolution.md).
 
 | Área | Manifesto / entrada consultados | Arquitetura observada |
 |---|---|---|
@@ -42,7 +42,7 @@ Não há manifesto raiz único que descreva todo o produto. A presença de depen
 | `relay/` | Worker de Live Activities, separado do relay Android |
 | `alexa/` | Handler, APL, modelo de fala, mídia, empacotamento e testes Node |
 | `design/` | Arte e protótipos, incluindo referências da Koru |
-| `docs/koru/`, `docs/decisions/` | Visão, contratos propostos, pesquisa, UX e ADRs da Koru |
+| `docs/koru/`, `docs/konclui/decisions/` (ADR-003 to ADR-007) | Visão, contratos propostos, pesquisa, UX e ADRs da Koru |
 | `docs/` | Especificações e guias existentes do Coucou |
 | `scripts/`, `windows/tests/`, `alexa/test/` | Verificações existentes; não executadas neste bootstrap documental |
 

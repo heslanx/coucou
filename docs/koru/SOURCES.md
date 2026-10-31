@@ -18,7 +18,7 @@ Repositório local: `konclui-project/konclui-platform`, HEAD observado `ba01f139
 | `apps/bi-mcp/src/datasources/query.service.ts` | `executar(datasource, sqlBruto)` e controles de consulta |
 | `apps/bi-mcp/src/auth/bi-auth.service.ts` | Identidade administrativa e revalidação do vínculo |
 | `specs/20260728-internal-bi-mcp/spec.md` | Intenção de acesso interno de líderes, somente leitura e OAuth |
-| `docs/architecture/ADR-0017-ai-credit-wallet.md` | Contexto e decisão de carteira por workspace; contrato inicial por análise de evidência |
+| `docs/architecture/ADR-0037-ai-credit-wallet.md` | Contexto e decisão de carteira por workspace; contrato inicial por análise de evidência |
 | `apps/ai-agents/src/services/ai_credit_wallet.py` | Consumo com idempotência e ator; distingue falta de saldo e falta de direito |
 | `supabase/schema/tables/ai_credit_usage.sql` | Quantidade inteira positiva, workspace, feature, referência, idempotência e usuário |
 
@@ -80,7 +80,7 @@ Não foram copiados artigos integrais ou imagens. Os documentos sintetizam mecan
 
 ## Atualização das evidências
 
-Em 2026-10-30, `konclui-platform/apps/mobile/pubspec.yaml` e `apps/mobile/lib/main.dart` foram consultados em modo somente leitura, HEAD `ba01f139e`: confirmam base Dart/Flutter e entrada com inicialização de backend, sessão, conectividade e runtime offline. Não foi executado build nem comprovada integração Koru. A consequência está no [ADR-005](../decisions/ADR-005-koru-mobile-evolution.md).
+Em 2026-10-30, `konclui-platform/apps/mobile/pubspec.yaml` e `apps/mobile/lib/main.dart` foram consultados em modo somente leitura, HEAD `ba01f139e`: confirmam base Dart/Flutter e entrada com inicialização de backend, sessão, conectividade e runtime offline. Não foi executado build nem comprovada integração Koru. A consequência está no [ADR-007](../konclui/decisions/ADR-007-koru-mobile-evolution.md).
 
 As novas referências enviadas pelo usuário foram deduplicadas e triadas em [Duolingo: produto e engenharia](../../.feature-radar/references/duolingo-engineering.md): 15 artigos e 5 repositórios, sem auditoria integral de código ou reprodução dos resultados. Os portais de sete outras empresas e o protocolo de continuidade estão em [fontes de engenharia](../../.feature-radar/references/engineering-watchlist.md). Consultar uma fonte não equivale a adotar sua tecnologia; não há monitoramento automático ativo.
 

@@ -6,7 +6,7 @@ Já existe um app Flutter; há interesse em clientes nativos e capacidade adapta
 
 ## Decision
 
-Direção aceita no [ADR-005](../../docs/decisions/ADR-005-koru-mobile-evolution.md): Flutter como hipótese inicial preferida; exploração nativa paralela sem compromisso de reescrita. Comparar Flutter, integração nativa delimitada e cliente separado pela mesma tarefa, rede, acessibilidade e custo de manutenção. O ADR é a fonte de autoridade.
+Direção aceita no [ADR-007](../../docs/konclui/decisions/ADR-007-koru-mobile-evolution.md): Flutter como hipótese inicial preferida; exploração nativa paralela sem compromisso de reescrita. Comparar Flutter, integração nativa delimitada e cliente separado pela mesma tarefa, rede, acessibilidade e custo de manutenção. O ADR é a fonte de autoridade.
 
 ## Why It Matters
 

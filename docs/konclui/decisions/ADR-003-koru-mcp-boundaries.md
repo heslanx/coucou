@@ -1,4 +1,4 @@
-# ADR-001: Integrar a Koru por MCP com autorização no sistema
+# ADR-003: Integrar a Koru por MCP com autorização no sistema
 
 ## Status
 
@@ -10,7 +10,7 @@
 
 ## Context
 
-A Koru atenderá donos, gestores, operadores e a equipe Koncluí. Precisa integrar ferramentas sem replicar permissões e regras de negócio em cada cliente. O MCP de BI encontrado é somente leitura e voltado a admins/líderes; o caminho inspecionado não demonstra recorte de consulta por funcionário/área. [Evidência](../koru/SOURCES.md#l1-plataforma-konclui).
+A Koru atenderá donos, gestores, operadores e a equipe Koncluí. Precisa integrar ferramentas sem replicar permissões e regras de negócio em cada cliente. O MCP de BI encontrado é somente leitura e voltado a admins/líderes; o caminho inspecionado não demonstra recorte de consulta por funcionário/área. [Evidência](../../koru/SOURCES.md#l1-plataforma-koncluí).
 
 ## Decision
 
@@ -29,4 +29,4 @@ Proposta técnica: orquestração compartilhada, catálogo de ferramentas autori
 
 Conectores precisam de dono, versão, contrato e homologação. O primeiro valor pode ser somente leitura; escritas dependem de idempotência e confirmação. Acesso interno por função é requisito de lançamento, não efeito automático de conectar o MCP existente. Nenhum MCP novo é implementado nesta tarefa.
 
-Detalhamento: [arquitetura](../koru/ARCHITECTURE.md).
+Detalhamento: [arquitetura](../../koru/ARCHITECTURE.md).

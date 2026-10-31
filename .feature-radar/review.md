@@ -55,7 +55,7 @@ A pasta docs existe; fase executada no inventário Koru aprovado, sem auditar fu
 |---|---|---|
 | Handler, sons, APL e limites do protótipo | [Alexa](../alexa/README.md) | Coberto; ativação não confirmada |
 | Entradas dos clientes e ausência de paridade Koru comprovada | [Base](base.md) e [plataformas](../docs/koru/PLATFORMS.md) | Coberto no nível de inventário |
-| Bootstrap Flutter externo | [Fontes](../docs/koru/SOURCES.md) e ADR-005 | Coberto como evidência localizada |
+| Bootstrap Flutter externo | [Fontes](../docs/koru/SOURCES.md) e ADR-007 | Coberto como evidência localizada |
 | MCP BI e carteira externos | [Arquitetura](../docs/koru/ARCHITECTURE.md), [créditos](../docs/koru/CREDITS.md) | Cobertos como bases existentes, não integração pronta |
 
 Sem nova funcionalidade implementada e não documentada identificada nesse recorte. Lacuna de organização encontrada: faltava índice de prioridades ligando propostas a dependências e aceites; preenchido por este relatório e pelas fichas. Não converter essa ausência de achados numa afirmação de cobertura completa dos repositórios.

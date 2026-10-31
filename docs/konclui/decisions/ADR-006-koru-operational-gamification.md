@@ -1,4 +1,4 @@
-# ADR-004: Pesquisar gamificação e propor continuidade com qualidade operacional
+# ADR-006: Pesquisar gamificação e propor continuidade com qualidade operacional
 
 ## Status
 
@@ -29,4 +29,4 @@ Pontuação deve ser calculada a partir de eventos confirmados, com deduplicaç�
 
 Pesquisa inicial não é cobertura exaustiva nem reprodução dos resultados do Duolingo. Aprovar calendário, eventos elegíveis, recuperação, privacidade e critérios de piloto antes do código. Crescimento de uso sem melhora de qualidade não basta para expandir.
 
-Detalhamento: [pesquisa e regras propostas](../koru/GAMIFICATION.md).
+Detalhamento: [pesquisa e regras propostas](../../koru/GAMIFICATION.md).

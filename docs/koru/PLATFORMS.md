@@ -6,7 +6,7 @@
 
 A Koru deve existir como app instalável em **macOS/MacBook, iPadOS/iPad, iOS/iPhone, Android, Windows e Linux**, além da **web**. Instalação, assinatura, atualização e suporte fazem parte do produto. Uma página responsiva não prova que o aplicativo nativo foi entregue.
 
-Compartilhar identidade, contexto autorizado, histórico, capacidades MCP e cobrança. Adaptar interação, navegação, notificações, áudio, acessibilidade e uso de recursos a cada dispositivo. O app Flutter já existente em `konclui-platform/apps/mobile` é o caminho inicial provável para a integração mobile. O trabalho nativo neste checkout segue como exploração paralela; não foi decidida reescrita nem adoção de um único framework para todos os canais. Ver [ADR-005](../decisions/ADR-005-koru-mobile-evolution.md).
+Compartilhar identidade, contexto autorizado, histórico, capacidades MCP e cobrança. Adaptar interação, navegação, notificações, áudio, acessibilidade e uso de recursos a cada dispositivo. O app Flutter já existente em `konclui-platform/apps/mobile` é o caminho inicial provável para a integração mobile. O trabalho nativo neste checkout segue como exploração paralela; não foi decidida reescrita nem adoção de um único framework para todos os canais. Ver [ADR-007](../konclui/decisions/ADR-007-koru-mobile-evolution.md).
 
 ### Evolução mobile sem depender de reescrita
 

@@ -6,7 +6,7 @@
 
 A Koru usa os créditos de IA da conta do workspace ativo, tanto para clientes quanto para um contexto interno Koncluí explicitamente provisionado. Não criar uma carteira paralela por dispositivo, por conversa ou por conector.
 
-Na plataforma existem `ai_credit_packs`, `ai_credit_usage`, `fn_ai_credit_consume` e o serviço `ai_credit_wallet.py`. O consumo recebe workspace, quantidade, feature, referência, chave idempotente, metadados e `actor_user_id`; a tabela de uso inclui `created_by_user_id`. São bases reais para atribuição, não prova de uma interface de histórico individual pronta. [Fontes locais](SOURCES.md#l1-plataforma-konclui).
+Na plataforma existem `ai_credit_packs`, `ai_credit_usage`, `fn_ai_credit_consume` e o serviço `ai_credit_wallet.py`. O consumo recebe workspace, quantidade, feature, referência, chave idempotente, metadados e `actor_user_id`; a tabela de uso inclui `created_by_user_id`. São bases reais para atribuição, não prova de uma interface de histórico individual pronta. [Fontes locais](SOURCES.md#l1-plataforma-koncluí).
 
 O ADR existente de análise de evidência define **uma análise de evidência = um crédito**. Isso não define o preço de uma conversa, um minuto de áudio ou uma investigação com várias ferramentas. Preservar esse contrato até uma decisão explícita na plataforma; não mudar preços de funcionalidades existentes por este documento.
 

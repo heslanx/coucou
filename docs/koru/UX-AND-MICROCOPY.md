@@ -31,7 +31,7 @@ Frequência e persistência são estimadas pelo fluxo, não observadas em usuár
 
 ## 2. Orientação e navegação propostas
 
-No mobile inicial, a Koru pode viver no app Flutter já existente da plataforma. As entradas abaixo são hipóteses para organizar a experiência Koru, não autorização para substituir a navegação atual. Inventariar rotas, contexto e padrões do app hospedeiro antes de desenhar a integração; ver [evolução mobile](../decisions/ADR-005-koru-mobile-evolution.md).
+No mobile inicial, a Koru pode viver no app Flutter já existente da plataforma. As entradas abaixo são hipóteses para organizar a experiência Koru, não autorização para substituir a navegação atual. Inventariar rotas, contexto e padrões do app hospedeiro antes de desenhar a integração; ver [evolução mobile](../konclui/decisions/ADR-007-koru-mobile-evolution.md).
 
 No aplicativo pessoal, usar **Início**, **Conversas**, **Tarefas** e **Procedimentos** como pontos de entrada candidatos. Recursos administrativos ficam em **Configurações**, conforme acesso. “Início” apresenta a próxima tarefa útil para a pessoa; não exige navegar por todas as áreas antes de agir. Indicadores podem ser abertos pelo resumo, busca ou conversa; uma seção própria depende da descoberta com cada público.
 
