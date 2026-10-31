@@ -68,7 +68,7 @@ enum WhatsNewTests {
         }
 
         print("\nLinks")
-        check("release page", WhatsNew.releasePage("0.6.0").absoluteString == "https://github.com/heslanx/coucou/releases/tag/v0.6.0")
+        check("release page", WhatsNew.releasePage("0.6.0").absoluteString == "https://updates.konclui.com/v1/mac/notes/konclui-v0.6.0")
 
         if failures > 0 {
             print("\n\(failures) failure(s)")

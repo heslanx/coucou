@@ -116,6 +116,6 @@ enum WhatsNew {
     // MARK: - Links
 
     static func releasePage(_ version: String) -> URL {
-        URL(string: "https://github.com/\(MacUpdate.owner)/\(MacUpdate.repo)/releases/tag/v\(version)")!
+        URL(string: "\(MacUpdate.service)/v1/mac/notes/\(MacUpdate.tagPrefix)\(version)")!   // Koncluí: the update service's notes page
     }
 }
