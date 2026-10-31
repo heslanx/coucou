@@ -246,7 +246,9 @@ marker lines (`test-konclui-orca.sh`) or matches its text (`KoncluiPageRulesTest
 over `ChatProvider` or `HubPage` that upstream adds needs Koncluí's cases: the build says where. The 2026-10-31 sync
 (Coucou 0.5.8, 205 commits, 14 files in conflict) is the worked example: its merge commit says how each was resolved.
 
-New upstream strings that mention Coucou or Mochi are rebranded by the next run. A new string
+New upstream strings that mention Coucou or Mochi are rebranded by the next run, in every language: the names are
+matched without `\b`, so a Korean or Japanese particle written right after one ("Coucou를") does not hide it, and a
+local spelling (모찌, Мочи) goes in `NAMES_LOCAL`. A new string
 where Koru needs a feminine form (an adjective or pronoun that pointed at Mochi) needs a rule in
 `AGREEMENT` of `rebrand.py`.
 
@@ -262,6 +264,7 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | Display name, usage descriptions | project.yml → Info.plist; `InfoPlist.xcstrings` | changed: Koncluí; the seven prompts say what the app does, in 14 languages | users see them; people decide on trust from these lines |
 | Application Support folder | `HookServer.supportDir`, `RecapStore`, `SoundEngine`, GOWA dir, Reminders MCP path | changed: `~/Library/Application Support/Konclui` | holds the hook socket, hook scripts, notes, models, sounds: shared, the two apps would fight over the socket |
 | Hook socket | `<support>/nb.sock`, nb-hook.py, `coucou-mcp.py` | changed (follows the folder) | Coucou binds its own |
+| Mail plans folder | `MailAgent.swift` (a `rebrand.py` FIXED rule) | changed: `$TMPDIR/konclui-mail-plans` | the agent empties it when it starts: with Coucou's name the two apps would delete each other's attachments |
 | Logs folder | `AppLog`, `InstructionRunner` | changed: `~/Library/Logs/Konclui` | the two apps would write the same logs |
 | Keychain service | `Keychain.service` (ClaudeService.swift) | changed: `com.konclui.mac` | otherwise Koncluí reads and overwrites Coucou's API keys |
 | Claude Code hook command | `<support>/nb-hook`; ownership test `contains("Konclui"/"konclui")` | changed | Koncluí installs, detects and removes only its own hooks in `~/.claude/settings.json` |
@@ -284,7 +287,7 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 | UserDefaults keys, notification ids, queue labels, `CoucouGitHash`, NSError domain `CoucouNoop` | many | kept | internal, scoped to the app's own domain or process |
 | AppleScript / Apple events | `tell application id "com.apple.Music"` etc. | nothing to change | no Coucou name involved |
 | Chat providers `claude-code`, `codex`, `konclui-proxy` | `ChatProvider` (CoucouKit/IslandTypes.swift), UserDefaults `chatProvider` | added; raw values are stable from now on. Pill ids `ai_claude_code`, `ai_codex`, `ai_konclui_proxy` are reserved in `ChatProvider.pillID` (no catalog pill yet) | the chat provider is persisted |
-| Claude Code / Codex login | `KoncluiChat.swift`, `KoncluiChatProcess.swift` | the official `claude` / `codex` run as subprocesses (`claude -p … --safe-mode`, `codex exec --json --disable hooks -c sandbox_mode="read-only"`), prompt on stdin, in `~/Library/Application Support/Konclui/chat`; routing variables (`ANTHROPIC_*`, `CLAUDE_CONFIG_DIR`, `OPENAI_API_KEY`…) are removed from their environment | the CLIs keep their own credentials: Koncluí never reads their token files (their terms of use); a shell started from klaude or Orca must not send the subscription route elsewhere |
+| Claude Code / Codex login | `KoncluiChat.swift`, `KoncluiChatProcess.swift` | the official `claude` / `codex` run as subprocesses (`claude -p … --safe-mode`, `codex exec --json --disable hooks -c sandbox_mode="read-only"`), prompt on stdin, in `~/Library/Application Support/Konclui/chat`; routing variables (`ANTHROPIC_*`, `CLAUDE_CONFIG_DIR`, `OPENAI_API_KEY`, `GEMINI_API_KEY`…) are removed from their environment; once the conversation carries email (Mail on), `claude` runs with no tool at all | the CLIs keep their own credentials: Koncluí never reads their token files (their terms of use); a shell started from klaude or Orca must not send the subscription route elsewhere |
 | klaude key | Keychain generic password, service `klaude-api-key`, account = user name | read when a request starts, with `/usr/bin/security … -w` as klaude does; presence checked without `-w`; kept in a local variable, never stored in Koncluí's Keychain items or UserDefaults, never logged, wiped from server error text | the key is klaude's, not Koncluí's |
 | Koncluí Proxy address | `proxy_url=` in `~/.local/bin/klaude`; override: UserDefaults `konclui.proxyURL` | https only (http only for localhost) | network calls only to the proxy the user installed |
 | Hooks during a chat turn | `claude --safe-mode`, `codex --disable hooks` | on | Koncluí's own hooks would show the chat as a session in the notch |
@@ -538,6 +541,14 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/SettingsSearch.swift` | `flow.keys` also matches `hub.settings.permission` and `flow.accessibility-open`; the `flow.permission` entry is gone | the permission is a row of Teclas (A2-19), its card is gone |
 | `App/FlowHub.swift` | `HubPage.mailPages` is computed like the others and skips pages that are off; the sidebar shows the search results, else Flow, Notch, Mail and the Features item | Coucou 0.5.8's Mail pages follow their flags (`page_mailOverview`…) |
 | `App/FlowHubSettings.swift` | the AI card keeps Koncluí's lines and takes upstream's `.settingsAnchor("flow.ai")`; no Permission card | as before the merge |
+| `App/SettingsSearch.swift` | `results()` skips what `KoncluiSettingsSearch.isShown` refuses (`KoncluiFeatureRegistry.swift`) | no result for a page or block whose flag is off, nor for the open/close hotkey the hub shows on Atalhos only |
+| `App/IslandViewContent.swift` | the model picker also lists `p.koncluiAnswersBySubscription(state)` (`KoncluiChatAccess.swift`) | Gemini through its CLI shows without a key once its subscription switch is on |
+| | `TerminalTarget.activate(…, task: task.id)` (two places) | the click opens the clicked card's own Orca terminal |
+| `App/IslandWindowController.swift` | `TerminalTarget.activate(…, task: state.focusTask?.id)` | the same for the shortcut |
+| `App/TerminalTarget+AppKit.swift` | `activate(sessionBundleId:task:)`: the Orca terminal of `OrcaTerminals.terminal(task:)`, else of the pill's owner | a popped-out card (0.5.8's board) opens its session, not the pill's owner |
+| `App/HookServer.swift` | `write(_:waiting:client:to:)`: `OrcaTerminals.shared.shown(task:session:)` | which session each card shows, for the line above |
+| `App/CLIRelayRun.swift` | removes `KoncluiCLI.routingVariables` from the relay's environment | a shell started from klaude or Orca must not send a subscription elsewhere (as `KoncluiChat`) |
+| `App/ClaudeService.swift` | `relayHoldsMail`: the relay gets no web while the conversation carries email; `KoncluiChat.shared.chat(…, extraSystem:)` | an email written to steer the model cannot make it fetch a URL; Koncluí's routes get Mail's plan format |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
