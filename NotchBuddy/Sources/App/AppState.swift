@@ -149,12 +149,6 @@ final class AppState: ObservableObject {
     @Published var moonshotChatModel: String = ChatProvider.moonshot.defaultModel {
         didSet { UserDefaults.standard.set(moonshotChatModel, forKey: "moonshotChatModel") }
     }
-    @Published var claudeCodeChatModel: String = ChatProvider.claudeCode.defaultModel {
-        didSet { UserDefaults.standard.set(claudeCodeChatModel, forKey: "claudeCodeChatModel") }
-    }
-    @Published var codexChatModel: String = ChatProvider.codex.defaultModel {
-        didSet { UserDefaults.standard.set(codexChatModel, forKey: "codexChatModel") }
-    }
     @Published var koncluiProxyChatModel: String = ChatProvider.koncluiProxy.defaultModel {
         didSet { UserDefaults.standard.set(koncluiProxyChatModel, forKey: "koncluiProxyChatModel") }
     }
@@ -186,7 +180,7 @@ final class AppState: ObservableObject {
         if usesSubscription(provider) {
             providerModelFetchError.removeValue(forKey: provider)
             if provider == .anthropic {
-                var models = Self.claudeCodeModels
+                var models = KoncluiClaudeCLI.models.filter { $0.id != "default" }.map { (id: $0.id, label: $0.label) }   // Koncluí: Fable too
                 if !models.contains(where: { $0.id == claudeModel }) { models.insert((claudeModel, claudeModel), at: 0) }
                 fetchedProviderModels[provider] = models
             } else {
@@ -230,7 +224,7 @@ final class AppState: ObservableObject {
             }
             return
         }
-        // Koncluí: Claude Code, Codex and the Koncluí Proxy need no key of ours
+        // Koncluí: the Koncluí Proxy needs no key of ours
         if provider.isSubscription {
             loadingProviderModels.insert(provider)
             providerModelFetchError.removeValue(forKey: provider)
@@ -266,7 +260,7 @@ final class AppState: ObservableObject {
             case .deepseek:  models = await ClaudeService.fetchOpenAICompatibleModels(baseURL: "https://api.deepseek.com/v1", apiKey: apiKey)
             case .qwen:      models = await ClaudeService.fetchOpenAICompatibleModels(baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", apiKey: apiKey)
             case .moonshot:  models = await ClaudeService.fetchOpenAICompatibleModels(baseURL: "https://api.moonshot.cn/v1", apiKey: apiKey)
-            case .ollama, .lmstudio, .claudeCode, .codex, .koncluiProxy: models = []  // handled above
+            case .ollama, .lmstudio, .koncluiProxy: models = []  // handled above
             case .cursor, .copilot:  models = []  // subscription only, handled above
             }
             loadingProviderModels.remove(provider)
@@ -299,7 +293,7 @@ final class AppState: ObservableObject {
                     if !models.contains(where: { $0.id == moonshotChatModel }) {
                         moonshotChatModel = models.first!.id
                     }
-                case .ollama, .lmstudio, .cursor, .copilot, .claudeCode, .codex, .koncluiProxy: break
+                case .ollama, .lmstudio, .cursor, .copilot, .koncluiProxy: break
                 }
             }
         }
@@ -323,8 +317,6 @@ final class AppState: ObservableObject {
         case .deepseek:  return deepseekChatModel
         case .qwen:      return qwenChatModel
         case .moonshot:  return moonshotChatModel
-        case .claudeCode:   return claudeCodeChatModel
-        case .codex:        return codexChatModel
         case .koncluiProxy: return koncluiProxyChatModel
         case .cursor, .copilot: return ""
         }
@@ -340,8 +332,6 @@ final class AppState: ObservableObject {
         case .deepseek:  deepseekChatModel = id
         case .qwen:      qwenChatModel = id
         case .moonshot:  moonshotChatModel = id
-        case .claudeCode:   claudeCodeChatModel = id
-        case .codex:        codexChatModel = id
         case .koncluiProxy: koncluiProxyChatModel = id
         case .cursor, .copilot: break
         }
@@ -625,6 +615,7 @@ final class AppState: ObservableObject {
         if let v = ud.object(forKey: "soundVolume")  as? Double { soundVolume  = v }
         mochiOutfitSelection = Outfit.stored
         pillColors = PillColors.stored
+        KoncluiChatMigration.run(ud)   // Koncluí: Claude Code and Codex became the subscription switch
         if let v = ud.string(forKey: "claudeModel"),
            !v.trimmingCharacters(in: .whitespaces).isEmpty { claudeModel = v }
         if let v = ud.string(forKey: "chatProvider"), let p = ChatProvider(rawValue: v) { chatProvider = p }
@@ -635,8 +626,6 @@ final class AppState: ObservableObject {
         if let v = ud.string(forKey: "deepseekChatModel"), !v.isEmpty { deepseekChatModel = v }
         if let v = ud.string(forKey: "qwenChatModel"),     !v.isEmpty { qwenChatModel     = v }
         if let v = ud.string(forKey: "moonshotChatModel"), !v.isEmpty { moonshotChatModel = v }
-        if let v = ud.string(forKey: "claudeCodeChatModel"),   !v.isEmpty { claudeCodeChatModel   = v }
-        if let v = ud.string(forKey: "codexChatModel"),        !v.isEmpty { codexChatModel        = v }
         if let v = ud.string(forKey: "koncluiProxyChatModel"), !v.isEmpty { koncluiProxyChatModel = v }
         if let v = ud.string(forKey: "ollamaServerURL"), !v.isEmpty { ollamaServerURL = v }
         if let v = ud.string(forKey: "lmstudioServerURL"), !v.isEmpty { lmstudioServerURL = v }

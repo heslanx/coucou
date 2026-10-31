@@ -107,13 +107,24 @@ enum KoncluiClaudeCLI {
     /// `claude -p` with the prompt on stdin. Only web search and fetch are on, so nothing asks for a
     /// permission and nothing touches the disk; `--safe-mode` keeps the user's hooks (Koncluí's own
     /// would show this chat as a session in the notch), skills and MCP servers out of a chat turn.
-    /// `web: false` (the conversation holds email) turns every tool off: a message written to steer the
-    /// model could otherwise send what it read to a website.
+    /// `web: false` (the conversation holds email or a dropped file) turns the web tools off: that text could
+    /// otherwise steer the model into sending what it read to a website. `readDir`: the folder holding a copy of the
+    /// dropped file (CLIRelay.isolate, as Coucou's relay does); Read is the only tool then, limited to that folder.
     static func arguments(model: String, resume sessionID: String?, systemPrompt: String,
-                          safeMode: Bool = true, web: Bool = true) -> [String] {
+                          safeMode: Bool = true, web: Bool = true, readDir: URL? = nil) -> [String] {
         var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-                    "--permission-mode", "dontAsk"]
-        args += web ? ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] : ["--tools", ""]
+                    "--permission-mode", "dontAsk",
+                    // As Coucou's relay, and kept when an older CLI is retried without --safe-mode: no settings
+                    // file (so no hooks or permissions of the user's), no MCP server, no slash command.
+                    "--setting-sources", "", "--strict-mcp-config", "--disable-slash-commands"]
+        if let readDir {
+            // `--add-dir` only adds a folder; the rule is what keeps Read inside it (`//` = an absolute path), and
+            // dontAsk refuses everything else. Checked live on Claude Code 2.1.314: a read outside is denied.
+            let dir = readDir.resolvingSymlinksInPath().path
+            args += ["--tools", "Read", "--allowedTools", "Read(/\(dir)/**)", "--add-dir", dir]
+        } else {
+            args += web ? ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] : ["--tools", ""]
+        }
         args += ["--system-prompt", systemPrompt]
         if safeMode { args.append("--safe-mode") }
         if !model.isEmpty, model != "default" { args += ["--model", model] }
@@ -217,32 +228,47 @@ struct KoncluiClaudeStream {
 // MARK: - Codex
 
 enum KoncluiCodexCLI {
-    /// `codex exec --json` with the prompt on stdin. Read-only sandbox (a chat edits nothing), and
-    /// hooks off so the chat does not show up as a Codex session in the notch.
+    /// `codex exec --json` with the prompt on stdin. It can only answer: the user's config and rules are not loaded
+    /// (so none of their MCP servers either), no shell (a read-only sandbox still reads the whole disk), no apps,
+    /// plugins or web search, and hooks off so the chat does not show up as a Codex session in the notch. `model`:
+    /// the one chosen in Codex (`configuredModel`), passed on since its config is not read.
     static func arguments(model: String, resume threadID: String?, images: [String] = []) -> [String] {
         var args = ["exec"]
         if let threadID, !threadID.isEmpty { args += ["resume", threadID] }
-        args += ["--json", "--skip-git-repo-check", "--disable", "hooks",
-                 "-c", #"sandbox_mode="read-only""#]
+        args += ["--json", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules"]
+        for feature in ["hooks", "shell_tool", "unified_exec", "apps", "plugins"] { args += ["--disable", feature] }
+        args += ["-c", #"sandbox_mode="read-only""#, "-c", #"web_search="disabled""#]
         if !model.isEmpty, model != "default" { args += ["-m", model] }
         for image in images { args += ["-i", image] }
         args.append("-")
         return args
     }
 
-    /// The models `codex debug models` lists for the picker ("list" visibility), the CLI's default first.
-    static func parseModels(_ json: Data) -> [KoncluiModel] {
-        guard let object = (try? JSONSerialization.jsonObject(with: json)) as? [String: Any],
-              let items = object["models"] as? [[String: Any]] else { return [] }
-        let listed = items.compactMap { item -> KoncluiModel? in
-            guard let slug = item["slug"] as? String, !slug.isEmpty,
-                  (item["visibility"] as? String ?? "list") == "list" else { return nil }
-            return KoncluiModel(id: slug, label: (item["display_name"] as? String) ?? slug)
-        }
-        return listed.isEmpty ? [] : [KoncluiModel(id: "default", label: "Default")] + listed
+    static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp"]
+
+    /// The top-level `model = "…"` of Codex's config.toml (`$CODEX_HOME`, else `~/.codex`), nil when it sets none.
+    static func configuredModel(environment: [String: String] = ProcessInfo.processInfo.environment,
+                                home: String = NSHomeDirectory()) -> String? {
+        let dir = environment["CODEX_HOME"].flatMap { $0.isEmpty ? nil : $0 } ?? "\(home)/.codex"
+        guard let text = try? String(contentsOfFile: "\(dir)/config.toml", encoding: .utf8) else { return nil }
+        return model(fromConfig: text)
     }
 
-    static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp"]
+    static func model(fromConfig text: String) -> String? {
+        for raw in text.split(whereSeparator: \.isNewline) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("[") { return nil }   // a table starts: the top level is over
+            guard line.hasPrefix("model"), let eq = line.firstIndex(of: "=") else { continue }
+            guard line[..<eq].trimmingCharacters(in: .whitespaces) == "model" else { continue }
+            // A TOML string: "basic" or 'literal' (a model id has no escape in it), then maybe a comment.
+            let value = line[line.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+            guard let quote = value.first, quote == "\"" || quote == "'",
+                  let end = value.dropFirst().firstIndex(of: quote) else { return nil }
+            let model = String(value[value.index(after: value.startIndex)..<end])
+            return model.isEmpty ? nil : model
+        }
+        return nil
+    }
 }
 
 /// Reads `codex exec --json` (JSONL) line by line. Codex gives each message whole, not token by token.
@@ -426,5 +452,28 @@ enum KoncluiPrompt {
         if let context, !context.isEmpty { parts.append(context) }
         parts.append(query)
         return parts.joined(separator: "\n\n")
+    }
+}
+
+// MARK: - Migration
+
+/// Koncluí had chat providers of its own for Claude Code and Codex until 2026-10-31; they are Coucou's Anthropic and
+/// OpenAI with the subscription switch on now (ChatSubscription.swift). A Mac that chatted through one keeps doing so.
+enum KoncluiChatMigration {
+    static let moved = ["claude-code": "anthropic", "codex": "openai"]
+
+    static func run(_ defaults: UserDefaults = .standard) {
+        if let old = defaults.string(forKey: "chatProvider"), let provider = moved[old] {
+            defaults.set(provider, forKey: "chatProvider")
+            // ChatSubscription.swift's key for the provider's switch
+            defaults.set(true, forKey: "chat.useSubscription.\(provider)")
+            // The Claude model chosen for Claude Code is Anthropic's model now ("default" leaves Anthropic's as it is).
+            if old == "claude-code", let model = defaults.string(forKey: "claudeCodeChatModel"),
+               !model.isEmpty, model != "default" {
+                defaults.set(model, forKey: "claudeModel")
+            }
+        }
+        defaults.removeObject(forKey: "claudeCodeChatModel")
+        defaults.removeObject(forKey: "codexChatModel")
     }
 }

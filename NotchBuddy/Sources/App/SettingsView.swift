@@ -985,10 +985,12 @@ struct SettingsView: View {
                 Text(String(format: String(localized: "chat.subscriptions.found"), installed.displayName))
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#22C55E"))
+                KoncluiSignInLine(cli: installed)   // Koncluí: signed in, and the plan
                 Text(String(format: String(localized: "chat.subscriptions.sign-in"), installed.signIn))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
+                    .koncluiShown(!(chatAccess.signIn(installed)?.isReady ?? false))   // Koncluí: not once signed in
             } else {
                 HStack(spacing: 6) {
                     Text(String(format: String(localized: "chat.subscriptions.missing"), tool.displayName))
@@ -1011,20 +1013,16 @@ struct SettingsView: View {
     #endif
 
     @ViewBuilder private var chatSection: some View {
-        // Koncluí: the chat through what this Mac is signed in to (unit K10); then only the key-based and local
-        // providers that have a key or a server, or were added.
-        KoncluiChatSubscriptionsSection()
         #if !APPSTORE
-        // Koncluí: Coucou's subscriptions that the section above does not cover (Gemini, Cursor, Copilot)
         GroupBox(String(localized: "chat.subscriptions.title")) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(String(localized: "chat.subscriptions.description"))
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                ForEach(ChatProvider.koncluiUpstreamSubscriptions, id: \.self) { provider in
+                ForEach(ChatProvider.subscriptionProviders, id: \.self) { provider in
                     subscriptionRow(provider)
-                    if provider != ChatProvider.koncluiUpstreamSubscriptions.last { Divider() }
+                    if provider != ChatProvider.subscriptionProviders.last { Divider() }
                 }
             }
             .padding(6)
@@ -1034,6 +1032,9 @@ struct SettingsView: View {
         .onAppear { CLILocator.shared.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: CLILocator.changed)) { _ in cliScan += 1 }
         #endif
+        // Koncluí: the Koncluí Proxy (unit K10); then only the key-based and local providers that have a key or a
+        // server, or were added.
+        KoncluiProxySection()
 
         GroupBox(String(localized: "chat.anthropic-api.title")) {
             VStack(alignment: .leading, spacing: 8) {
@@ -2528,7 +2529,7 @@ extension SettingsView {
 extension SettingsView {
     /// The key-based chat providers listed in "Other providers", in their order.
     static let koncluiKeyProviders: [ChatProvider] = [.google, .openai, .deepseek, .qwen, .moonshot]
-    /// Every chat provider with a block of its own here (the subscriptions are KoncluiChatSubscriptionsSection's).
+    /// Every chat provider with a block of its own here (the subscriptions are Coucou's box, the proxy KoncluiProxySection's).
     static let koncluiAddableChatProviders: [ChatProvider] = [.anthropic] + koncluiKeyProviders + [.ollama, .lmstudio]
     /// The services with a block in Integrations.
     static var koncluiServices: [String] {

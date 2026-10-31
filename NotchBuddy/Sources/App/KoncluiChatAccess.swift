@@ -31,6 +31,11 @@ final class ChatAccess: ObservableObject {
     }
 
     @Published private(set) var statuses: [ChatProvider: Status] = [:]
+    /// Whether Claude Code and Codex are signed in, for Coucou's subscription rows (KoncluiSignInLine).
+    @Published private(set) var signIns: [SubscriptionCLI: Status] = [:]
+
+    /// The last detected sign-in of a tool, nil for the tools Koncluí does not check.
+    func signIn(_ cli: SubscriptionCLI) -> Status? { signIns[cli] }
 
     /// The last detected status: cheap, safe in a view body.
     func status(_ provider: ChatProvider) -> Status {
@@ -57,8 +62,7 @@ final class ChatAccess: ObservableObject {
         async let codex = Self.codexStatus()
         async let proxy = Self.proxyStatus()
         let found = await (claude, codex, proxy)
-        next[.claudeCode] = found.0
-        next[.codex] = found.1
+        signIns = [.claude: found.0, .codex: found.1]
         next[.koncluiProxy] = found.2
         statuses = next
     }
@@ -141,28 +145,38 @@ final class ChatAccess: ObservableObject {
     #endif
 }
 
-/// The rows of the subscription providers, at the top of Settings → Chat (K10 fills it).
-struct KoncluiChatSubscriptionsSection: View {
+/// Koncluí's own route in Settings → Chat, after Coucou's subscriptions: the Koncluí Proxy behind klaude.
+struct KoncluiProxySection: View {
     @ObservedObject private var access = ChatAccess.shared
     @ObservedObject private var state = AppState.shared
     @State private var checking = false
 
-    private static let routes: [ChatProvider] = [.claudeCode, .codex, .koncluiProxy]
-
     var body: some View {
-        GroupBox(String(localized: "Use what this Mac is signed in to")) {
+        let provider = ChatProvider.koncluiProxy
+        let status = access.status(provider)
+        GroupBox(provider.displayName) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(String(localized: "Chat through your Claude or ChatGPT subscription, or the Koncluí Proxy. Koncluí keeps no API key for them."))
+                Text(String(localized: "konclui.chat.proxy.detail"))
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                ForEach(Self.routes, id: \.self) { provider in
-                    Divider()
-                    row(provider)
-                }
-
                 Divider()
+                HStack(alignment: .top, spacing: 8) {
+                    Circle().fill(Color(hex: provider.accentHex)).frame(width: 8, height: 8).padding(.top, 4)
+                    Text(status.detail)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    if status.isReady {
+                        if state.chatProvider == provider {
+                            Text(String(localized: "In use")).font(.system(size: 11)).foregroundColor(.secondary)
+                        } else {
+                            Button(String(localized: "Use for chat")) { state.chatProvider = provider }
+                                .buttonStyle(.koncluiSecondary)
+                        }
+                    }
+                }
                 Button(String(localized: "Check again")) { check() }
                     .buttonStyle(.koncluiSecondary)
                     .disabled(checking)
@@ -170,29 +184,6 @@ struct KoncluiChatSubscriptionsSection: View {
             .padding(6)
         }
         .task { await access.refresh() }
-    }
-
-    private func row(_ provider: ChatProvider) -> some View {
-        let status = access.status(provider)
-        return HStack(alignment: .top, spacing: 8) {
-            Circle().fill(Color(hex: provider.accentHex)).frame(width: 8, height: 8).padding(.top, 4)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(provider.displayName).font(.system(size: 12, weight: .semibold))
-                Text(status.detail)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            if status.isReady {
-                if state.chatProvider == provider {
-                    Text(String(localized: "In use")).font(.system(size: 11)).foregroundColor(.secondary)
-                } else {
-                    Button(String(localized: "Use for chat")) { state.chatProvider = provider }
-                        .buttonStyle(.koncluiSecondary)
-                }
-            }
-        }
     }
 
     private func check() {
@@ -204,13 +195,25 @@ struct KoncluiChatSubscriptionsSection: View {
     }
 }
 
-extension ChatProvider {
-    /// Coucou's "Your AI subscriptions" rows that Koncluí shows under its own section: Claude and ChatGPT are already
-    /// there as Claude Code and Codex, so only the rest (Gemini, Cursor, Copilot) is listed again.
-    static var koncluiUpstreamSubscriptions: [ChatProvider] {
-        subscriptionProviders.filter { $0 != .anthropic && $0 != .openai }
-    }
+#if !APPSTORE
+/// Under a Coucou subscription row: whether Claude Code or Codex is signed in, and with which plan. Coucou only knows
+/// that the tool is installed; a turn that finds it signed out says so then.
+struct KoncluiSignInLine: View {
+    let cli: SubscriptionCLI
+    @ObservedObject private var access = ChatAccess.shared
 
+    var body: some View {
+        if let status = access.signIn(cli) {
+            Text(status.detail)
+                .font(.system(size: 11))
+                .foregroundColor(status.isReady ? Color(hex: "#22C55E") : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+#endif
+
+extension ChatProvider {
     #if !APPSTORE
     /// The installed tool that can answer with no web at all, for a conversation that carries email: Antigravity and
     /// Cursor have no switch for it (CLIRelay.arguments), so Gemini answers for Google and Cursor does not answer.
@@ -219,13 +222,12 @@ extension ChatProvider {
     }
     #endif
 
-    /// Answers through Coucou's subscription switch (Gemini through its CLI) though no key is saved: the model picker
-    /// lists it then. Claude and ChatGPT go through Koncluí's own Claude Code and Codex instead.
+    /// Answers through its subscription switch though no key is saved (its tool installed): the model picker lists it.
     @MainActor func koncluiAnswersBySubscription(_ state: AppState) -> Bool {
         #if APPSTORE
         return false
         #else
-        return Self.koncluiUpstreamSubscriptions.contains(self) && state.usesSubscription(self) && installedCLI != nil
+        return !subscriptionCLIs.isEmpty && state.usesSubscription(self) && installedCLI != nil
         #endif
     }
 }

@@ -93,6 +93,7 @@ enum KoncluiChatTests {
         proxyBuilding()
         proxyStreams()
         promptAndModels()
+        migration()
         await subprocesses()
         print("KoncluiChatTests: \(executedCaseCount) cases passed")
     }
@@ -152,7 +153,19 @@ enum KoncluiChatTests {
         let mail = KoncluiClaudeCLI.arguments(model: "default", resume: nil, systemPrompt: system, web: false)
         expect(mail[mail.firstIndex(of: "--tools")! + 1], "", "a conversation with email has no tool at all")
         expectTrue(!mail.contains("--allowedTools") && !mail.contains("WebFetch"), "no web tool is allowed with email")
+        let file = KoncluiClaudeCLI.arguments(model: "default", resume: nil, systemPrompt: system, web: false,
+                                              readDir: URL(fileURLWithPath: "/Users/test/koncluí-file"))
+        expect(file[file.firstIndex(of: "--tools")! + 1], "Read", "a dropped PDF: Read is the only tool")
+        expect(file[file.firstIndex(of: "--allowedTools")! + 1], "Read(//Users/test/koncluí-file/**)",
+               "allowed only inside the copy's folder (dontAsk refuses the rest)")
+        expect(file[file.firstIndex(of: "--add-dir")! + 1], "/Users/test/koncluí-file", "the copy's folder is added")
+        expectTrue(!file.contains("WebFetch") && !file.contains("WebSearch"), "no web while the file is read")
         expect(base[base.firstIndex(of: "--permission-mode")! + 1], "dontAsk", "nothing asks for permission")
+        expect(base[base.firstIndex(of: "--setting-sources")! + 1], "", "no settings file: no user hooks or permissions")
+        expectTrue(base.contains("--strict-mcp-config") && base.contains("--disable-slash-commands"), "no MCP, no slash commands")
+        let older = KoncluiClaudeCLI.arguments(model: "default", resume: nil, systemPrompt: system, safeMode: false)
+        expectTrue(older.contains("--strict-mcp-config") && older.contains("--setting-sources"),
+                   "an older CLI retried without --safe-mode keeps the isolation")
         let resumed = KoncluiClaudeCLI.arguments(model: "sonnet", resume: "abc-123", systemPrompt: system, safeMode: false)
         expect(resumed[resumed.firstIndex(of: "--model")! + 1], "sonnet", "model alias")
         expect(resumed[resumed.firstIndex(of: "--resume")! + 1], "abc-123", "resume the thread")
@@ -165,8 +178,22 @@ enum KoncluiChatTests {
         expect(Array(first.prefix(2)), ["exec", "--json"], "codex exec --json")
         expect(first.last, "-", "prompt from stdin")
         expectTrue(!first.contains("-m") && !first.contains("resume"), "default model, first turn")
-        expect(first[first.firstIndex(of: "--disable")! + 1], "hooks", "chat does not fire hooks")
-        expect(first[first.firstIndex(of: "-c")! + 1], #"sandbox_mode="read-only""#, "read-only sandbox")
+        let disabled = first.indices.filter { first[$0] == "--disable" }.map { first[$0 + 1] }
+        expect(Set(disabled), ["hooks", "shell_tool", "unified_exec", "apps", "plugins"],
+               "no hooks, shell, apps or plugins: it can only answer")
+        let configs = first.indices.filter { first[$0] == "-c" }.map { first[$0 + 1] }
+        expectTrue(configs.contains(#"sandbox_mode="read-only""#), "read-only sandbox")
+        expectTrue(configs.contains(#"web_search="disabled""#), "no web search")
+        expectTrue(first.contains("--ignore-user-config") && first.contains("--ignore-rules"),
+                   "the user's config (its MCP servers) and rules are not loaded")
+        expect(KoncluiCodexCLI.model(fromConfig: "model = \"gpt-6-astra\"\nmodel_reasoning_effort = \"medium\"\n"),
+               "gpt-6-astra", "the model chosen in Codex's config")
+        expect(KoncluiCodexCLI.model(fromConfig: "# x\n[profiles.fast]\nmodel = \"gpt-mini\"\n"), nil,
+               "a profile's model is not the top-level choice")
+        expect(KoncluiCodexCLI.model(fromConfig: "model_provider = \"openai\"\n"), nil, "model_provider is not model")
+        expect(KoncluiCodexCLI.model(fromConfig: "model = 'gpt-6.1-sol' # chosen\n"), "gpt-6.1-sol", "a TOML literal string")
+        expect(KoncluiCodexCLI.model(fromConfig: "  model=\"gpt-6-luna\"   # x\n"), "gpt-6-luna", "spaces and a comment")
+        expect(KoncluiCodexCLI.model(fromConfig: "# model = \"old\"\nmodel = \"new\"\n"), "new", "a commented line is skipped")
         let next = KoncluiCodexCLI.arguments(model: "gpt-6.1-sol", resume: "01a1-uuid", images: ["/tmp/a.png"])
         expect(Array(next.prefix(4)), ["exec", "resume", "01a1-uuid", "--json"], "codex exec resume <id>")
         expect(next[next.firstIndex(of: "-m")! + 1], "gpt-6.1-sol", "codex model")
@@ -325,18 +352,38 @@ enum KoncluiChatTests {
         expect(KoncluiProxy.streamEvent(line: "data: not json"), .ignored, "bad JSON ignored")
     }
 
+    static func migration() {
+        let suite = "konclui-chat-migration-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("claude-code", forKey: "chatProvider")
+        defaults.set("opus", forKey: "claudeCodeChatModel")
+        KoncluiChatMigration.run(defaults)
+        expect(defaults.string(forKey: "chatProvider"), "anthropic", "Claude Code became Anthropic")
+        expect(defaults.string(forKey: "claudeModel"), "opus", "and its Claude model is Anthropic's model now")
+        expect(defaults.object(forKey: "chat.useSubscription.anthropic") as? Bool, true, "with its subscription switch on")
+        expectTrue(defaults.object(forKey: "claudeCodeChatModel") == nil, "the old model key is gone")
+        defaults.set("claude-code", forKey: "chatProvider")
+        defaults.set("default", forKey: "claudeCodeChatModel")
+        defaults.set("claude-sonnet-5-5", forKey: "claudeModel")
+        KoncluiChatMigration.run(defaults)
+        expect(defaults.string(forKey: "claudeModel"), "claude-sonnet-5-5", "\"default\" leaves Anthropic's model alone")
+        defaults.set("codex", forKey: "chatProvider")
+        KoncluiChatMigration.run(defaults)
+        expect(defaults.string(forKey: "chatProvider"), "openai", "Codex became OpenAI")
+        expect(defaults.object(forKey: "chat.useSubscription.openai") as? Bool, true, "with its subscription switch on")
+        defaults.set("google", forKey: "chatProvider")
+        defaults.set(false, forKey: "chat.useSubscription.google")
+        KoncluiChatMigration.run(defaults)
+        expect(defaults.string(forKey: "chatProvider"), "google", "any other choice stays")
+        expect(defaults.object(forKey: "chat.useSubscription.google") as? Bool, false, "and its switch is not touched")
+    }
+
     static func promptAndModels() {
         expect(KoncluiPrompt.turn(query: "Q", persona: "P", context: "C"), "P\n\nC\n\nQ", "first turn: persona, context, question")
         expect(KoncluiPrompt.turn(query: "Q", persona: nil, context: nil), "Q", "later turn: the question")
         expect(KoncluiPrompt.turn(query: "Q", persona: "", context: ""), "Q", "empty parts dropped")
 
-        let catalog = #"{"models":[{"slug":"gpt-6.1-sol","display_name":"GPT-6.1-Sol","visibility":"list"},{"slug":"gpt-reserve","display_name":"GPT-Reserve","visibility":"hide"},{"slug":"gpt-6-luna","display_name":"GPT-6-Luna","visibility":"list"}]}"#
-        expect(KoncluiCodexCLI.parseModels(Data(catalog.utf8)), [
-            KoncluiModel(id: "default", label: "Default"),
-            KoncluiModel(id: "gpt-6.1-sol", label: "GPT-6.1-Sol"),
-            KoncluiModel(id: "gpt-6-luna", label: "GPT-6-Luna"),
-        ], "codex catalog: listed models, default first")
-        expect(KoncluiCodexCLI.parseModels(Data("{}".utf8)), [], "empty catalog")
         expect(KoncluiClaudeCLI.models.first?.id, "default", "claude aliases start with the default")
     }
 
