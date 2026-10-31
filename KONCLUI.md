@@ -541,14 +541,14 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/SettingsSearch.swift` | `flow.keys` also matches `hub.settings.permission` and `flow.accessibility-open`; the `flow.permission` entry is gone | the permission is a row of Teclas (A2-19), its card is gone |
 | `App/FlowHub.swift` | `HubPage.mailPages` is computed like the others and skips pages that are off; the sidebar shows the search results, else Flow, Notch, Mail and the Features item | Coucou 0.5.8's Mail pages follow their flags (`page_mailOverview`…) |
 | `App/FlowHubSettings.swift` | the AI card keeps Koncluí's lines and takes upstream's `.settingsAnchor("flow.ai")`; no Permission card | as before the merge |
-| `App/SettingsSearch.swift` | `results()` skips what `KoncluiSettingsSearch.isShown` refuses (`KoncluiFeatureRegistry.swift`) | no result for a page or block whose flag is off, nor for the open/close hotkey the hub shows on Atalhos only |
+| `App/SettingsSearch.swift` | `results()` skips what `KoncluiSettingsSearch.isShown` refuses and matches `KoncluiSettingsSearch.terms(entry)` (`KoncluiFeatureRegistry.swift`) | no result for a page or block whose flag is off, for a service whose pill is off, nor for the open/close hotkey the hub shows on Atalhos only |
 | `App/IslandViewContent.swift` | the model picker also lists `p.koncluiAnswersBySubscription(state)` (`KoncluiChatAccess.swift`) | Gemini through its CLI shows without a key once its subscription switch is on |
 | | `TerminalTarget.activate(…, task: task.id)` (two places) | the click opens the clicked card's own Orca terminal |
 | `App/IslandWindowController.swift` | `TerminalTarget.activate(…, task: state.focusTask?.id)` | the same for the shortcut |
-| `App/TerminalTarget+AppKit.swift` | `activate(sessionBundleId:task:)`: the Orca terminal of `OrcaTerminals.terminal(task:)`, else of the pill's owner | a popped-out card (0.5.8's board) opens its session, not the pill's owner |
+| `App/TerminalTarget+AppKit.swift` | `activate(sessionBundleId:task:)`: the Orca terminal of `OrcaTerminals.terminal(task:)`; the pill's owner only when no card is given | a popped-out card (0.5.8's board) opens its session, and a card whose session is unknown opens Orca as it is, never another session |
 | `App/HookServer.swift` | `write(_:waiting:client:to:)`: `OrcaTerminals.shared.shown(task:session:)` | which session each card shows, for the line above |
 | `App/CLIRelayRun.swift` | removes `KoncluiCLI.routingVariables` from the relay's environment | a shell started from klaude or Orca must not send a subscription elsewhere (as `KoncluiChat`) |
-| `App/ClaudeService.swift` | `relayHoldsMail`: the relay gets no web while the conversation carries email; `KoncluiChat.shared.chat(…, extraSystem:)` | an email written to steer the model cannot make it fetch a URL; Koncluí's routes get Mail's plan format |
+| `App/ClaudeService.swift` | `conversationHoldsMail`, set where Mail adds the messages: the relay asks with no web and through `koncluiMailCLI` (Gemini rather than Antigravity; Cursor refuses with `konclui.mail.needs-offline`), the Anthropic API gets no web search tool; `KoncluiChat.shared.chat(…, extraSystem:)` | an email written to steer the model cannot make it fetch a URL; Koncluí's routes get Mail's plan format |
 
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
