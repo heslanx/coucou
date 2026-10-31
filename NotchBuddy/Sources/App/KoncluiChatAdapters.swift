@@ -120,8 +120,16 @@ extension KoncluiCLIAdapter {
 
 extension SubscriptionCLI {
     /// Every tool of the CLI that reaches the web can be switched off for one run, so it can answer a conversation
-    /// that holds email. Antigravity has no switch for it (its permissions are the user's settings).
+    /// that holds email or a dropped file. Antigravity has no switch for it (its permissions are the user's settings).
     var koncluiTurnsWebOff: Bool { self != .antigravity }
+}
+
+/// Who answers a provider's turn.
+enum KoncluiRouteChoice: Equatable, Sendable {
+    case cli(SubscriptionCLI)
+    /// A tool is installed, but none of the provider's installed tools can turn its web off, and the conversation
+    /// holds email or a dropped file: the turn is refused, nothing is sent.
+    case refused(SubscriptionCLI)
 }
 
 // MARK: - Engine rules that hold for every CLI
@@ -135,11 +143,25 @@ enum KoncluiChatEngine {
         return "File: \(name)\nFile contents:\n\(text)"
     }
 
-    /// The tool that answers a provider's turn: the first installed one, or, for a conversation that holds email,
-    /// the first installed one that can answer with no web at all.
+    /// The tool that answers a provider's turn: the first installed one, or, for a conversation that holds email or a
+    /// dropped file, the first installed one that can answer with no web at all.
     static func cli(_ candidates: [SubscriptionCLI], offline: Bool,
                     installed: (SubscriptionCLI) -> Bool) -> SubscriptionCLI? {
         candidates.first { installed($0) && (!offline || $0.koncluiTurnsWebOff) }
+    }
+
+    /// A turn runs with no web at all once the conversation holds email or a dropped file, from the turn that brings it
+    /// (its file arrives with the turn, before the conversation records it) to the end of the conversation.
+    static func offline(holdsOutsideText: Bool, mailMode: Bool, attachesFile: Bool) -> Bool {
+        holdsOutsideText || mailMode || attachesFile
+    }
+
+    /// The route of a provider's turn. Nothing installed: its first tool, so the turn says how to install it.
+    static func route(_ candidates: [SubscriptionCLI], offline: Bool,
+                      installed: (SubscriptionCLI) -> Bool) -> KoncluiRouteChoice? {
+        if let cli = cli(candidates, offline: offline, installed: installed) { return .cli(cli) }
+        if let cli = candidates.first(where: installed) { return .refused(cli) }
+        return candidates.first.map { .cli($0) }
     }
 }
 

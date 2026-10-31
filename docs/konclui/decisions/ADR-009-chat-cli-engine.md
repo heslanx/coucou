@@ -26,10 +26,12 @@ and asks the adapter for `fallbackAnswer` when the stream gave no text. Never a 
 stderr or "No response text."; the 300 s timeout stays.
 
 Claude Code and Codex moved onto the adapter shape because it removed their two near-identical turns; their command
-lines and streams (`KoncluiChatCore.swift`) did not change. Routing (`KoncluiChat.route`) picks the provider's first
-installed tool, or, for a conversation that holds email, the first that can turn every web tool off
-(`SubscriptionCLI.koncluiTurnsWebOff`: all but Antigravity). Coucou's relay now only says that no installed tool can
-answer such a conversation; it no longer runs a CLI in Koncluí.
+lines and streams (`KoncluiChatCore.swift`) did not change. Routing (`KoncluiChat.route`, the rules in
+`KoncluiChatEngine.route`) picks the provider's first installed tool, or, once the conversation holds email or a dropped
+file (from the turn that brings it, whose context `ClaudeService` passes on, to the end of the conversation), the first
+that can turn every web tool off (`SubscriptionCLI.koncluiTurnsWebOff`: all but Antigravity). When only Antigravity is
+installed such a turn is refused and nothing is sent: `konclui.mail.needs-offline` for email, `konclui.file.needs-offline`
+(16 languages) for a file, until the conversation is cleared. Coucou's relay no longer runs a CLI in Koncluí.
 
 | | Streaming | Thread | Stop | Sign-in line | Isolation | Checked |
 |---|---|---|---|---|---|---|

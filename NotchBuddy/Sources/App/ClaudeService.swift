@@ -361,7 +361,7 @@ final class ClaudeService {
         #endif
         #if !APPSTORE
         // Koncluí: Claude and ChatGPT on their subscription, and the Koncluí Proxy, stream (KoncluiChat.swift)
-        if let route = KoncluiChat.route(for: state.chatProvider, state: state) {
+        if let route = KoncluiChat.route(for: state.chatProvider, state: state, context: context) {
             await KoncluiChat.shared.chat(route, query: query, context: context, state: state, extraSystem: extraSystem)
             return
         }

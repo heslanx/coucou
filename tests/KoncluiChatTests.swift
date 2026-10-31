@@ -467,6 +467,38 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.cli([.cursor], offline: true) { _ in true }, .cursor, "Cursor with email: its web is off in Koncluí's config")
         expect(KoncluiChatEngine.cli([.copilot], offline: false) { _ in false }, nil, "nothing installed")
 
+        // A dropped file counts like email, from the turn that brings it to the end of the conversation.
+        expectTrue(KoncluiChatEngine.offline(holdsOutsideText: false, mailMode: false, attachesFile: true),
+                   "the turn that attaches a file is offline before the conversation records it")
+        expectTrue(KoncluiChatEngine.offline(holdsOutsideText: true, mailMode: false, attachesFile: false),
+                   "the turns after a file stay offline")
+        expectTrue(!KoncluiChatEngine.offline(holdsOutsideText: false, mailMode: false, attachesFile: false), "a plain conversation has the web")
+        let both: (SubscriptionCLI) -> Bool = { _ in true }
+        let onlyAgy: (SubscriptionCLI) -> Bool = { $0 == .antigravity }
+        let attach = KoncluiChatEngine.offline(holdsOutsideText: false, mailMode: false, attachesFile: true)
+        expect(KoncluiChatEngine.route(google, offline: attach, installed: both), .cli(.gemini), "a dropped file: Gemini CLI, not Antigravity")
+        let followUp = KoncluiChatEngine.offline(holdsOutsideText: true, mailMode: false, attachesFile: false)
+        expect(KoncluiChatEngine.route(google, offline: followUp, installed: both), .cli(.gemini), "its follow-up turns: Gemini CLI too")
+        expect(KoncluiChatEngine.route(google, offline: attach, installed: onlyAgy), .refused(.antigravity),
+               "only Antigravity installed: the turn is refused, nothing sent")
+        expect(KoncluiChatEngine.route(google, offline: followUp, installed: onlyAgy), .refused(.antigravity),
+               "and so are its follow-ups")
+        expect(KoncluiChatEngine.route(google, offline: false, installed: onlyAgy), .cli(.antigravity), "no outside text: Antigravity answers")
+        expect(KoncluiChatEngine.route(google, offline: true) { _ in false }, .cli(.antigravity),
+               "nothing installed: its first tool, to say how to install it")
+        expect(KoncluiChatEngine.route([.cursor], offline: true, installed: both), .cli(.cursor), "Cursor turns its web off")
+        expect(KoncluiChatEngine.route([], offline: false, installed: both), nil, "no tool: Coucou's own code")
+
+        // The refusal for a file says so in every language of the catalog.
+        let catalogURL = URL(fileURLWithPath: "NotchBuddy/Resources/Localizable.xcstrings")
+        let catalog = (try? JSONSerialization.jsonObject(with: Data(contentsOf: catalogURL))) as? [String: Any]
+        let strings = catalog?["strings"] as? [String: Any]
+        let languages = ((strings?["chat.subscriptions.use"] as? [String: Any])?["localizations"] as? [String: Any])?.keys.sorted()
+        let refusal = (strings?["konclui.file.needs-offline %@"] as? [String: Any])?["localizations"] as? [String: [String: [String: String]]]
+        expect(refusal?.keys.sorted(), languages, "the file refusal is in Coucou's 16 languages")
+        expectTrue(refusal?.values.allSatisfy { $0["stringUnit"]?["value"]?.components(separatedBy: "%@").count == 2 } == true,
+                   "each names the tool once")
+
         // A dropped text file goes whole up to the relay's 200 KB (it was cut at 24,000 characters).
         let dropDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-drop-\(getpid())")
         try? FileManager.default.createDirectory(at: dropDir, withIntermediateDirectories: true)

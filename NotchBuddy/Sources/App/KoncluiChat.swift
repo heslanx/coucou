@@ -152,24 +152,29 @@ final class KoncluiChat {
     /// Who answers: a provider's subscription tool once its switch is on, and the Koncluí Proxy.
     enum Route: Equatable, Sendable {
         case cli(SubscriptionCLI)
+        /// The conversation holds email or a dropped file and the provider's installed tool cannot turn its web off.
+        case refused(SubscriptionCLI)
         case proxy
     }
 
-    /// The route for the chat's provider, or nil when Coucou's own code answers it (a key, a local server, or the relay
-    /// saying that no installed tool can answer a conversation holding email without the web).
-    static func route(for provider: ChatProvider, state: AppState) -> Route? {
+    /// The route for the chat's provider, or nil when Coucou's own code answers it (a key, a local server).
+    /// `context`: the turn's own window or file, which reaches the conversation only once this turn starts.
+    static func route(for provider: ChatProvider, state: AppState, context: PromptContext?) -> Route? {
         if provider == .koncluiProxy { return .proxy }
         #if APPSTORE
         return nil
         #else
         guard state.usesSubscription(provider) else { return nil }
-        let offline = shared.holdsMail || state.chatMailMode
-        if let cli = KoncluiChatEngine.cli(provider.subscriptionCLIs, offline: offline,
-                                           installed: { CLILocator.shared.isInstalled($0) }) {
-            return .cli(cli)
+        var attachesFile = false
+        if case .file = context { attachesFile = true }
+        let offline = KoncluiChatEngine.offline(holdsOutsideText: shared.holdsOutsideText, mailMode: state.chatMailMode,
+                                                attachesFile: attachesFile)
+        switch KoncluiChatEngine.route(provider.subscriptionCLIs, offline: offline,
+                                       installed: { CLILocator.shared.isInstalled($0) }) {
+        case .cli(let cli)?:     return .cli(cli)
+        case .refused(let cli)?: return .refused(cli)
+        case nil:                return nil
         }
-        // Nothing installed: the turn says how to install the tool.
-        return provider.installedCLI == nil ? provider.subscriptionCLIs.first.map(Route.cli) : nil
         #endif
     }
 
@@ -191,10 +196,17 @@ final class KoncluiChat {
         if case .file = context { holdsOutsideText = true }
         // What this turn sends is fixed here: a later turn cannot change it under a cancelled one.
         let extra = extraSystem, web = !holdsOutsideText
+        if case .refused(let cli) = route {
+            // Nothing is sent: the conversation keeps saying so until it is cleared, as with email on Coucou's relay.
+            let format = holdsMail ? String(localized: "konclui.mail.needs-offline %@")
+                                   : String(localized: "konclui.file.needs-offline %@")
+            return fail(String(format: format, cli.displayName), state: state)
+        }
         let turn = Task { @MainActor in
             switch route {
-            case .cli(let cli): await self.cliTurn(cli, query: query, context: context, state: state, extra: extra, web: web)
-            case .proxy:        await self.proxyTurn(query: query, context: context, state: state, extra: extra)
+            case .cli(let cli):  await self.cliTurn(cli, query: query, context: context, state: state, extra: extra, web: web)
+            case .proxy:         await self.proxyTurn(query: query, context: context, state: state, extra: extra)
+            case .refused:       break
             }
         }
         running = turn
