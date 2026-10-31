@@ -8,9 +8,10 @@
    "Configurações", "Koncluí Flow") in a string some Swift file shows. "GOWA" stays only in the gateway's own details.
 3. Every language: the dashes left in strings that Swift shows are counted and listed (target: 0 in the hub window, the
    notch and the menus).
-4. The permission prompts: InfoPlist.xcstrings is the table of rebrand_copy_data.py, in 14 languages, and project.yml's
+4. The permission prompts: InfoPlist.xcstrings is the table of rebrand_copy_data.py, in 16 languages, and project.yml's
    English is the table's English.
-5. Every new catalog key the FIXED rules point Swift at exists in the 14 languages.
+5. Every new catalog key the FIXED rules point Swift at exists in the 14 shared copy-rule languages; test-localization.py
+   checks ko/ja on every Koncluí-owned key.
 """
 from __future__ import annotations
 
@@ -111,7 +112,7 @@ def main() -> int:
     if not info_path.exists() or info_path.read_text(encoding="utf-8") != rc.info_plist_catalog():
         errors.append("InfoPlist.xcstrings is missing or differs from the table in rebrand_copy_data.py (run rebrand.py)")
     for key, per_lang in rc.USAGE.items():
-        if set(per_lang) != set(rc.LANGS) or any(not t.strip() for t in per_lang.values()):
+        if set(per_lang) != set(rc.USAGE_LANGS) or any(not t.strip() for t in per_lang.values()):
             errors.append(f"{key}: not every language has a text")
     project = (ROOT / "NotchBuddy/project.yml").read_text(encoding="utf-8")
     for key, per_lang in rc.USAGE.items():
@@ -132,7 +133,7 @@ def main() -> int:
         print("\n".join(errors), file=sys.stderr)
         return 1
     print(f"PASS: copy rules apply with no stale rule, pt-BR is free of retired words and dashes in "
-          f"{len(shown)} shown strings, prompts in 14 languages; {shown_dashes} dashes remain in other languages' shown strings.")
+          f"{len(shown)} shown strings, prompts in 16 languages; {shown_dashes} dashes remain in other languages' shown strings.")
     return 0
 
 

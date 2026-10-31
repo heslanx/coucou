@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check macOS Traditional Chinese coverage, plural paths, and format arguments."""
+"""Check Traditional Chinese and Koncluí Korean/Japanese coverage, plural paths, and format arguments."""
 from collections import Counter
 import json
 from pathlib import Path
@@ -40,24 +40,42 @@ def main():
     errors = []
     if catalog["sourceLanguage"] != "en":
         errors.append("Expected English source language")
+    owned_keys = {key for key in catalog["strings"]
+                  if key.startswith("konclui.") or key in {"Snooze · %lld min", "hub.notch.reminders"}}
     for key, entry in catalog["strings"].items():
         localizations = entry.get("localizations", {})
         source = dict(units(localizations.get("en", {"stringUnit": {"value": key}})))
-        translated = dict(units(localizations.get("zh-Hant", {})))
-        if set(source) != set(translated):
-            errors.append(f"{key!r}: missing translation or mismatched plural/substitution paths")
+        traditional_chinese = dict(units(localizations.get("zh-Hant", {})))
+        if set(source) != set(traditional_chinese):
+            errors.append(f"{key!r}: missing translation or mismatched plural/substitution paths in zh-Hant")
             continue
         for path, unit in source.items():
-            target = translated[path]
+            target = traditional_chinese[path]
             if target.get("state") != "translated" or not target.get("value", "").strip():
-                errors.append(f"{key!r} {path}: incomplete translation")
+                errors.append(f"{key!r} zh-Hant {path}: incomplete translation")
             if arguments(unit["value"]) != arguments(target.get("value", "")):
-                errors.append(f"{key!r} {path}: format arguments differ")
+                errors.append(f"{key!r} zh-Hant {path}: format arguments differ")
+        if key not in owned_keys:
+            continue
+        for lang in ("ko", "ja"):
+            translated = dict(units(localizations.get(lang, {})))
+            if set(source) != set(translated):
+                errors.append(f"{key!r}: {lang} missing translation or mismatched plural/substitution paths")
+                continue
+            for path, unit in source.items():
+                target = translated[path]
+                value = target.get("value")
+                if target.get("state") != "translated" or not isinstance(value, str) or not value.strip():
+                    errors.append(f"{key!r} {lang} {path}: incomplete translation")
+                    continue
+                if arguments(unit["value"]) != arguments(value):
+                    errors.append(f"{key!r} {lang} {path}: format arguments differ")
     project = (ROOT / "NotchBuddy/project.yml").read_text().split("\ntargets:\n", 1)[1]
     for name in ("NotchBuddy", "CoucouAppStore"):
         target = re.search(rf"^  {name}:\n(.*?)(?=^  \w+:|\Z)", project, re.M | re.S)
-        if not target or not re.search(r"^          - zh-Hant$", target[1], re.M):
-            errors.append(f"{name}: zh-Hant is missing from bundle localizations")
+        for lang in ("zh-Hant", "ko", "ja"):
+            if not target or not re.search(rf"^          - {re.escape(lang)}$", target[1], re.M):
+                errors.append(f"{name}: {lang} is missing from bundle localizations")
     for path in (ROOT / "NotchBuddy/Sources").rglob("*.swift"):
         if any(part in {"Phone", "Widgets", "NotificationContent"} for part in path.parts):
             continue
@@ -71,7 +89,7 @@ def main():
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"PASS: {len(catalog['strings'])} zh-Hant entries; plural paths and format arguments match; both macOS targets declare zh-Hant.")
+    print(f"PASS: {len(catalog['strings'])} zh-Hant entries; {len(owned_keys)} Koncluí-owned keys have ko/ja with matching paths and arguments; both macOS targets declare zh-Hant/ko/ja.")
     return 0
 
 

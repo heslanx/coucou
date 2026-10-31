@@ -52,6 +52,18 @@
             "value" : "Koncluí memerlukan Aksesibilitas untuk menempelkan hasil dikte, mendeteksi tombol Esc, dan membaca judul jendela yang kamu lampirkan."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí が音声入力した内容をペーストし、Esc キーを検知して、添付したウインドウのタイトルを読み取るには、アクセシビリティの許可が必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí가 받아쓴 내용을 붙여넣고 Esc 키를 감지하며, 첨부한 윈도우의 제목을 읽으려면 손쉬운 사용 권한이 필요합니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
@@ -139,6 +151,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Koncluí hanya mengendalikan app lain saat kamu memintanya: membawa terminal ke depan, menyiapkan atau mengirim email, mengendalikan Musik dan Spotify, dan membaca alamat tab browser yang kamu lampirkan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí がほかのアプリを操作するのは、依頼された場合のみです。ターミナルを前面に表示し、メールを作成または送信し、「ミュージック」と Spotify を再生して、添付したブラウザタブのアドレスを読み取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청한 경우에만 Koncluí가 다른 앱을 제어합니다. 터미널을 앞으로 가져오고, 이메일을 작성하거나 보내고, 음악과 Spotify를 재생하며, 첨부한 브라우저 탭의 주소를 읽습니다."
           }
         },
         "pt-BR" : {
@@ -230,6 +254,18 @@
             "value" : "Koncluí merekam suara yang diputar Mac-mu hanya saat kamu mencatat panggilan, untuk menuliskan ucapan orang lain."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通話のメモを取っている間のみ、Mac で再生される音声を録音し、相手の発言を書き留めます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 메모를 작성하는 동안에만 Mac에서 재생되는 소리를 녹음하여 상대방이 말한 내용을 기록합니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
@@ -317,6 +353,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Koncluí mencari alamat email saat kamu memintanya, lewat suara, menyiapkan email."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声でメールの作成を頼むと、Koncluí はメールアドレスを検索します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 이메일 작성을 요청하면 Koncluí가 이메일 주소를 검색합니다."
           }
         },
         "pt-BR" : {
@@ -408,6 +456,18 @@
             "value" : "Koncluí tidak memberi tahu pesan WhatsApp baru selama Fokus aktif."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集中モード中、Koncluí は新しい WhatsApp メッセージを通知しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "집중 모드가 켜져 있는 동안 Koncluí는 새 WhatsApp 메시지를 알리지 않습니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
@@ -497,6 +557,18 @@
             "value" : "Koncluí memakai mikrofon saat kamu mendikte, mengucap “OK Koru”, atau memintanya mencatat panggilan."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力、「OK Koru」と話しかける操作、または通話メモを頼む操作で、Koncluí はマイクを使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기, ‘OK Koru’라고 말하기 또는 통화 메모를 요청할 때 Koncluí가 마이크를 사용합니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
@@ -584,6 +656,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Koncluí mengubah suaramu menjadi teks saat kamu mendikte, mengucap “OK Koru”, atau mencatat panggilan. Pengenalan ucapan dilakukan Mac-mu, di perangkat jika memungkinkan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力、「OK Koru」と話しかける操作、または通話のメモを取る操作で、Koncluí は音声をテキストに変換します。音声認識は Mac で行い、可能な場合はデバイス上で処理します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기, ‘OK Koru’라고 말하기 또는 통화 메모를 작성할 때 Koncluí가 음성을 텍스트로 변환합니다. 음성 인식은 Mac에서 처리되며, 가능한 경우 기기 내에서 이루어집니다."
           }
         },
         "pt-BR" : {
