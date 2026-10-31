@@ -220,13 +220,15 @@ final class ClaudeService {
 
     // Multi-turn conversation messages (for API)
     private var conversationMessages: [[String: Any]] = []
+    /// Koncluí: the conversation carries email (Mail on): no web tool on any route until it is cleared.
+    private var conversationHoldsMail = false
 
     func clearConversation() {
         conversationMessages = []
+        conversationHoldsMail = false
         KoncluiChat.shared.clear()
         #if !APPSTORE
         relayHistory = []
-        relayHoldsMail = false
         #endif
     }
 
@@ -244,10 +246,15 @@ final class ClaudeService {
 
     /// The relay's turns, as plain text: they never mix with the API's content blocks.
     private var relayHistory: [(user: String, assistant: String)] = []
-    private var relayHoldsMail = false   // Koncluí: the relay's conversation carries email
 
     private func chatThroughSubscription(_ provider: ChatProvider, query: String, context: PromptContext?, state: AppState) async {
-        guard let cli = provider.installedCLI else {
+        // Koncluí: with email in the conversation, only a tool that can work without the web (KoncluiChatAccess.swift)
+        if conversationHoldsMail, provider.installedCLI != nil, provider.koncluiMailCLI == nil {
+            await showError(String(format: String(localized: "konclui.mail.needs-offline %@"),
+                                   provider.installedCLI?.displayName ?? provider.displayName), state: state)
+            return
+        }
+        guard let cli = conversationHoldsMail ? provider.koncluiMailCLI : provider.installedCLI else {
             let tool = provider.subscriptionCLIs.first?.displayName ?? provider.displayName
             await showError(String(format: String(localized: "chat.subscriptions.error.missing"), tool), state: state)
             return
@@ -283,13 +290,11 @@ final class ClaudeService {
             if case .file = context, relayHistory.isEmpty { return true }
             return false
         }()
-        // Koncluí: email is untrusted text too: no web while the conversation holds any (KoncluiChat.holdsMail)
-        if state.chatMailMode { relayHoldsMail = true }
         let request = CLIRequest(
             model: provider == .anthropic ? model : nil,
             system: systemPrompt + extraSystem,
             prompt: CLIRelay.chatPrompt(history: relayHistory, context: contextLine, query: query),
-            web: !readsFile && !relayHoldsMail,
+            web: !readsFile && !conversationHoldsMail,   // Koncluí: email is untrusted text too
             readDir: readDir,
             noWebPolicy: nil,
             timeout: 180
@@ -351,6 +356,7 @@ final class ClaudeService {
         if state.chatMailMode {
             query = await MailAgent.shared.decorate(query)
             extraSystem = MailAgentPrompt.instructions
+            conversationHoldsMail = true   // Koncluí: an email could steer a model with web tools to a URL
         }
         #endif
         #if !APPSTORE
@@ -396,13 +402,13 @@ final class ClaudeService {
 
         conversationMessages.append(["role": "user", "content": userContent])
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": 4096,
-            "tools": webSearchTools,
             "system": systemPrompt + extraSystem,
             "messages": conversationMessages,
         ]
+        if !conversationHoldsMail { body["tools"] = webSearchTools }   // Koncluí: no web search with email in the conversation
 
         do {
             let data = try await callAPI(body: body, key: key, beta: "web-search-2025-03-05")
