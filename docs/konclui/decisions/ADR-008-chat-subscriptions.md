@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted on 2026-10-31, at the owner's request ("see how Coucou did it; if it is better, we implement it").
+Accepted on 2026-10-31, at the owner's request ("see how Coucou did it; if it is better, we implement it"). Extended
+the same day by [ADR-009](ADR-009-chat-cli-engine.md): Koncluí's engine answers Gemini, Cursor and Copilot too.
 
 ## Context
 
@@ -37,7 +38,7 @@ Coucou's model, Koncluí's engine where it is better:
    switch on. Settings → Chat shows Coucou's box with the five AIs, then the Koncluí Proxy (`KoncluiProxySection`).
 2. With the switch on, Claude and ChatGPT are answered by `KoncluiChat` (`KoncluiChat.route(for:state:)`, called first in
    `ClaudeService.sendMessage`): streaming, the CLI's thread, a new message stops the old one, and `KoncluiSignInLine` shows
-   the sign-in and the plan under Coucou's row. Gemini, Cursor and Copilot stay with Coucou's relay.
+   the sign-in and the plan under Coucou's row. Gemini, Cursor and Copilot stay with Coucou's relay (until ADR-009).
 3. `KoncluiChat` takes Coucou's safeguards, and closes what both left open: no web tool once the conversation holds a
    dropped file (as it already did for email); Coucou's isolation flags for Claude on every run, the retry for an older
    CLI included; a dropped PDF or image is read by Claude from an isolated copy (`CLIRelay.isolate`), with Read allowed

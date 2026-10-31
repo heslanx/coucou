@@ -48,7 +48,8 @@ pushed: [WORKFLOW.md](WORKFLOW.md) (the why: [ADR-001](decisions/ADR-001-branche
 ## 3. Architecture: the dependency rule
 
 - **Pure logic in its own files**, free of SwiftUI, AppKit and singletons, so it can be tested with `swiftc` alone: detection
-  (`KoncluiRecognition.swift`), flags (`KoncluiFeatures.swift`), chat parsing and request building (`KoncluiChatCore.swift`),
+  (`KoncluiRecognition.swift`), flags (`KoncluiFeatures.swift`), chat parsing and request building (`KoncluiChatCore.swift`,
+  one adapter per subscription CLI in `KoncluiChatAdapters.swift`),
   routing rules, preview rules. Views and AppKit glue call it; it never calls them.
 - **Side effects at the edges**: subprocesses, the Keychain, files and the network sit behind small types
   (`KoncluiChatProcess`, `KoncluiCLILocator`, `ClaudeSettingsFile`) with timeouts and off the main thread.
