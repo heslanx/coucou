@@ -40,7 +40,8 @@ voice and gamification research. It keeps product direction apart from what this
   Chat → Coucou's "Your AI subscriptions" has one switch per AI (Claude, Gemini, ChatGPT, Cursor, Copilot). With it on,
   the AI is answered by Koncluí's `KoncluiChat`, one engine with one adapter per CLI (`KoncluiChatAdapters.swift`:
   `claude`, `codex`, `agy` or `gemini`, `cursor-agent`, `copilot`): a new message, Clear or Quit stops the running CLI
-  and its helpers; the answer streams as it is written and the CLI keeps the thread, except Copilot, which keeps
+  and its helpers, and so does picking another provider; the answer streams as it is written and the CLI keeps the
+  thread while it holds the whole visible conversation (else a new one starts with it), except Copilot, which keeps
   Coucou's relay format (the whole conversation each turn, plain text); the row says whether Claude Code, Codex or
   Cursor is signed in and with which plan (`KoncluiSignInLine`). Once the conversation holds email or a dropped
   file, only a tool that can turn its web off answers (Gemini CLI rather than Antigravity), else the turn is refused;

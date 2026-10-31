@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 // Koncluí: the notch chat through what this Mac is already signed in to (unit K10).
@@ -125,14 +126,17 @@ enum KoncluiChatModels {
 final class KoncluiChat {
     static let shared = KoncluiChat()
 
-    /// Each CLI's own memory of the conversation, so a turn continues the same thread.
-    private var threads: [SubscriptionCLI: String] = [:]
-    /// The conversation so far for a CLI with no thread of its own (Copilot), sent again each turn as the relay does.
-    private var relayTurns: [(user: String, assistant: String)] = []
+    /// Each CLI's own memory of the conversation, so a turn continues the same thread while it holds every turn.
+    private var threads: [SubscriptionCLI: KoncluiThread] = [:]
     /// The proxy is stateless: the whole conversation goes with every request (Anthropic format).
     private var proxyMessages: [[String: Any]] = []
+    /// How many answered turns of the visible conversation `proxyMessages` holds.
+    private var proxyAnswers = 0
     private var running: Task<Void, Never>?
+    /// The provider whose turn is running: picking another one stops it.
+    private var runningProvider: ChatProvider?
     private var quitObserver: NSObjectProtocol?
+    private var providerObserver: AnyCancellable?
 
     private init() {
         #if !APPSTORE
@@ -141,6 +145,18 @@ final class KoncluiChat {
             KoncluiProcess.terminateAll()
         }
         #endif
+        providerObserver = AppState.shared.$chatProvider.removeDuplicates().dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] provider in
+                MainActor.assumeIsolated { self?.stop(unless: provider) }
+            }
+    }
+
+    /// Another provider was picked: the old one's turn (and its CLI) stops, so it cannot keep writing to the chat.
+    private func stop(unless provider: ChatProvider) {
+        guard running != nil, provider != runningProvider else { return }
+        running?.cancel()
+        running = nil
     }
 
     /// The conversation carries text from outside (email with Mail on, a dropped file): no web tool until it is
@@ -183,8 +199,8 @@ final class KoncluiChat {
         running?.cancel()
         running = nil
         threads = [:]
-        relayTurns = []
         proxyMessages = []
+        proxyAnswers = 0
         holdsOutsideText = false
         holdsMail = false
     }
@@ -192,6 +208,7 @@ final class KoncluiChat {
     /// `extraSystem`: instructions added to the system prompt for this turn (Mail's plan format, MailAgentPrompt).
     func chat(_ route: Route, query: String, context: PromptContext?, state: AppState, extraSystem: String = "") async {
         running?.cancel()
+        runningProvider = state.chatProvider
         if state.chatMailMode { holdsOutsideText = true; holdsMail = true }
         if case .file = context { holdsOutsideText = true }
         // What this turn sends is fixed here: a later turn cannot change it under a cancelled one.
@@ -254,11 +271,11 @@ final class KoncluiChat {
                                            state: AppState, extra: String, web: Bool) async {
         let cli = adapter.cli
         guard let executable = KoncluiCLILocator.find(cli) else { return fail(adapter.notInstalledMessage, state: state) }
-        let everyTurn = adapter.systemPrompt == .everyTurn
-        let firstTurn = everyTurn ? relayTurns.isEmpty : threads[cli] == nil
-        var context = firstTurn ? Self.contextText(contextArgument) : nil
-        var turn = KoncluiCLITurn(prompt: "", resume: everyTurn ? nil : threads[cli], web: web)
-        if firstTurn, case .file(let name, let url?) = contextArgument {
+        let transcript = Self.transcript(state)
+        let shape = KoncluiChatEngine.shape(adapter.systemPrompt, thread: threads[cli], transcript: transcript)
+        var context = Self.contextText(contextArgument)
+        var turn = KoncluiCLITurn(prompt: "", resume: shape.resume, web: web)
+        if shape.resume == nil, case .file(let name, let url?) = contextArgument {
             switch adapter.droppedFile {
             case .readsCopy where Self.isBinary(url):
                 // A dropped PDF or image: the CLI reads a copy of that one file (Coucou's relay does the same).
@@ -273,18 +290,9 @@ final class KoncluiChat {
             }
         }
         defer { if let dir = turn.readDir { try? FileManager.default.removeItem(at: dir) } }
-        let persona = ClaudeService.makeSystemPrompt(webSearch: adapter.searchesWeb && web)
-        switch adapter.systemPrompt {
-        case .flag:
-            turn.prompt = KoncluiPrompt.turn(query: query, persona: nil, context: context)
-            turn.system = persona + extra
-        case .firstTurn:
-            turn.prompt = KoncluiPrompt.turn(query: query, persona: firstTurn ? persona + extra : (extra.isEmpty ? nil : extra),
-                                             context: context)
-        case .everyTurn:
-            turn.prompt = CLIRelay.chatPrompt(history: relayTurns, context: context, query: query)
-            turn.system = persona + extra
-        }
+        (turn.prompt, turn.system) = KoncluiChatEngine.compose(
+            query: query, context: context, persona: ClaudeService.makeSystemPrompt(webSearch: adapter.searchesWeb && web),
+            extra: extra, systemPrompt: adapter.systemPrompt, shape: shape)
 
         let placeholder = beginAnswer(state: state)
         var plan = adapter.plan(turn)
@@ -320,31 +328,25 @@ final class KoncluiChat {
         }
         if Task.isCancelled { return abandon(placeholder, state: state) }
 
-        if !everyTurn, let id = stream.threadID, !stream.failed { threads[cli] = id }
+        if adapter.systemPrompt != .everyTurn, let id = stream.threadID, !stream.failed {
+            threads[cli] = KoncluiThread(id: id, answers: transcript.count + 1)
+        }
         if threads[cli] != nil, adapter.lostThread(stderr: ended.stderr) { threads[cli] = nil }
         var text = stream.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty, !stream.failed,
            let read = adapter.fallbackAnswer(stdout: stdout, exitCode: ended.code) {
             text = read
         }
-        if !stream.failed, !text.isEmpty {
-            if everyTurn { relayTurns.append((user: Self.relayUserTurn(query, contextArgument, first: firstTurn), assistant: text)) }
-            return finish(text, placeholder: placeholder, state: state)
-        }
+        if !stream.failed, !text.isEmpty { return finish(text, placeholder: placeholder, state: state) }
         abandon(placeholder, state: state)
         if ended.timedOut { return fail(Self.tookTooLong, state: state) }
         if stream.needsSignIn || adapter.needsSignIn(stderr: ended.stderr) { return fail(adapter.signInMessage, state: state) }
         fail(stream.failure ?? Self.stderrMessage(ended.stderr) ?? String(localized: "No response text."), state: state)
     }
 
-    /// What later relay-format turns see of this one: the window, or the file's name, never its contents (they would go
-    /// out with the web tools of the turns after it).
-    private static func relayUserTurn(_ query: String, _ context: PromptContext?, first: Bool) -> String {
-        guard first, let context else { return query }
-        switch context {
-        case .window: return (contextText(context) ?? "") + "\n\n" + query
-        case .file(let name, _): return "File: \(name)\n\n\(query)"
-        }
+    /// The answered turns of the chat as the person sees it (the turn now starting is left out).
+    private static func transcript(_ state: AppState) -> [KoncluiExchange] {
+        KoncluiChatEngine.transcript(state.chatHistory.map { (fromUser: $0.role == .user, text: $0.content) })
     }
 
     /// The files a CLI reads for its run. A file that cannot be written stops the run: the CLI would run without it.
@@ -394,6 +396,14 @@ final class KoncluiChat {
         }
         if Task.isCancelled { return }
 
+        // Another provider answered in between: the proxy gets the conversation as the person sees it.
+        let transcript = Self.transcript(state)
+        if proxyAnswers != transcript.count {
+            proxyMessages = transcript.flatMap { exchange -> [[String: Any]] in
+                [["role": "user", "content": [["type": "text", "text": exchange.user]]],
+                 ["role": "assistant", "content": exchange.assistant]]
+            }
+        }
         var content: [[String: Any]] = []
         if proxyMessages.isEmpty, let context {
             switch context {
@@ -445,6 +455,7 @@ final class KoncluiChat {
             let final = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !final.isEmpty else { throw ProxyFailure.empty }
             proxyMessages.append(["role": "assistant", "content": final])
+            proxyAnswers = transcript.count + 1
             finish(final, placeholder: placeholder, state: state)
         } catch {
             proxyMessages.removeLast()

@@ -160,6 +160,7 @@ enum KoncluiChatTests {
         adapterCommandLines()
         adapterStreams()
         engineRules()
+        conversationThreads()
         await subprocesses()
         print("KoncluiChatTests: \(executedCaseCount) cases passed")
     }
@@ -544,6 +545,73 @@ enum KoncluiChatTests {
         expect(env["GOOGLE_CLOUD_PROJECT"], "p", "a Code Assist project is the login's, kept")
         expectTrue(!SubscriptionCLI.antigravity.koncluiTurnsWebOff && SubscriptionCLI.cursor.koncluiTurnsWebOff,
                    "only Antigravity cannot turn its web off")
+    }
+
+    // MARK: Threads and the visible conversation
+
+    static func conversationThreads() {
+        // The chat as shown: two answered turns, a turn that failed, and the turn now starting.
+        let visible: [(fromUser: Bool, text: String)] = [
+            (true, "Hi"), (false, "Hello!"), (true, "Lost?"), (true, "Weather?"), (false, "Sunny."), (true, "Now?"),
+        ]
+        let transcript = KoncluiChatEngine.transcript(visible)
+        expect(transcript, [KoncluiExchange(user: "Hi", assistant: "Hello!"), KoncluiExchange(user: "Weather?", assistant: "Sunny.")],
+               "the answered turns, without the failed one or the one now starting")
+
+        expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: transcript),
+               KoncluiTurnShape(resume: "t", history: []), "a thread that holds every answered turn continues")
+        expect(KoncluiChatEngine.shape(.firstTurn, thread: KoncluiThread(id: "t", answers: 1), transcript: transcript),
+               KoncluiTurnShape(resume: nil, history: transcript),
+               "another provider answered in between: a new thread with the conversation so far")
+        expect(KoncluiChatEngine.shape(.firstTurn, thread: nil, transcript: transcript),
+               KoncluiTurnShape(resume: nil, history: transcript), "a CLI picked mid-conversation starts with it")
+        expect(KoncluiChatEngine.shape(.everyTurn, thread: KoncluiThread(id: "t", answers: 2), transcript: transcript),
+               KoncluiTurnShape(resume: nil, history: transcript), "the relay format never continues a thread")
+        expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: []),
+               KoncluiTurnShape(resume: nil, history: []), "a cleared chat never continues an old thread")
+
+        let resumed = KoncluiChatEngine.compose(query: "Now?", context: "Context — App: Mail", persona: "P", extra: "",
+                                                systemPrompt: .firstTurn, shape: KoncluiTurnShape(resume: "t", history: []))
+        expect(resumed.prompt, "Now?", "a continued thread gets the question alone")
+        let mailExtra = KoncluiChatEngine.compose(query: "Now?", context: nil, persona: "P", extra: "PLAN",
+                                                  systemPrompt: .firstTurn, shape: KoncluiTurnShape(resume: "t", history: []))
+        expect(mailExtra.prompt, "PLAN\n\nNow?", "and Mail's plan format when it is on")
+        let first = KoncluiChatEngine.compose(query: "Q", context: "CTX", persona: "P", extra: "", systemPrompt: .firstTurn,
+                                              shape: KoncluiTurnShape(resume: nil, history: []))
+        expect(first.prompt, "P\n\nCTX\n\nQ", "a first turn: persona, context, question")
+        let seeded = KoncluiChatEngine.compose(query: "Now?", context: "CTX", persona: "P", extra: "", systemPrompt: .flag,
+                                               shape: KoncluiTurnShape(resume: nil, history: transcript))
+        expect(seeded.prompt, """
+        The conversation so far:
+        <conversation>
+        <user>
+        CTX
+
+        Hi
+        </user>
+        <assistant>
+        Hello!
+        </assistant>
+        <user>
+        Weather?
+        </user>
+        <assistant>
+        Sunny.
+        </assistant>
+        </conversation>
+
+        The user's new message:
+        Now?
+        """, "a new thread mid-conversation gets it as the relay sends it, the context on its first message")
+        expect(seeded.system, "P", "Claude Code's system prompt stays a flag")
+        let seededCodex = KoncluiChatEngine.compose(query: "Now?", context: nil, persona: "P", extra: "", systemPrompt: .firstTurn,
+                                                    shape: KoncluiTurnShape(resume: nil, history: transcript))
+        expectTrue(seededCodex.prompt.hasPrefix("P\n\nThe conversation so far:\n<conversation>\n<user>\nHi\n"),
+                   "a new Codex-style thread: the persona, then the conversation")
+        let relay = KoncluiChatEngine.compose(query: "Q", context: nil, persona: "P", extra: "X", systemPrompt: .everyTurn,
+                                              shape: KoncluiTurnShape(resume: nil, history: []))
+        expect(relay.prompt, "Q", "relay format: the prompt")
+        expect(relay.system, "PX", "relay format: its system prompt beside it")
     }
 
     // MARK: CLI output

@@ -134,7 +134,73 @@ enum KoncluiRouteChoice: Equatable, Sendable {
 
 // MARK: - Engine rules that hold for every CLI
 
+/// One answered turn of the visible conversation.
+struct KoncluiExchange: Equatable, Sendable {
+    var user: String
+    var assistant: String
+}
+
+/// A CLI's own thread, and how many answered turns of the conversation it holds.
+struct KoncluiThread: Equatable, Sendable {
+    var id: String
+    var answers: Int
+}
+
+/// What a turn continues and what it carries.
+struct KoncluiTurnShape: Equatable, Sendable {
+    /// The CLI's thread to continue; nil: a new thread (or none, for the relay format).
+    var resume: String?
+    /// The conversation so far, sent with a turn that does not continue a thread.
+    var history: [KoncluiExchange]
+}
+
 enum KoncluiChatEngine {
+    /// The answered turns of the visible conversation: each user message with the answer after it. A message with no
+    /// answer (a failed turn, the turn now starting) is left out.
+    static func transcript(_ messages: [(fromUser: Bool, text: String)]) -> [KoncluiExchange] {
+        var exchanges: [KoncluiExchange] = []
+        var question: String?
+        for message in messages {
+            if message.fromUser {
+                question = message.text
+            } else if let asked = question, !message.text.isEmpty {
+                exchanges.append(KoncluiExchange(user: asked, assistant: message.text))
+                question = nil
+            }
+        }
+        return exchanges
+    }
+
+    /// A turn continues the CLI's thread only when that thread holds every answered turn of the visible conversation
+    /// (another provider may have answered in between); otherwise a new thread starts with the conversation so far, as
+    /// Coucou's relay sends it.
+    static func shape(_ systemPrompt: KoncluiSystemPrompt, thread: KoncluiThread?,
+                      transcript: [KoncluiExchange]) -> KoncluiTurnShape {
+        if systemPrompt != .everyTurn, let thread, thread.answers == transcript.count {
+            return KoncluiTurnShape(resume: thread.id, history: [])
+        }
+        return KoncluiTurnShape(resume: nil, history: transcript)
+    }
+
+    /// The prompt and the system prompt of a turn. `context` (the window, the dropped file) goes with the conversation's
+    /// first message on every turn that does not continue a thread, so a new thread has it too.
+    static func compose(query: String, context: String?, persona: String, extra: String,
+                        systemPrompt: KoncluiSystemPrompt, shape: KoncluiTurnShape) -> (prompt: String, system: String) {
+        let context = shape.resume == nil ? context : nil
+        var history = shape.history
+        if let context, !context.isEmpty, !history.isEmpty { history[0].user = context + "\n\n" + history[0].user }
+        let body = history.isEmpty
+            ? KoncluiPrompt.turn(query: query, persona: nil, context: context)
+            : CLIRelay.chatPrompt(history: history.map { ($0.user, $0.assistant) }, context: nil, query: query)
+        switch systemPrompt {
+        case .flag, .everyTurn:
+            return (body, persona + extra)
+        case .firstTurn:
+            let top = shape.resume == nil ? persona + extra : (extra.isEmpty ? nil : extra)
+            return (KoncluiPrompt.turn(query: body, persona: top, context: nil), "")
+        }
+    }
+
     /// A dropped file as a turn carries it, in the relay's words: its text whole when it has one
     /// (`CLIRelay.inlineText`: up to 200 KB of UTF-8), else its name. Every CLI takes it: Claude Code, Codex and Cursor
     /// on stdin, the others as the `-p` argument (the Mac's argument space is 1 MiB).

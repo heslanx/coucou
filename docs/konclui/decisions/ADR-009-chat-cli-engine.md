@@ -21,8 +21,12 @@ answer of a run the stream could not read that still ended with 0 (`fallbackAnsw
 of that CLI, `CLIRelay.parse`, else the plain lines; Copilot's, the plain lines only). The engine (`KoncluiChat.run`)
 knows no CLI and no output format: it runs the process with `KoncluiCLI.routingVariables` removed, writes the adapter's
 files (a file that cannot be written stops the turn), streams the answer, kills the process tree on a new message, Clear
-or Quit, retries once when the adapter has a fallback run (Claude Code without `--safe-mode`), keeps one thread per CLI,
-and asks the adapter for `fallbackAnswer` when the stream gave no text. Never a blank answer: else the CLI's error, its
+or Quit, retries once when the adapter has a fallback run (Claude Code without `--safe-mode`), and asks the adapter for
+`fallbackAnswer` when the stream gave no text. It keeps one thread per CLI and continues it only while that thread holds
+every answered turn of the chat as the person sees it (`KoncluiChatEngine.shape`); otherwise, when another provider
+answered in between, a new thread starts with the conversation so far, as the relay sends it (`CLIRelay.chatPrompt`, the
+window or file on its first message). Picking another provider stops the running turn and its CLI, so it cannot keep
+writing to the chat. The Koncluí Proxy's conversation is rebuilt the same way. Never a blank answer: else the CLI's error, its
 stderr or "No response text."; the 300 s timeout stays.
 
 Claude Code and Codex moved onto the adapter shape because it removed their two near-identical turns; their command
@@ -97,8 +101,10 @@ Sources, read on 2026-10-31:
 - A dropped text file goes in the prompt whole up to the relay's limit, 200 KB of UTF-8 (`CLIRelay.inlineText`, one
   source for every CLI; Claude Code and Codex cut it at 24,000 characters before), else by its name. Claude Code, Codex
   and Cursor get it on stdin, the others in the `-p` argument as the relay sends it (the Mac's argument space is 1 MiB).
-- A conversation that moves from Antigravity to Gemini CLI (Mail turned on mid-way) starts Gemini's own thread without
-  the turns before.
+- A conversation that moves to another provider, or from Antigravity to Gemini CLI (a file or Mail mid-way), starts the
+  new tool's thread with the visible conversation: the answers, not the emails Mail added to earlier questions.
+- Copilot, with no thread, and a new thread get the window or the dropped file again with the conversation's first
+  message, so a follow-up about the file still sees it (the relay sent the file on the first turn only).
 - With the web off, the system prompt no longer says the model can search the web (Claude Code included).
 - Antigravity's FAQ says wrapping `agy` in third-party applications is not supported under consumer plans. The relay
   already did it; the owner decides whether Koncluí keeps offering it.
