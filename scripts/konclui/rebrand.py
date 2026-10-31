@@ -428,6 +428,7 @@ INSERTS = [
 
 # What the screens say besides the brand: COPY, SUBS, DASHES and PATHS over the catalog, the permission prompts, and the
 # hard-coded English literals of upstream views (scripts/konclui/rebrand_copy.py and its data file).
+sys.dont_write_bytecode = True   # loading them would leave a __pycache__ folder in scripts/konclui, untracked
 _spec = importlib.util.spec_from_file_location("rebrand_copy", Path(__file__).with_name("rebrand_copy.py"))
 copy_rules = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(copy_rules)
