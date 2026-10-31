@@ -16,13 +16,14 @@ the tool ends, no stop, the whole conversation sent again each turn). `KoncluiCh
 
 One engine, one adapter per CLI (`App/KoncluiChatAdapters.swift`). An adapter is a pure value: the command line and the
 files the CLI reads for a turn, how it takes the system prompt (`.flag`, `.firstTurn`, `.everyTurn`) and a dropped file
-(`.readsCopy`, `.images`, `.text`), and a stream that reads its output into the answer, the thread and the failure. The
-engine (`KoncluiChat.run`) knows no CLI: it runs the process with `KoncluiCLI.routingVariables` removed, writes the
-adapter's files (a file that cannot be written stops the turn), streams the answer, kills the process tree on a new
-message, Clear or Quit, retries once when the adapter has a fallback (Claude Code without `--safe-mode`), keeps one thread
-per CLI, and, when the output is in no format the adapter knows but the run ended with 0, shows what the relay would
-(`CLIRelay.parse`, else the plain lines). Never a blank answer: else the CLI's error, its stderr or "No response text.";
-the 300 s timeout stays.
+(`.readsCopy`, `.images`, `.text`), a stream that reads its output into the answer, the thread and the failure, and the
+answer of a run the stream could not read that still ended with 0 (`fallbackAnswer`: by default the relay's own reading
+of that CLI, `CLIRelay.parse`, else the plain lines; Copilot's, the plain lines only). The engine (`KoncluiChat.run`)
+knows no CLI and no output format: it runs the process with `KoncluiCLI.routingVariables` removed, writes the adapter's
+files (a file that cannot be written stops the turn), streams the answer, kills the process tree on a new message, Clear
+or Quit, retries once when the adapter has a fallback run (Claude Code without `--safe-mode`), keeps one thread per CLI,
+and asks the adapter for `fallbackAnswer` when the stream gave no text. Never a blank answer: else the CLI's error, its
+stderr or "No response text."; the 300 s timeout stays.
 
 Claude Code and Codex moved onto the adapter shape because it removed their two near-identical turns; their command
 lines and streams (`KoncluiChatCore.swift`) did not change. Routing (`KoncluiChat.route`) picks the provider's first

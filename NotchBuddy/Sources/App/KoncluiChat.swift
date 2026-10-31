@@ -312,7 +312,7 @@ final class KoncluiChat {
         if threads[cli] != nil, adapter.lostThread(stderr: ended.stderr) { threads[cli] = nil }
         var text = stream.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty, !stream.failed,
-           let read = KoncluiChatEngine.fallbackAnswer(cli, stdout: stdout, exitCode: ended.code) {
+           let read = adapter.fallbackAnswer(stdout: stdout, exitCode: ended.code) {
             text = read
         }
         if !stream.failed, !text.isEmpty {

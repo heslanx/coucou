@@ -467,16 +467,21 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.cli([.cursor], offline: true) { _ in true }, .cursor, "Cursor with email: its web is off in Koncluí's config")
         expect(KoncluiChatEngine.cli([.copilot], offline: false) { _ in false }, nil, "nothing installed")
 
-        expect(KoncluiChatEngine.fallbackAnswer(.gemini, stdout: ["Plain answer", "second line"], exitCode: 0),
+        // The fallback is the adapter's: the relay's reading of its own CLI, else the plain lines.
+        let gemini = KoncluiGeminiAdapter(policyPath: "")
+        expect(gemini.fallbackAnswer(stdout: ["Plain answer", "second line"], exitCode: 0),
                "Plain answer\nsecond line", "an unread format: the plain lines, as the relay")
-        expect(KoncluiChatEngine.fallbackAnswer(.antigravity, stdout: [#"{"response":"From the JSON object"}"#], exitCode: 0),
+        expect(KoncluiAntigravityAdapter().fallbackAnswer(stdout: [#"{"response":"From the JSON object"}"#], exitCode: 0),
                "From the JSON object", "an older CLI that printed the relay's JSON: the relay's own reading")
-        expect(KoncluiChatEngine.fallbackAnswer(.cursor, stdout: [#"{"type":"something_new"}"#, #"{"type":"result","is_error":false,"result":"OK"}"#], exitCode: 0),
+        let cursorAdapter = KoncluiCursorAdapter(workDir: "", configDir: "", currentConfig: nil, userConfig: nil)
+        expect(cursorAdapter.fallbackAnswer(stdout: [#"{"type":"something_new"}"#, #"{"type":"result","is_error":false,"result":"OK"}"#], exitCode: 0),
                "OK", "cursor: the relay reads the last result object")
-        expect(KoncluiChatEngine.fallbackAnswer(.gemini, stdout: ["Some text"], exitCode: 1), nil, "a failed run has no fallback answer")
-        expect(KoncluiChatEngine.fallbackAnswer(.copilot, stdout: [#"{"type":"assistant.message"}"#], exitCode: 0), nil,
+        expect(gemini.fallbackAnswer(stdout: ["Some text"], exitCode: 1), nil, "a failed run has no fallback answer")
+        expect(KoncluiCopilotAdapter().fallbackAnswer(stdout: [#"{"response":"x"}"#, #"{"type":"assistant.message"}"#], exitCode: 0), nil,
                "copilot: JSON lines are never shown as an answer")
-        expect(KoncluiChatEngine.fallbackAnswer(.gemini, stdout: [#"{"type":"unknown"}"#, ""], exitCode: 0), nil,
+        expect(KoncluiCopilotAdapter().fallbackAnswer(stdout: ["Hello", #"{"type":"x"}"#], exitCode: 0), "Hello",
+               "copilot: its plain lines")
+        expect(gemini.fallbackAnswer(stdout: [#"{"type":"unknown"}"#, ""], exitCode: 0), nil,
                "only unknown JSON: no answer rather than a blank one")
 
         let env = KoncluiCLI.environment(base: [

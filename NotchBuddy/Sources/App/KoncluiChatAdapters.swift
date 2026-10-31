@@ -91,6 +91,9 @@ protocol KoncluiCLIAdapter: Sendable {
     func needsSignIn(stderr: String) -> Bool
     /// The resumed thread is gone from the CLI: the next turn starts a new one.
     func lostThread(stderr: String) -> Bool
+    /// The answer of a run the stream could not read (a CLI older or newer than its format) that still ended with 0.
+    /// Nil: nothing to show, and the engine says there was no answer rather than showing a blank one.
+    func fallbackAnswer(stdout: [String], exitCode: Int32) -> String?
     var notInstalledMessage: String { get }
     var signInMessage: String { get }
 }
@@ -100,6 +103,15 @@ extension KoncluiCLIAdapter {
     func fallback(_ turn: KoncluiCLITurn, stderr: String) -> KoncluiCLIPlan? { nil }
     func needsSignIn(stderr: String) -> Bool { CLIRelay.needsSignIn(stderr) }
     func lostThread(stderr: String) -> Bool { KoncluiCLI.isLostThread(stderr: stderr) }
+    /// As Coucou's relay reads the CLI (its JSON result for this CLI), else the plain lines.
+    func fallbackAnswer(stdout: [String], exitCode: Int32) -> String? {
+        guard exitCode == 0 else { return nil }
+        if case .success(let text) = CLIRelay.parse(cli, stdout: Data(stdout.joined(separator: "\n").utf8),
+                                                    stderr: Data(), exitCode: 0) {
+            return text
+        }
+        return KoncluiPlainStream.answer(stdout)
+    }
     var notInstalledMessage: String {
         String(format: String(localized: "chat.subscriptions.error.missing"), cli.displayName)
     }
@@ -120,22 +132,6 @@ enum KoncluiChatEngine {
     static func cli(_ candidates: [SubscriptionCLI], offline: Bool,
                     installed: (SubscriptionCLI) -> Bool) -> SubscriptionCLI? {
         candidates.first { installed($0) && (!offline || $0.koncluiTurnsWebOff) }
-    }
-
-    /// The answer of a run the adapter could not read (a CLI older or newer than its format) that still ended well,
-    /// read as Coucou's relay reads it: its own parser for the CLI, else the plain lines. Nil: nothing to show.
-    static func fallbackAnswer(_ cli: SubscriptionCLI, stdout lines: [String], exitCode: Int32) -> String? {
-        guard exitCode == 0 else { return nil }
-        // The relay takes Copilot's whole stdout as the answer: JSON lines would show as the answer.
-        if cli != .copilot,
-           case .success(let text) = CLIRelay.parse(cli, stdout: Data(lines.joined(separator: "\n").utf8),
-                                                    stderr: Data(), exitCode: 0) {
-            return text
-        }
-        let plain = lines.filter { KoncluiCLI.jsonObject($0) == nil }
-            .map(KoncluiPlainStream.withoutColors).joined(separator: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return plain.isEmpty ? nil : plain
     }
 }
 
@@ -551,6 +547,11 @@ struct KoncluiCopilotAdapter: KoncluiCLIAdapter {
     }
 
     func stream() -> KoncluiPlainStream { KoncluiPlainStream() }
+
+    /// The relay takes Copilot's whole stdout as the answer: only plain lines, never JSON ones.
+    func fallbackAnswer(stdout: [String], exitCode: Int32) -> String? {
+        exitCode == 0 ? KoncluiPlainStream.answer(stdout) : nil
+    }
 }
 
 /// Plain text out: every line is the answer; a run that does not end with 0 failed.
@@ -574,5 +575,12 @@ struct KoncluiPlainStream: KoncluiCLIStream {
 
     static func withoutColors(_ line: String) -> String {
         line.replacingOccurrences(of: "\u{1B}\\[[0-9;]*[A-Za-z]", with: "", options: .regularExpression)
+    }
+
+    /// The lines that are not JSON, without colours; nil when none has text.
+    static func answer(_ lines: [String]) -> String? {
+        let plain = lines.filter { KoncluiCLI.jsonObject($0) == nil }.map(withoutColors).joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return plain.isEmpty ? nil : plain
     }
 }
