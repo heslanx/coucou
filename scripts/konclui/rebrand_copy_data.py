@@ -20,6 +20,7 @@ PATHS: list[str] = []
 FIXED: list[tuple[str, str, str]] = []
 INSERTS: list[tuple[str, str, str]] = []
 USAGE: dict[str, dict[str, str]] = {}
+USAGE_LANGS: tuple[str, ...] = tuple(sorted((*LANGS, "ja", "ko")))
 
 
 def r(key: str, source: str | tuple[str, ...], *texts: str | None) -> None:
@@ -48,14 +49,14 @@ def s(key: str, *fixes) -> None:
 
 
 def u(key: str, *texts: str) -> None:
-    """One Info.plist usage description in the 14 languages."""
+    """One Info.plist usage description's 14-language base row; ko/ja are added below."""
     if len(texts) != len(LANGS):
         raise ValueError(f"{key!r}: {len(texts)} texts, expected {len(LANGS)}")
     USAGE[key] = dict(zip(LANGS, texts))
 
 
 # ---------------------------------------------------------------------------------------------
-# macOS permission prompts (A3-11). Info.plist keeps the English (project.yml, edited by FIXED below); the 14 languages
+# macOS permission prompts (A3-11). Info.plist keeps the English (project.yml, edited by FIXED below); all 16 languages
 # are NotchBuddy/Resources/InfoPlist.xcstrings, which test-copy.py checks against this table. Each line says what the
 # app really does with the permission (the code was read for it), because people decide on trust from these lines.
 
@@ -171,7 +172,44 @@ u("NSFocusStatusUsageDescription",
   "专注模式开启期间，Koncluí 不会提示新的 WhatsApp 消息。",
   "專注模式開啟期間，Koncluí 不會提示新的 WhatsApp 訊息。")
 
-# project.yml writes the English into Info.plist; the 14 languages come from InfoPlist.xcstrings (a resource of the Mac
+USAGE_KOJA = {
+    "NSAccessibilityUsageDescription": {
+        "ko": "Koncluí가 받아쓴 내용을 붙여넣고 Esc 키를 감지하며, 첨부한 윈도우의 제목을 읽으려면 손쉬운 사용 권한이 필요합니다.",
+        "ja": "Koncluí が音声入力した内容をペーストし、Esc キーを検知して、添付したウインドウのタイトルを読み取るには、アクセシビリティの許可が必要です。",
+    },
+    "NSAppleEventsUsageDescription": {
+        "ko": "요청한 경우에만 Koncluí가 다른 앱을 제어합니다. 터미널을 앞으로 가져오고, 이메일을 작성하거나 보내고, 음악과 Spotify를 재생하며, 첨부한 브라우저 탭의 주소를 읽습니다.",
+        "ja": "Koncluí がほかのアプリを操作するのは、依頼された場合のみです。ターミナルを前面に表示し、メールを作成または送信し、「ミュージック」と Spotify を再生して、添付したブラウザタブのアドレスを読み取ります。",
+    },
+    "NSAudioCaptureUsageDescription": {
+        "ko": "통화 메모를 작성하는 동안에만 Mac에서 재생되는 소리를 녹음하여 상대방이 말한 내용을 기록합니다.",
+        "ja": "通話のメモを取っている間のみ、Mac で再生される音声を録音し、相手の発言を書き留めます。",
+    },
+    "NSContactsUsageDescription": {
+        "ko": "음성으로 이메일 작성을 요청하면 Koncluí가 이메일 주소를 검색합니다.",
+        "ja": "音声でメールの作成を頼むと、Koncluí はメールアドレスを検索します。",
+    },
+    "NSFocusStatusUsageDescription": {
+        "ko": "집중 모드가 켜져 있는 동안 Koncluí는 새 WhatsApp 메시지를 알리지 않습니다.",
+        "ja": "集中モード中、Koncluí は新しい WhatsApp メッセージを通知しません。",
+    },
+    "NSMicrophoneUsageDescription": {
+        "ko": "받아쓰기, ‘OK Koru’라고 말하기 또는 통화 메모를 요청할 때 Koncluí가 마이크를 사용합니다.",
+        "ja": "音声入力、「OK Koru」と話しかける操作、または通話メモを頼む操作で、Koncluí はマイクを使用します。",
+    },
+    "NSSpeechRecognitionUsageDescription": {
+        "ko": "받아쓰기, ‘OK Koru’라고 말하기 또는 통화 메모를 작성할 때 Koncluí가 음성을 텍스트로 변환합니다. 음성 인식은 Mac에서 처리되며, 가능한 경우 기기 내에서 이루어집니다.",
+        "ja": "音声入力、「OK Koru」と話しかける操作、または通話のメモを取る操作で、Koncluí は音声をテキストに変換します。音声認識は Mac で行い、可能な場合はデバイス上で処理します。",
+    },
+}
+if set(USAGE_KOJA) != set(USAGE):
+    raise ValueError("Every permission prompt must have Korean and Japanese copy")
+for _key, _translations in USAGE_KOJA.items():
+    if set(_translations) != {"ko", "ja"}:
+        raise ValueError(f"{_key}: expected Korean and Japanese permission copy")
+    USAGE[_key].update(_translations)
+
+# project.yml writes the English into Info.plist; the 16 languages come from InfoPlist.xcstrings (a resource of the Mac
 # target, inserted below). The old lines are what project.yml holds after rebrand.py's brand pass.
 _PROJECT = "NotchBuddy/project.yml"
 for _key, _old in (
@@ -184,7 +222,7 @@ for _key, _old in (
 INSERTS.append((
     _PROJECT,
     "      # What's new after an update, once in the notch (WhatsNewViews.swift; GitHub build)\n",
-    "      # Koncluí: the permission prompts in the 14 languages (Info.plist keeps the English), copy table in\n"
+    "      # Koncluí: the permission prompts in all 16 languages (Info.plist keeps the English), copy table in\n"
     "      # scripts/konclui/rebrand_copy_data.py\n"
     "      - path: Resources/InfoPlist.xcstrings\n"
     "        buildPhase: resources\n"))

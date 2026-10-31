@@ -184,11 +184,11 @@ come from?".
 
 ## 5. Microcopy
 
-Interface text is part of the product's function. Koncluí ships in 14 languages; the rules apply to every one.
+Interface text is part of the product's function. Koncluí ships in 16 languages; the rules apply to every one.
 
 | Context | Rule | Example (pt-BR) |
 |---|---|---|
-| Sentences | Short and direct, with full stops, commas or parentheses only. **No dashes** (no "—" or "–" used as punctuation) in any of the 14 languages. Russian too: use a colon, a comma or a full stop. | "O arquivo passa de 10 MB. Escolha uma imagem menor." |
+| Sentences | Short and direct, with full stops, commas or parentheses only. **No dashes** (no "—" or "–" used as punctuation) in any of the 16 languages. Russian too: use a colon, a comma or a full stop. | "O arquivo passa de 10 MB. Escolha uma imagem menor." |
 | Paths and ranges | A path to a menu item is written with Apple's chevron "›" and the page's own name, never "Settings → Chat" when Chat is a page of the window. A range is "a" or "…", never a dash. | "Ative em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade." / "Adicione a chave em Chat." / "⌘1 … ⌘9" |
 | Buttons | Active voice + a specific verb saying what happens. Never "OK", "Yes" or "Confirm" alone. | "Instalar hooks", "Salvar contato" instead of "Confirmar" |
 | Errors | What happened + impact + next step. Never blame the person, never a technical code. | "Não foi possível salvar. Suas alterações continuam na tela. Tente de novo em instantes." |
@@ -267,7 +267,7 @@ Add a row whenever a new concept reaches the interface.
 - [ ] Text uses a role of 11.1 (4.5:1 on its surface); status uses `KoncluiStatus`; no new grey, green, red or amber.
 - [ ] A disabled control cannot be mistaken for an enabled one; a blocked "Adicionar" says what is missing.
 - [ ] Nothing animates under Reduce Motion; Increase Contrast and Reduce Transparency were looked at.
-- [ ] Every new string exists in all 14 languages (`python3 scripts/test-localization.py`).
+- [ ] Every new string exists in all 16 languages (`python3 scripts/test-localization.py`).
 - [ ] The changed path was walked in the running app, including blocked, error and recovery states, and with the keyboard
       (a screenshot or a unit test alone does not prove an interaction).
 - Both pickers list the three languages the parser, the answers and the voice support; adding a fourth language means
@@ -298,7 +298,7 @@ that step; a later step (type hierarchy) may intentionally change something an e
    different (main value large, details small). Keep fonts, order, colours and alignment.
 7. **Alignment**: titles and labels on one leading edge, values in one trailing column. Leave intentional icon alignment.
 8. **Long text stress test**: real worst cases (long project names, long paths, large numbers, multi-word statuses, the
-   longest of the 14 languages, usually German or Russian). Nothing cut off or overlapping; no tiny text.
+   longest of the 16 languages, usually German or Russian). Nothing cut off or overlapping; no tiny text.
 
 Final checks: the narrowest window and notch sizes; larger system text and Increase Contrast; then summarise what changed
 per step, list the contrast ratios, and flag what was left on purpose or could not be fixed without breaking a rule.

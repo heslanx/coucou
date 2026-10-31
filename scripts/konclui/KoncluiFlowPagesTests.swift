@@ -2,7 +2,7 @@ import Foundation
 
 // scripts/konclui/test-flow-pages.sh: the rules of the Flow pages (App/KoncluiFlowRules.swift, with FlowText.swift), and the places
 // in the sources that carry them: every removal offers Undo, no page promises a key while dictation is off, a disabled list says
-// why, the strings exist in 14 languages.
+// why, the strings exist in 16 languages.
 @main
 enum KoncluiFlowPagesTests {
     static var failures = 0
@@ -169,8 +169,8 @@ enum KoncluiFlowPagesTests {
     // MARK: Strings
 
     static func catalog() {
-        print("Catalog — every new key, in the 14 languages, with the same arguments")
-        let languages = ["ar", "bn", "de", "en", "es", "fr", "hi", "id", "pt-BR", "ru", "th", "tr", "zh-Hans", "zh-Hant"]
+        print("Catalog — every new key, in the 16 languages, with the same arguments")
+        let languages = ["ar", "bn", "de", "en", "es", "fr", "hi", "id", "ja", "ko", "pt-BR", "ru", "th", "tr", "zh-Hans", "zh-Hant"]
         let strings = ((try? JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: "NotchBuddy/Resources/Localizable.xcstrings")))) as? [String: Any])?["strings"] as? [String: [String: Any]] ?? [:]
         func value(_ key: String, _ lang: String) -> String {
             ((strings[key]?["localizations"] as? [String: [String: [String: String]]])?[lang]?["stringUnit"]?["value"]) ?? ""

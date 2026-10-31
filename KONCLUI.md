@@ -110,7 +110,7 @@ voice and gamification research. It keeps product direction apart from what this
   background is the Painel Gestor's sidebar (navy, ink, deep teal at -160° with the mint glow, `KoncluiBrandBackdrop`) under
   the website's grain (`KoncluiGrain`, also on the pages' bands and the reminder's card). The notch keeps its black: it has to
   disappear into the hardware notch.
-- Every word on screen follows `docs/konclui/UX.md` section 5 in the 14 languages: no dashes as punctuation, one name per
+- Every word on screen follows `docs/konclui/UX.md` section 5 in all 16 languages: no dashes as punctuation, one name per
   concept (notch, aba, Ajustes do ditado, Ajustes do Sistema, gateway), paths written with "›", macOS permission prompts that
   say what the app does with the permission and are localized (`NotchBuddy/Resources/InfoPlist.xcstrings`).
 - **The notch pages behave.** Every agent's popover (Settings → Agents, the "Hooks not installed" door of Active pills, klaude)
@@ -212,13 +212,13 @@ All brand text comes from one re-runnable script, `scripts/konclui/rebrand.py`. 
 4. Upstream tests that name Coucou's ids, URLs and wake word (`tests/MacUpdateTests.swift`,
    `WhatsNewTests.swift`, `ClaudeHookDetectionTests.swift`, `WakePhraseTests.swift`), plus cases
    for the fork: Coucou's hooks are not Koncluí's, "OK Coucou" does not wake Koncluí.
-5. `Localizable.xcstrings` (the coffee keys removed): keys (with the Swift literals that use them) and values in the 14
+5. `Localizable.xcstrings` (the coffee keys removed): keys (with the Swift literals that use them) and values in all 16
    languages, with per-language grammar for Koru (articles, pronouns, agreement in en, es, fr,
    pt-BR, de, ru).
 6. `whats-new.json`: the item texts (the coffee item removed).
 7. The copy rules (`scripts/konclui/rebrand_copy.py`, data in `rebrand_copy_data.py`), run by `rebrand.py` after the brand pass:
    COPY, SUBS, FILL, DASHES and PATHS over `Localizable.xcstrings` (one rewritten entry keeps its style; nothing else in the file
-   moves), the Info.plist usage descriptions (project.yml English through FIXED, 14 languages in `InfoPlist.xcstrings`, which
+   moves), the Info.plist usage descriptions (project.yml English through FIXED, 16 languages in `InfoPlist.xcstrings`, which
    rebrand.py keeps equal to the table and adds to the Mac target's resources), and FIXED edits for hard-coded English literals of
    upstream views. A rule whose upstream English changed is reported STALE and not applied. `python3 scripts/konclui/test-copy.py`
    checks the result (glossary, dashes, format arguments, prompts).
@@ -270,7 +270,7 @@ Koncluí and an installed Coucou would clash running side by side; kept otherwis
 |---|---|---|---|
 | Bundle id | project.yml, `AppState` fallback | changed: `com.konclui.mac` | separate product; also gives Koncluí its own UserDefaults domain, TCC entries and notifications |
 | Product / executable name | project.yml `PRODUCT_NAME` | changed: `Konclui` (`Konclui.app`) | ASCII file name, no clash with `Coucou.app` |
-| Display name, usage descriptions | project.yml → Info.plist; `InfoPlist.xcstrings` | changed: Koncluí; the seven prompts say what the app does, in 14 languages | users see them; people decide on trust from these lines |
+| Display name, usage descriptions | project.yml → Info.plist; `InfoPlist.xcstrings` | changed: Koncluí; the seven prompts say what the app does, in 16 languages | users see them; people decide on trust from these lines |
 | Application Support folder | `HookServer.supportDir`, `RecapStore`, `SoundEngine`, GOWA dir, Reminders MCP path | changed: `~/Library/Application Support/Konclui` | holds the hook socket, hook scripts, notes, models, sounds: shared, the two apps would fight over the socket |
 | Hook socket | `<support>/nb.sock`, nb-hook.py, `coucou-mcp.py` | changed (follows the folder) | Coucou binds its own |
 | Mail plans folder | `MailAgent.swift` (a `rebrand.py` FIXED rule) | changed: `$TMPDIR/konclui-mail-plans` | the agent empties it when it starts: with Coucou's name the two apps would delete each other's attachments |
@@ -544,7 +544,7 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 | `App/ReminderWindowController.swift` | `show`: `panel.contentView = KoncluiReminderAlert.hostingView(for:) ?? NSHostingView(…ReminderAlertView…)`; `cardFrame`: the height is `KoncluiReminderAlert.cardHeight(for:)` | the alert is "Despertador com a Koru" (KoncluiReminderAlert.swift, option 11 of `design/konclui/reminders/reminder-alerts-10.html`): the Koru on top, the time and how far it is, one primary the whole width (a meeting link in a button or in the message is "Entrar na reunião"), snooze lengths on the spot, ⏎ and esc; a card is as tall as what it says (`reminder.height` is no longer used), full screen covers the screen over the blurred desktop. The App Store build keeps the owner's view |
 | | `ReminderAlertView`: the card's `.frame(maxWidth: .infinity, …)` | App Store build: a full-screen alert covers the whole width |
 | `scripts/konclui/rebrand_copy_data.py` | the COPY rule of `flow.accessibility` ends at the path; the previous text is an accepted source spelling | the stale-permission advice lives only in `konclui.flow.accessibility-stale` |
-| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 14 languages; `konclui.file.needs-offline %@` (ADR-009), 16 languages; 69 `konclui.whatsapp.*` keys, 14 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 14 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover; 16 `konclui.claude.*` keys (U3a: the source line, privacy, failures); 33 `konclui.*` keys (U3b: undo, home, stat doors, styles, accessibility); 12 `konclui.*` keys (U7); 108 `konclui.reminders.*` keys and the owner's `Snooze · %lld min` (the alert's snooze button read English) |
+| `Resources/Localizable.xcstrings` | 14 `konclui.*` keys, 16 languages; `konclui.file.needs-offline %@` (ADR-009), 16 languages; 69 `konclui.whatsapp.*` keys, 16 languages; 2 `konclui.disclosure.*` keys; 20 `konclui.voice.*` keys; 14 `konclui.notes.speech.*` keys; 10 `konclui.agents.*` keys; 11 `konclui.*` keys (`status`, `settings`, `home`, `hint`, `snippets`); 12 `konclui.*` keys (`hub`, `key`, `codex`) and 225 entries rewritten or filled by the copy rules, plus the new `Resources/InfoPlist.xcstrings` (the usage descriptions, 16 languages); 45 keys (`konclui.hooks.*`, `terminals.*`, `orca.*`, `pills.*`, `connect.*`, `remove.*`, one each of `konclui.agents.*` and `konclui.features.*`, and the owner's `hub.notch.reminders`) | the Features screen and "Add…"; the WhatsApp block and its notch preview; the disclosures' VoiceOver state; Settings → Voice (who understands you, the Claude opt-in; `voice.setting-web-desc` and `voice.setting-web-nokey` stay in the catalog, unused); the Notetaker's engine row, popover and install messages; the status words, the row's VoiceOver hint and the install door of Settings → Agents and Active pills; the hub's status lines, doors and field hints; the key names, the three "Adicionar" and the Codex gauge; the agent popovers' review text, the Orca row, the 4-tab limit, the "Conecte seus agentes" card and the removal popover; 16 `konclui.claude.*` keys (U3a: the source line, privacy, failures); 33 `konclui.*` keys (U3b: undo, home, stat doors, styles, accessibility); 12 `konclui.*` keys (U7); 108 `konclui.reminders.*` keys and the owner's `Snooze · %lld min` (the alert's snooze button read English) |
 | `App/ChatSubscription.swift` | `subscriptionCLIs`: `case .koncluiProxy: []` | the proxy is not a subscription tool: klaude's key answers it (`KoncluiChat`) |
 | `App/SettingsView.swift` | `chatSection`: Coucou's subscriptions box (all five), then `KoncluiProxySection()`; `subscriptionRow` adds `KoncluiSignInLine(cli:)` under "found" and hides the "sign in once" hint once the CLI is signed in | every AI keeps Coucou's switch and gets Koncluí's engine; Claude, ChatGPT and Cursor the sign-in line |
 | | every `.settingsAnchor` sits before the block's `.koncluiShown`; `demoBox(quiet:)` carries `general.demo` both times | the search scrolls to the blocks that are shown |
@@ -566,6 +566,10 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 `scripts/konclui/test-note-speech.sh` fails when an upstream merge brings back a `Parakeet.shared.isReady` gate in
 `NoteTaker.swift` or `FlowHubHome.swift`, or drops one of these hooks.
 
+## Resolved decision
+
+- Korean and Japanese were kept in the 16-language Mac build, and Koncluí-owned catalog and permission strings were translated. Shared upstream COPY rules remain in 14 languages. **Decision: kept and translated, 2026-10-31.**
+
 ## Open items
 
 - The chat adapters for Gemini CLI, Antigravity and Copilot follow their official sources but were never run (the CLIs
@@ -573,9 +577,6 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
   them once its live probe covers them. Copilot keeps the relay's format until its `-p` JSON events are documented or
   captured; `--session-id` would then give it a thread. Antigravity's FAQ says wrapping `agy` in a third-party app is not
   supported under consumer plans: the owner decides whether Koncluí keeps offering it.
-- Coucou 0.5.8 speaks 16 languages (Korean and Japanese are new); Koncluí's own strings are in 14. In Korean or Japanese
-  Koncluí's screens mix upstream's translation with English for Koncluí's keys. To decide: translate Koncluí's keys (and the
-  COPY rules) into `ko` and `ja`, or leave the two languages out of the Koncluí build.
 - `hub.cleanup-key`, `flow.ai-privacy`, `hub.cleanup-privacy` are no longer read by any page (upstream keys, kept so a merge still finds them);
   `notes.engine-detail` is read through `KoncluiClaudeAccess.notesDetailKey` when the source is the key.
 - The failure line of a Notetaker feature is the last one for the app, not per note: after a failed summary of one call the Ajustes page

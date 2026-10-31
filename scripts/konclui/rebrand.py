@@ -862,7 +862,7 @@ def main() -> int:
     info_path = ROOT / INFO_PLIST_CATALOG
     if not info_path.exists() or info_path.read_text(encoding="utf-8") != info_text:
         pending[info_path] = info_text
-        log.append(f"{INFO_PLIST_CATALOG}: the permission prompts in 14 languages")
+        log.append(f"{INFO_PLIST_CATALOG}: the permission prompts in 16 languages")
 
     for line in log:
         print("  " + line)

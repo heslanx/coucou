@@ -131,7 +131,7 @@ targets:
         type: folder
       - path: Resources/Localizable.xcstrings
         buildPhase: resources
-      # Koncluí: the permission prompts in the 14 languages (Info.plist keeps the English), copy table in
+      # Koncluí: the permission prompts in all 16 languages (Info.plist keeps the English), copy table in
       # scripts/konclui/rebrand_copy_data.py
       - path: Resources/InfoPlist.xcstrings
         buildPhase: resources

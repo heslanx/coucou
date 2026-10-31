@@ -241,8 +241,8 @@ enum KoncluiPageRulesTests {
     // MARK: Strings
 
     static func catalog() {
-        print("Catalog — every new key, in the 14 languages, with the same arguments")
-        let languages = ["ar", "bn", "de", "en", "es", "fr", "hi", "id", "pt-BR", "ru", "th", "tr", "zh-Hans", "zh-Hant"]
+        print("Catalog — every new key, in the 16 languages, with the same arguments")
+        let languages = ["ar", "bn", "de", "en", "es", "fr", "hi", "id", "ja", "ko", "pt-BR", "ru", "th", "tr", "zh-Hans", "zh-Hant"]
         let strings = ((try? JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: "NotchBuddy/Resources/Localizable.xcstrings")))) as? [String: Any])?["strings"] as? [String: [String: Any]] ?? [:]
         func value(_ key: String, _ lang: String) -> String {
             ((strings[key]?["localizations"] as? [String: [String: [String: String]]])?[lang]?["stringUnit"]?["value"]) ?? ""

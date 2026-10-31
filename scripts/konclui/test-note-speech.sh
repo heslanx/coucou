@@ -4,7 +4,7 @@
 #    from a recognizer's pieces run the pure file App/KoncluiNoteSpeechChoice.swift with swiftc alone;
 #  - the hooks are checked in the sources: the gates ask the chooser (not Parakeet.isReady), so an upstream merge that brings
 #    the old gate back fails here;
-#  - every konclui.notes.speech.* string the sources use exists in the 14 languages (catalog, or staged for the merge).
+#  - every konclui.notes.speech.* string the sources use exists in the 16 languages (catalog, or staged for the merge).
 # Pure: no audio, no Speech framework, no model, no window.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -40,7 +40,7 @@ expect "FlowHubNotes: the engine row sits under Record" $SRC/FlowHubNotes.swift 
 expect "FlowHubNotes: the live call shows the language install" $SRC/FlowHubNotes.swift 'KoncluiNoteSpeechProgress()'
 
 echo
-echo "Strings (14 languages)"
+echo "Strings (16 languages)"
 python3 -I - "$SRC" <<'PY' || fail=1
 import json, os, re, sys
 src = sys.argv[1]
@@ -50,7 +50,7 @@ for name in os.listdir(src):
     if name.startswith("KoncluiNoteSpeech") and name.endswith(".swift"):
         used |= set(re.findall(r'"(konclui\.notes\.speech\.[a-z0-9.\-]+)"', open(os.path.join(src, name)).read()))
 catalog = json.load(open("NotchBuddy/Resources/Localizable.xcstrings"))["strings"]
-staged_path = ".scratch/konclui/k14/strings.json"
+staged_path = ".scratch/konclui/k16/strings.json"
 staged = json.load(open(staged_path)) if os.path.exists(staged_path) else {}
 bad = 0
 for key in sorted(used):

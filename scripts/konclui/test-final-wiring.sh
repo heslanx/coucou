@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Unit U7's wiring (KONCLUI.md, "Koncluí hooks in upstream files"): what a key save says when the Keychain refuses, the Claude lines on
-# the Flow pages, Undo on the last removals, the key caps, the voice rows, the agent files' look, and the new strings in 14 languages.
+# the Flow pages, Undo on the last removals, the key caps, the voice rows, the agent files' look, and the new strings in 16 languages.
 # Pure: swiftc with KoncluiKeychainSave.swift, the other sources read as text, nothing runs.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
