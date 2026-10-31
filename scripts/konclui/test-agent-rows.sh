@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Settings → Agents as one row per agent with an options popover, and the install doors on Active pills (KONCLUI.md,
 # "Koncluí hooks in upstream files"): the words of a row for each state, how VoiceOver reads it, which agents show, which
-# agent pills open an install from their hint, the strings in 14 languages, and that no agent block is a GroupBox again.
+# agent pills open an install from their hint, the strings in 16 languages, and that no agent block is a GroupBox again.
 # Pure: swiftc with the recognition rules and the catalog, and the sources read as text.
 set -euo pipefail
 cd "$(dirname "$0")/../.."

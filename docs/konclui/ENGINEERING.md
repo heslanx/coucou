@@ -15,8 +15,8 @@ pushed: [WORKFLOW.md](WORKFLOW.md) (the why: [ADR-001](decisions/ADR-001-branche
 - An upstream file gets only a **small hook**: one call, one filter, one `if`, marked with a `// Koncluí:` comment and listed
   in `KONCLUI.md`, "Koncluí hooks in upstream files".
 - New strings go in with `scripts/konclui/add-strings.py <strings.json>` (`{"key": {"en": "...", "pt-BR": "...", ...}}`, all
-  14 languages): one line per key at the top of the catalog, upstream's entries untouched. Units working in parallel hand in
-  their JSON and one person merges them.
+  16 languages of an existing Koncluí key): one line per key at the top of the catalog, upstream's entries untouched. Units
+  working in parallel hand in their JSON and one person merges them.
 - Text that users see is rewritten by `scripts/konclui/rebrand.py` and its copy rules (`rebrand_copy.py`, data in
   `rebrand_copy_data.py`), not by hand: COPY (a key's upstream English and the new text in the 14 languages), SUBS (a fragment
   of a sentence), FILL (a language upstream never wrote), DASHES and PATHS (listed keys, never a blanket regex), FIXED (a

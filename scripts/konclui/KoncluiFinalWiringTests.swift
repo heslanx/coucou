@@ -135,8 +135,8 @@ enum KoncluiFinalWiringTests {
     // MARK: Strings
 
     static func catalog() {
-        print("Catalog — the new keys, in the 14 languages")
-        let languages = ["ar", "bn", "de", "en", "es", "fr", "hi", "id", "pt-BR", "ru", "th", "tr", "zh-Hans", "zh-Hant"]
+        print("Catalog — the new keys, in the 16 languages")
+        let languages = ["ar", "bn", "de", "en", "es", "fr", "hi", "id", "ja", "ko", "pt-BR", "ru", "th", "tr", "zh-Hans", "zh-Hant"]
         let strings = ((try? JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: "NotchBuddy/Resources/Localizable.xcstrings")))) as? [String: Any])?["strings"] as? [String: [String: Any]] ?? [:]
         func value(_ key: String, _ lang: String) -> String {
             ((strings[key]?["localizations"] as? [String: [String: [String: String]]])?[lang]?["stringUnit"]?["value"]) ?? ""
@@ -152,7 +152,8 @@ enum KoncluiFinalWiringTests {
         check("no dash used as punctuation", dashes.isEmpty)
         check("the notes sentences never say dictation in English or Portuguese",
               keys.filter { $0.contains(".notes.") }.allSatisfy { !value($0, "en").lowercased().contains("dictation") && !value($0, "pt-BR").lowercased().contains("ditado") })
-        // The accessibility sentence shown on Voz no longer carries the advice that Ajustes shows when it applies.
-        check("flow.accessibility ends at the path", languages.allSatisfy { value("flow.accessibility", $0) == value("konclui.flow.accessibility", $0) })
+        // The upstream copy rule covers the 14 shared languages; the Koncluí-owned key also has ko/ja.
+        let sharedCopyLanguages = languages.filter { $0 != "ko" && $0 != "ja" }
+        check("flow.accessibility ends at the path", sharedCopyLanguages.allSatisfy { value("flow.accessibility", $0) == value("konclui.flow.accessibility", $0) })
     }
 }

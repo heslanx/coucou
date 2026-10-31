@@ -1,0 +1,2 @@
+# Python bytecode the copy scripts leave behind.
+__pycache__/

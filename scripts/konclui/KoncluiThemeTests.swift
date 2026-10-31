@@ -40,7 +40,7 @@ struct KoncluiThemeTests {
         let notesDetailLeading = KoncluiSpace.gutter
         check(notesListLeading == heroLeading, "the Notetaker's button starts on the header card's left edge")
         check(notesDetailLeading == heroLeading, "the Notetaker's detail pane starts on the gutter")
-        // The record button keeps room for the longest word of the 14 languages in a 280 pt column.
+        // The record button keeps room for the longest word of the 16 languages in a 280 pt column.
         let buttonWidth = KoncluiSpace.notesColumn - KoncluiSpace.gutter - KoncluiSpace.notesColumnInner
         check(buttonWidth >= 230, "the Notetaker's button is \(buttonWidth) pt wide")
 

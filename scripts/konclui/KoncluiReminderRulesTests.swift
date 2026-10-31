@@ -150,7 +150,7 @@ struct KoncluiReminderRulesTests {
         check(A.when(now.addingTimeInterval(-20), now: now) == .now, "within a minute is now")
         check(A.when(now.addingTimeInterval(-180), now: now) == .late(180), "a late reminder says how late")
 
-        // Every key the rules name exists in the 14 languages.
+        // Every key the rules name exists in the 16 languages.
         let path = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "NotchBuddy/Resources/Localizable.xcstrings"
         if let data = FileManager.default.contents(atPath: path),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -164,7 +164,7 @@ struct KoncluiReminderRulesTests {
             keys.append("Snooze · %lld min")
             for key in Set(keys) {
                 let languages = ((strings[key] as? [String: Any])?["localizations"] as? [String: Any])?.count ?? 0
-                check(languages == 14, "\"\(key)\" has \(languages) of 14 languages")
+                check(languages == 16, "\"\(key)\" has \(languages) of 16 languages")
             }
         } else {
             check(false, "could not read the catalog at \(path)")

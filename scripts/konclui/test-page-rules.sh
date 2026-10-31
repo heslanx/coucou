@@ -2,7 +2,7 @@
 # The notch pages' behaviour (KONCLUI.md, "Koncluí hooks in upstream files"): which control is the primary one in an agent's
 # popover, the four-tab limit, where the demo goes and when the "Connect your agents" card shows, Orca's approvals, what a
 # hook install or removal changes in a file (the lines Koncluí adds or removes), the files Koncluí writes, the strings in
-# 14 languages, and that no view reads an agent's file in its body. Pure: swiftc with the recognition rules, the sources
+# 16 languages, and that no view reads an agent's file in its body. Pure: swiftc with the recognition rules, the sources
 # read as text, nothing runs.
 set -euo pipefail
 cd "$(dirname "$0")/../.."

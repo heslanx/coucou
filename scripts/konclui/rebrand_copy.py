@@ -32,7 +32,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 CATALOG_REL = "NotchBuddy/Resources/Localizable.xcstrings"
 
-# The catalog's languages, in the order the rows of rebrand_copy_data.py list their texts.
+# The shared copy-rule languages, in the order the rows of rebrand_copy_data.py list their texts.
 LANGS = ("en", "pt-BR", "es", "fr", "de", "ru", "tr", "id", "ar", "bn", "hi", "th", "zh-Hans", "zh-Hant")
 
 FORMAT = re.compile(r"%(?:\d+\$)?[-+#0]*(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:hh|ll|[hljztL])?[@diuoxXfFeEgGaAcCsSp]")
@@ -54,6 +54,8 @@ PATHS = DATA.PATHS          # [key]
 FIXED = DATA.FIXED          # [(file, old, new)]
 INSERTS = DATA.INSERTS      # [(file, anchor, block)]
 USAGE = DATA.USAGE          # {Info.plist key: {lang: text}}
+USAGE_LANGS = DATA.USAGE_LANGS
+USAGE_KOJA = DATA.USAGE_KOJA
 
 
 # ---------------------------------------------------------------------------------------------
@@ -311,7 +313,7 @@ def apply(text: str, stale: list[str] | None = None) -> tuple[str, int]:
 
 
 def info_plist_catalog() -> str:
-    """The text of NotchBuddy/Resources/InfoPlist.xcstrings: the permission prompts in the 14 languages."""
+    """The text of NotchBuddy/Resources/InfoPlist.xcstrings: all 16 permission locales."""
     strings = {}
     for key in sorted(USAGE):
         strings[key] = {"extractionState": "manual", "localizations": {
