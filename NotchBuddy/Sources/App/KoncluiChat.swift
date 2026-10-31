@@ -2,12 +2,13 @@ import AppKit
 import Foundation
 
 // Koncluí: the notch chat through what this Mac is already signed in to (unit K10).
-//   Claude         Anthropic with Coucou's subscription switch on: the official `claude` CLI, the user's Claude
-//                  login (`claude -p`, stream-json)
-//   ChatGPT        OpenAI with the switch on: the official `codex` CLI, the user's ChatGPT login (`codex exec --json`)
+//   Subscriptions  a provider with Coucou's "Use my subscription" switch on: its official CLI, signed in with the
+//                  user's own account (Claude Code, Codex, Gemini CLI or Antigravity, Cursor, Copilot), one adapter
+//                  each (KoncluiChatAdapters.swift)
 //   Koncluí Proxy  the Anthropic Messages API of the proxy behind klaude, with klaude's key
-// Coucou's relay (CLIRelay.swift) answers the other subscriptions (Gemini, Cursor, Copilot) with the whole answer at
-// once; these two stream as they are written, keep the CLI's own thread, and stop when a new turn starts.
+// The answer streams as it is written where the CLI can, the CLI keeps its own thread where it can, and a new turn,
+// Clear or Quit stops the running CLI and its helpers (ADR-009). Coucou's relay (CLIRelay.swift) still says when no
+// installed tool can answer a conversation that holds email.
 // The CLIs run as subprocesses and keep their own credentials: Koncluí never reads them. The proxy
 // key is read from klaude's Keychain item when a request starts and lives in a local variable.
 
@@ -60,18 +61,18 @@ enum KoncluiProxyAccess {
 enum KoncluiCLILocator {
     /// Where Settings found the tool (Coucou's CLILocator: asdf, fnm, the login shell…) is where it runs from;
     /// Koncluí's own folders are the fallback.
-    static func find(_ name: String) -> String? {
+    static func find(_ cli: SubscriptionCLI) -> String? {
         #if !APPSTORE
-        if let cli = SubscriptionCLI.allCases.first(where: { $0.binaries.first == name }),
-           let path = CLILocator.shared.path(cli) {
-            return path
-        }
+        if let path = CLILocator.shared.path(cli) { return path }
         #endif
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let nvm = (try? FileManager.default.contentsOfDirectory(atPath: "\(home)/.nvm/versions/node")) ?? []
-        return KoncluiCLI.find(name, home: home, nvmVersions: nvm) {
-            FileManager.default.isExecutableFile(atPath: $0)
+        for name in cli.binaries {
+            if let path = KoncluiCLI.find(name, home: home, nvmVersions: nvm, isExecutable: {
+                FileManager.default.isExecutableFile(atPath: $0)
+            }) { return path }
         }
+        return nil
     }
 
     static func environment(for executable: String) -> [String: String] {
@@ -80,10 +81,13 @@ enum KoncluiCLILocator {
     }
 
     /// Where the CLI turns run: one folder of their own, so the chat never reads a project's files.
-    static var chatDirectory: URL {
+    static var chatDirectory: URL { folder("chat") }
+
+    /// A folder of Koncluí's own under Application Support (the chat's, a CLI's config or policy).
+    static func folder(_ name: String) -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
-        let dir = base.appendingPathComponent("Konclui/chat", isDirectory: true)
+        let dir = base.appendingPathComponent("Konclui/\(name)", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -122,8 +126,9 @@ final class KoncluiChat {
     static let shared = KoncluiChat()
 
     /// Each CLI's own memory of the conversation, so a turn continues the same thread.
-    private var claudeSession: String?
-    private var codexThread: String?
+    private var threads: [SubscriptionCLI: String] = [:]
+    /// The conversation so far for a CLI with no thread of its own (Copilot), sent again each turn as the relay does.
+    private var relayTurns: [(user: String, assistant: String)] = []
     /// The proxy is stateless: the whole conversation goes with every request (Anthropic format).
     private var proxyMessages: [[String: Any]] = []
     private var running: Task<Void, Never>?
@@ -141,157 +146,205 @@ final class KoncluiChat {
     /// The conversation carries text from outside (email with Mail on, a dropped file): no web tool until it is
     /// cleared, so that text cannot steer the model into sending what it read to a website.
     private var holdsOutsideText = false
+    /// The conversation carries email: only a tool that can answer with no web at all takes it.
+    private var holdsMail = false
 
-    /// Who answers: Claude and ChatGPT once their subscription switch is on, and the Koncluí Proxy.
-    enum Route: Equatable, Sendable { case claude, codex, proxy }
+    /// Who answers: a provider's subscription tool once its switch is on, and the Koncluí Proxy.
+    enum Route: Equatable, Sendable {
+        case cli(SubscriptionCLI)
+        case proxy
+    }
 
-    /// The route for the chat's provider, or nil when Coucou's own code answers it (a key, a local server, the relay).
+    /// The route for the chat's provider, or nil when Coucou's own code answers it (a key, a local server, or the relay
+    /// saying that no installed tool can answer a conversation holding email without the web).
     static func route(for provider: ChatProvider, state: AppState) -> Route? {
-        switch provider {
-        case .koncluiProxy: return .proxy
-        case .anthropic:    return state.usesSubscription(.anthropic) ? .claude : nil
-        case .openai:       return state.usesSubscription(.openai) ? .codex : nil
-        default:            return nil
+        if provider == .koncluiProxy { return .proxy }
+        #if APPSTORE
+        return nil
+        #else
+        guard state.usesSubscription(provider) else { return nil }
+        let offline = shared.holdsMail || state.chatMailMode
+        if let cli = KoncluiChatEngine.cli(provider.subscriptionCLIs, offline: offline,
+                                           installed: { CLILocator.shared.isInstalled($0) }) {
+            return .cli(cli)
         }
+        // Nothing installed: the turn says how to install the tool.
+        return provider.installedCLI == nil ? provider.subscriptionCLIs.first.map(Route.cli) : nil
+        #endif
     }
 
     /// A new conversation: ends a running turn (and its subprocess) and forgets the threads.
     func clear() {
         running?.cancel()
         running = nil
-        claudeSession = nil
-        codexThread = nil
+        threads = [:]
+        relayTurns = []
         proxyMessages = []
         holdsOutsideText = false
+        holdsMail = false
     }
 
     /// `extraSystem`: instructions added to the system prompt for this turn (Mail's plan format, MailAgentPrompt).
     func chat(_ route: Route, query: String, context: PromptContext?, state: AppState, extraSystem: String = "") async {
         running?.cancel()
-        if state.chatMailMode { holdsOutsideText = true }
+        if state.chatMailMode { holdsOutsideText = true; holdsMail = true }
         if case .file = context { holdsOutsideText = true }
         // What this turn sends is fixed here: a later turn cannot change it under a cancelled one.
         let extra = extraSystem, web = !holdsOutsideText
         let turn = Task { @MainActor in
             switch route {
-            case .claude: await self.claudeTurn(query: query, context: context, state: state, extra: extra, web: web)
-            case .codex:  await self.codexTurn(query: query, context: context, state: state, extra: extra)
-            case .proxy:  await self.proxyTurn(query: query, context: context, state: state, extra: extra)
+            case .cli(let cli): await self.cliTurn(cli, query: query, context: context, state: state, extra: extra, web: web)
+            case .proxy:        await self.proxyTurn(query: query, context: context, state: state, extra: extra)
             }
         }
         running = turn
         await withTaskCancellationHandler { await turn.value } onCancel: { turn.cancel() }
     }
 
-    // MARK: Claude Code
+    // MARK: Subscription CLIs
 
-    private func claudeTurn(query: String, context contextArgument: PromptContext?, state: AppState, extra: String,
-                            web: Bool) async {
+    private func cliTurn(_ cli: SubscriptionCLI, query: String, context: PromptContext?, state: AppState, extra: String,
+                         web: Bool) async {
         #if !APPSTORE
-        guard let claude = KoncluiCLILocator.find("claude") else {
-            return fail(String(localized: "Claude Code is not installed. Install it to use your Claude subscription."), state: state)
-        }
-        // A dropped PDF or image: Claude Code reads a copy of that one file (Coucou's relay does the same).
-        var readDir: URL?
-        var context = claudeSession == nil ? Self.contextText(contextArgument) : nil
-        if claudeSession == nil, case .file(let name, let url?) = contextArgument, Self.isBinary(url),
-           let dir = try? CLIRelay.isolate(url) {
-            readDir = dir
-            context = "File: \(name) (read it at \(dir.appendingPathComponent(url.lastPathComponent).path))"
-        }
-        defer { if let readDir { try? FileManager.default.removeItem(at: readDir) } }
-        let prompt = KoncluiPrompt.turn(query: query, persona: nil, context: context)
-        let placeholder = beginAnswer(state: state)
-        let model = state.activeChatModel
-        let system = ClaudeService.makeSystemPrompt() + extra
-        var stream = KoncluiClaudeStream()
-        var ended: (code: Int32, stderr: String, timedOut: Bool) = (0, "", false)
+        await run(Self.adapter(for: cli, state: state), query: query, context: context, state: state, extra: extra, web: web)
+        #else
+        fail(String(localized: "Not available in this build."), state: state)
+        #endif
+    }
 
-        for safeMode in [true, false] {
-            stream = KoncluiClaudeStream()
-            ended = await consume(
-                KoncluiProcess.stream(claude,
-                                      KoncluiClaudeCLI.arguments(model: model, resume: claudeSession,
-                                                                 systemPrompt: system, safeMode: safeMode,
-                                                                 web: web, readDir: readDir),
-                                      environment: KoncluiCLILocator.environment(for: claude),
-                                      directory: KoncluiCLILocator.chatDirectory,
-                                      input: Data(prompt.utf8), timeout: 300),
-                placeholder: placeholder, state: state) { line in
-                    stream.feed(line) ? stream.text : nil
+    #if !APPSTORE
+    /// Each CLI's adapter, with what it needs from this Mac (the model chosen, Koncluí's folders, Cursor's config).
+    private static func adapter(for cli: SubscriptionCLI, state: AppState) -> any KoncluiCLIAdapter {
+        switch cli {
+        case .claude:
+            return KoncluiClaudeAdapter(model: state.activeChatModel)
+        case .codex:
+            return KoncluiCodexAdapter(model: KoncluiCodexCLI.configuredModel() ?? "")
+        case .cursor:
+            let config = KoncluiCLILocator.folder("cursor")
+            let user = KoncluiCursorCLI.userConfigPath(environment: ProcessInfo.processInfo.environment,
+                                                       home: FileManager.default.homeDirectoryForCurrentUser.path)
+            return KoncluiCursorAdapter(
+                workDir: KoncluiCLILocator.chatDirectory.path, configDir: config.path,
+                currentConfig: try? String(contentsOf: config.appendingPathComponent("cli-config.json"), encoding: .utf8),
+                userConfig: try? String(contentsOfFile: user, encoding: .utf8))
+        case .gemini:
+            return KoncluiGeminiAdapter(policyPath: KoncluiCLILocator.folder("gemini").appendingPathComponent("chat-policy.toml").path)
+        case .antigravity:
+            return KoncluiAntigravityAdapter()
+        case .copilot:
+            return KoncluiCopilotAdapter()
+        }
+    }
+
+    /// One turn through a CLI: its thread when it has one, the dropped file as it can take it, the answer streamed.
+    private func run<A: KoncluiCLIAdapter>(_ adapter: A, query: String, context contextArgument: PromptContext?,
+                                           state: AppState, extra: String, web: Bool) async {
+        let cli = adapter.cli
+        guard let executable = KoncluiCLILocator.find(cli) else { return fail(adapter.notInstalledMessage, state: state) }
+        let everyTurn = adapter.systemPrompt == .everyTurn
+        let firstTurn = everyTurn ? relayTurns.isEmpty : threads[cli] == nil
+        var context = firstTurn ? Self.contextText(contextArgument) : nil
+        var turn = KoncluiCLITurn(prompt: "", resume: everyTurn ? nil : threads[cli], web: web)
+        if firstTurn, case .file(let name, let url?) = contextArgument {
+            switch adapter.droppedFile {
+            case .readsCopy where Self.isBinary(url):
+                // A dropped PDF or image: the CLI reads a copy of that one file (Coucou's relay does the same).
+                if let dir = try? CLIRelay.isolate(url) {
+                    turn.readDir = dir
+                    context = "File: \(name) (read it at \(dir.appendingPathComponent(url.lastPathComponent).path))"
                 }
-            // An older Claude Code does not know --safe-mode: once more without it.
-            if safeMode, !Task.isCancelled, ended.code != 0, stream.text.isEmpty,
-               KoncluiClaudeCLI.isUnknownSafeMode(stderr: ended.stderr) {
+            case .images where KoncluiCodexCLI.imageExtensions.contains(url.pathExtension.lowercased()):
+                turn.images = [url.path]
+            default:
+                break
+            }
+        }
+        defer { if let dir = turn.readDir { try? FileManager.default.removeItem(at: dir) } }
+        let persona = ClaudeService.makeSystemPrompt(webSearch: adapter.searchesWeb && web)
+        switch adapter.systemPrompt {
+        case .flag:
+            turn.prompt = KoncluiPrompt.turn(query: query, persona: nil, context: context)
+            turn.system = persona + extra
+        case .firstTurn:
+            turn.prompt = KoncluiPrompt.turn(query: query, persona: firstTurn ? persona + extra : (extra.isEmpty ? nil : extra),
+                                             context: context)
+        case .everyTurn:
+            turn.prompt = CLIRelay.chatPrompt(history: relayTurns, context: context, query: query)
+            turn.system = persona + extra
+        }
+
+        let placeholder = beginAnswer(state: state)
+        var plan = adapter.plan(turn)
+        var stream = adapter.stream()
+        var stdout: [String] = []
+        var ended: (code: Int32, stderr: String, timedOut: Bool) = (0, "", false)
+        for attempt in 0..<2 {
+            do {
+                try Self.write(plan.files)
+            } catch {
+                abandon(placeholder, state: state)
+                return fail(error.localizedDescription, state: state)
+            }
+            stream = adapter.stream()
+            stdout = []
+            ended = await consume(
+                KoncluiProcess.stream(executable, plan.arguments,
+                                      environment: KoncluiCLILocator.environment(for: executable)
+                                          .merging(plan.environment) { _, added in added },
+                                      directory: KoncluiCLILocator.chatDirectory,
+                                      input: plan.stdin.map { Data($0.utf8) }, timeout: 300),
+                placeholder: placeholder, state: state) { line in
+                    if stdout.count < 5000 { stdout.append(line) }
+                    return stream.feed(line) ? stream.text : nil
+                }
+            stream.end(exitCode: ended.code)
+            if attempt == 0, !Task.isCancelled, ended.code != 0, stream.text.isEmpty,
+               let next = adapter.fallback(turn, stderr: ended.stderr) {
+                plan = next
                 continue
             }
             break
         }
         if Task.isCancelled { return abandon(placeholder, state: state) }
 
-        if let id = stream.sessionID, !stream.failed { claudeSession = id }
-        if claudeSession != nil, KoncluiCLI.isLostThread(stderr: ended.stderr) { claudeSession = nil }
-        let text = stream.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !everyTurn, let id = stream.threadID, !stream.failed { threads[cli] = id }
+        if threads[cli] != nil, adapter.lostThread(stderr: ended.stderr) { threads[cli] = nil }
+        var text = stream.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty, !stream.failed,
+           let read = KoncluiChatEngine.fallbackAnswer(cli, stdout: stdout, exitCode: ended.code) {
+            text = read
+        }
         if !stream.failed, !text.isEmpty {
+            if everyTurn { relayTurns.append((user: Self.relayUserTurn(query, contextArgument, first: firstTurn), assistant: text)) }
             return finish(text, placeholder: placeholder, state: state)
         }
         abandon(placeholder, state: state)
         if ended.timedOut { return fail(Self.tookTooLong, state: state) }
-        if stream.needsSignIn { return fail(String(localized: "Sign in to Claude Code in Terminal: claude"), state: state) }
+        if stream.needsSignIn || adapter.needsSignIn(stderr: ended.stderr) { return fail(adapter.signInMessage, state: state) }
         fail(stream.failure ?? Self.stderrMessage(ended.stderr) ?? String(localized: "No response text."), state: state)
-        #else
-        fail(String(localized: "Not available in this build."), state: state)
-        #endif
     }
 
-    // MARK: Codex
+    /// What later relay-format turns see of this one: the window, or the file's name, never its contents (they would go
+    /// out with the web tools of the turns after it).
+    private static func relayUserTurn(_ query: String, _ context: PromptContext?, first: Bool) -> String {
+        guard first, let context else { return query }
+        switch context {
+        case .window: return (contextText(context) ?? "") + "\n\n" + query
+        case .file(let name, _): return "File: \(name)\n\n\(query)"
+        }
+    }
 
-    private func codexTurn(query: String, context: PromptContext?, state: AppState, extra: String) async {
-        #if !APPSTORE
-        guard let codex = KoncluiCLILocator.find("codex") else {
-            return fail(String(localized: "Codex is not installed. Install it to use your ChatGPT subscription."), state: state)
+    /// The files a CLI reads for its run. A file that cannot be written stops the run: the CLI would run without it.
+    private static func write(_ files: [String: String]) throws {
+        for (path, contents) in files {
+            let url = URL(fileURLWithPath: path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try contents.write(to: url, atomically: true, encoding: .utf8)
         }
-        let firstTurn = codexThread == nil
-        var images: [String] = []
-        if firstTurn, case .file(_, let url?) = context, KoncluiCodexCLI.imageExtensions.contains(url.pathExtension.lowercased()) {
-            images = [url.path]
-        }
-        let prompt = KoncluiPrompt.turn(
-            query: query,
-            persona: firstTurn ? ClaudeService.makeSystemPrompt(webSearch: false) + extra
-                               : (extra.isEmpty ? nil : extra),
-            context: firstTurn ? Self.contextText(context) : nil)
-        let placeholder = beginAnswer(state: state)
-        var stream = KoncluiCodexStream()
-        let ended = await consume(
-            KoncluiProcess.stream(codex,
-                                  KoncluiCodexCLI.arguments(model: KoncluiCodexCLI.configuredModel() ?? "",
-                                                            resume: codexThread, images: images),
-                                  environment: KoncluiCLILocator.environment(for: codex),
-                                  directory: KoncluiCLILocator.chatDirectory,
-                                  input: Data(prompt.utf8), timeout: 300),
-            placeholder: placeholder, state: state) { line in
-                stream.feed(line) ? stream.text : nil
-            }
-        if Task.isCancelled { return abandon(placeholder, state: state) }
-
-        if let id = stream.threadID, stream.failure == nil { codexThread = id }
-        if codexThread != nil, KoncluiCLI.isLostThread(stderr: ended.stderr) { codexThread = nil }
-        let text = stream.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if stream.failure == nil, !text.isEmpty {
-            return finish(text, placeholder: placeholder, state: state)
-        }
-        abandon(placeholder, state: state)
-        if ended.timedOut { return fail(Self.tookTooLong, state: state) }
-        if stream.needsSignIn { return fail(String(localized: "Sign in to Codex in Terminal: codex login"), state: state) }
-        fail(stream.failure ?? Self.stderrMessage(ended.stderr) ?? String(localized: "No response text."), state: state)
-        #else
-        fail(String(localized: "Not available in this build."), state: state)
-        #endif
     }
 
     /// Runs the subprocess stream to its end, showing the text each line grows to (15 times a second at most).
-    #if !APPSTORE
     private func consume(_ events: AsyncStream<KoncluiProcess.Event>, placeholder: UUID, state: AppState,
                          feed: (String) -> String?) async -> (code: Int32, stderr: String, timedOut: Bool) {
         var last = Date.distantPast

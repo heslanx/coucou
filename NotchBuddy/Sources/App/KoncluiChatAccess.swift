@@ -5,8 +5,8 @@ import SwiftUI
 // codes against these names: K10 keeps the signatures and fills the bodies.
 //
 // Detection is status only. It asks each CLI whether it is signed in (`claude auth status`,
-// `codex login status`: no login is started) and asks the Keychain whether klaude's item exists
-// (without -w). No credential is read or kept here.
+// `codex login status`, `cursor-agent about`: no login is started) and asks the Keychain whether klaude's item
+// exists (without -w). No credential is read or kept here. Gemini CLI, Antigravity and Copilot have no such check.
 @MainActor
 final class ChatAccess: ObservableObject {
     static let shared = ChatAccess()
@@ -31,7 +31,7 @@ final class ChatAccess: ObservableObject {
     }
 
     @Published private(set) var statuses: [ChatProvider: Status] = [:]
-    /// Whether Claude Code and Codex are signed in, for Coucou's subscription rows (KoncluiSignInLine).
+    /// Whether Claude Code, Codex and Cursor are signed in, for Coucou's subscription rows (KoncluiSignInLine).
     @Published private(set) var signIns: [SubscriptionCLI: Status] = [:]
 
     /// The last detected sign-in of a tool, nil for the tools Koncluí does not check.
@@ -60,10 +60,11 @@ final class ChatAccess: ObservableObject {
 
         async let claude = Self.claudeStatus()
         async let codex = Self.codexStatus()
+        async let cursor = Self.cursorStatus()
         async let proxy = Self.proxyStatus()
-        let found = await (claude, codex, proxy)
-        signIns = [.claude: found.0, .codex: found.1]
-        next[.koncluiProxy] = found.2
+        let found = await (claude, codex, cursor, proxy)
+        signIns = [.claude: found.0, .codex: found.1, .cursor: found.2]
+        next[.koncluiProxy] = found.3
         statuses = next
     }
 
@@ -89,7 +90,7 @@ final class ChatAccess: ObservableObject {
 
     #if !APPSTORE
     private nonisolated static func claudeStatus() async -> Status {
-        guard let claude = KoncluiCLILocator.find("claude") else {
+        guard let claude = KoncluiCLILocator.find(.claude) else {
             return .missing(String(localized: "Claude Code is not installed. Install it to use your Claude subscription."))
         }
         guard let out = await KoncluiProcess.capture(claude, ["auth", "status", "--json"],
@@ -108,7 +109,7 @@ final class ChatAccess: ObservableObject {
     }
 
     private nonisolated static func codexStatus() async -> Status {
-        guard let codex = KoncluiCLILocator.find("codex") else {
+        guard let codex = KoncluiCLILocator.find(.codex) else {
             return .missing(String(localized: "Codex is not installed. Install it to use your ChatGPT subscription."))
         }
         guard let out = await KoncluiProcess.capture(codex, ["login", "status"],
@@ -129,6 +130,26 @@ final class ChatAccess: ObservableObject {
         }
     }
 
+    /// The plan in Coucou's words ("Your plan · Ultra"); signed out, no line: the row's "sign in once" hint says it.
+    private nonisolated static func cursorStatus() async -> Status {
+        let unknown = Status.missing(String(format: String(localized: "Couldn't check %@. Try again."),
+                                            SubscriptionCLI.cursor.displayName))
+        guard let cursor = KoncluiCLILocator.find(.cursor) else { return .missing("") }
+        guard let out = await KoncluiProcess.capture(cursor, ["about", "--format", "json"],
+                                                     environment: KoncluiCLILocator.environment(for: cursor),
+                                                     timeout: 15), !out.timedOut else { return unknown }
+        switch KoncluiCursorCLI.parseLogin(output: out.stdout) {
+        case .signedIn(let plan?)?:
+            return .ready(String(format: String(localized: "chat.subscriptions.pill"), plan))
+        case .signedIn(nil)?:
+            return .ready("")
+        case .signedOut?:
+            return .missing("")
+        case nil:
+            return unknown
+        }
+    }
+
     private nonisolated static func proxyStatus() async -> Status {
         guard KoncluiProxyAccess.baseURL() != nil else {
             return .missing(String(localized: "klaude is not installed. Install it to use the Koncluí Proxy."))
@@ -141,6 +162,7 @@ final class ChatAccess: ObservableObject {
     #else
     private nonisolated static func claudeStatus() async -> Status { .missing(String(localized: "Not available in this build.")) }
     private nonisolated static func codexStatus() async -> Status { .missing(String(localized: "Not available in this build.")) }
+    private nonisolated static func cursorStatus() async -> Status { .missing("") }
     private nonisolated static func proxyStatus() async -> Status { .missing(String(localized: "Not available in this build.")) }
     #endif
 }
@@ -196,14 +218,14 @@ struct KoncluiProxySection: View {
 }
 
 #if !APPSTORE
-/// Under a Coucou subscription row: whether Claude Code or Codex is signed in, and with which plan. Coucou only knows
-/// that the tool is installed; a turn that finds it signed out says so then.
+/// Under a Coucou subscription row: whether Claude Code, Codex or Cursor is signed in, and with which plan. Coucou only
+/// knows that the tool is installed; a turn that finds it signed out says so then.
 struct KoncluiSignInLine: View {
     let cli: SubscriptionCLI
     @ObservedObject private var access = ChatAccess.shared
 
     var body: some View {
-        if let status = access.signIn(cli) {
+        if let status = access.signIn(cli), !status.detail.isEmpty {
             Text(status.detail)
                 .font(.system(size: 11))
                 .foregroundColor(status.isReady ? Color(hex: "#22C55E") : .secondary)
@@ -215,10 +237,10 @@ struct KoncluiSignInLine: View {
 
 extension ChatProvider {
     #if !APPSTORE
-    /// The installed tool that can answer with no web at all, for a conversation that carries email: Antigravity and
-    /// Cursor have no switch for it (CLIRelay.arguments), so Gemini answers for Google and Cursor does not answer.
+    /// The installed tool that can answer with no web at all, for a conversation that carries email: Antigravity has no
+    /// switch for it, so Gemini answers for Google (`SubscriptionCLI.koncluiTurnsWebOff`).
     var koncluiMailCLI: SubscriptionCLI? {
-        subscriptionCLIs.first { $0 != .antigravity && $0 != .cursor && CLILocator.shared.isInstalled($0) }
+        KoncluiChatEngine.cli(subscriptionCLIs, offline: true) { CLILocator.shared.isInstalled($0) }
     }
     #endif
 
