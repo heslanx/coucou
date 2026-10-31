@@ -12,6 +12,12 @@ them: the name Koncluí, the character Koru, the icon and the sounds are Konclu�
 - [docs/konclui/WORKFLOW.md](docs/konclui/WORKFLOW.md): branches, remotes, pull requests, Coucou syncs, pushes and releases,
   with the commands; why it is so: [ADR-001](docs/konclui/decisions/ADR-001-branches-and-flow.md).
 
+## Where Koru is going
+
+[docs/koru](docs/koru/README.md) records the proposed operational assistant for business owners, managers,
+operators and the Koncluí team: MCP integrations, workspace AI credits, device-specific experiences, real-time
+voice and gamification research. It keeps product direction apart from what this app and the prototypes already do.
+
 ## What changes
 
 - The Mac app (target `NotchBuddy`, scheme `NotchBuddy`) builds as `Konclui.app`, bundle id
