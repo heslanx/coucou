@@ -145,6 +145,7 @@ final class KoncluiChat {
             KoncluiProcess.terminateAll()
         }
         #endif
+        Self.removeCursorChats()
         providerObserver = AppState.shared.$chatProvider.removeDuplicates().dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] provider in
@@ -203,6 +204,19 @@ final class KoncluiChat {
         proxyAnswers = 0
         holdsOutsideText = false
         holdsMail = false
+        Self.removeCursorChats()
+    }
+
+    /// Koncluí's own config folder for Cursor (`CURSOR_CONFIG_DIR`), where Cursor keeps the chats Koncluí starts.
+    private static var cursorConfig: URL { KoncluiCLILocator.folder("cursor") }
+
+    /// A thread lives as long as the conversation: Cursor's copies of Koncluí's chats go when it is cleared and when
+    /// Koncluí starts. They are Koncluí's to remove; what other CLIs keep in their own stores is not (ADR-009).
+    private static func removeCursorChats() {
+        #if !APPSTORE
+        let chats = cursorConfig.appendingPathComponent("chats")
+        if FileManager.default.fileExists(atPath: chats.path) { try? FileManager.default.removeItem(at: chats) }
+        #endif
     }
 
     /// `extraSystem`: instructions added to the system prompt for this turn (Mail's plan format, MailAgentPrompt).
@@ -212,7 +226,7 @@ final class KoncluiChat {
         if state.chatMailMode { holdsOutsideText = true; holdsMail = true }
         if case .file = context { holdsOutsideText = true }
         // What this turn sends is fixed here: a later turn cannot change it under a cancelled one.
-        let extra = extraSystem, web = !holdsOutsideText
+        let extra = extraSystem, web = !holdsOutsideText, sensitive = holdsOutsideText
         if case .refused(let cli) = route {
             // Nothing is sent: the conversation keeps saying so until it is cleared, as with email on Coucou's relay.
             let format = holdsMail ? String(localized: "konclui.mail.needs-offline %@")
@@ -221,7 +235,8 @@ final class KoncluiChat {
         }
         let turn = Task { @MainActor in
             switch route {
-            case .cli(let cli):  await self.cliTurn(cli, query: query, context: context, state: state, extra: extra, web: web)
+            case .cli(let cli):  await self.cliTurn(cli, query: query, context: context, state: state, extra: extra,
+                                                    web: web, sensitive: sensitive)
             case .proxy:         await self.proxyTurn(query: query, context: context, state: state, extra: extra)
             case .refused:       break
             }
@@ -233,9 +248,10 @@ final class KoncluiChat {
     // MARK: Subscription CLIs
 
     private func cliTurn(_ cli: SubscriptionCLI, query: String, context: PromptContext?, state: AppState, extra: String,
-                         web: Bool) async {
+                         web: Bool, sensitive: Bool) async {
         #if !APPSTORE
-        await run(Self.adapter(for: cli, state: state), query: query, context: context, state: state, extra: extra, web: web)
+        await run(Self.adapter(for: cli, state: state), query: query, context: context, state: state, extra: extra,
+                  web: web, sensitive: sensitive)
         #else
         fail(String(localized: "Not available in this build."), state: state)
         #endif
@@ -250,7 +266,7 @@ final class KoncluiChat {
         case .codex:
             return KoncluiCodexAdapter(model: KoncluiCodexCLI.configuredModel() ?? "")
         case .cursor:
-            let config = KoncluiCLILocator.folder("cursor")
+            let config = cursorConfig
             let user = KoncluiCursorCLI.userConfigPath(environment: ProcessInfo.processInfo.environment,
                                                        home: FileManager.default.homeDirectoryForCurrentUser.path)
             return KoncluiCursorAdapter(
@@ -267,14 +283,17 @@ final class KoncluiChat {
     }
 
     /// One turn through a CLI: its thread when it has one, the dropped file as it can take it, the answer streamed.
+    /// `sensitive`: the conversation holds email or a dropped file; a CLI that can run without saving does.
     private func run<A: KoncluiCLIAdapter>(_ adapter: A, query: String, context contextArgument: PromptContext?,
-                                           state: AppState, extra: String, web: Bool) async {
+                                           state: AppState, extra: String, web: Bool, sensitive: Bool) async {
         let cli = adapter.cli
         guard let executable = KoncluiCLILocator.find(cli) else { return fail(adapter.notInstalledMessage, state: state) }
         let transcript = Self.transcript(state)
-        let shape = KoncluiChatEngine.shape(adapter.systemPrompt, thread: threads[cli], transcript: transcript)
+        let shape = KoncluiChatEngine.shape(adapter.systemPrompt, thread: threads[cli], transcript: transcript,
+                                            keepsNothing: sensitive && adapter.turnsPersistenceOff)
         var context = Self.contextText(contextArgument)
         var turn = KoncluiCLITurn(prompt: "", resume: shape.resume, web: web)
+        turn.persist = shape.persist
         if shape.resume == nil, case .file(let name, let url?) = contextArgument {
             switch adapter.droppedFile {
             case .readsCopy where Self.isBinary(url):
@@ -328,7 +347,7 @@ final class KoncluiChat {
         }
         if Task.isCancelled { return abandon(placeholder, state: state) }
 
-        if adapter.systemPrompt != .everyTurn, let id = stream.threadID, !stream.failed {
+        if adapter.systemPrompt != .everyTurn, shape.persist, let id = stream.threadID, !stream.failed {
             threads[cli] = KoncluiThread(id: id, answers: transcript.count + 1)
         }
         if threads[cli] != nil, adapter.lostThread(stderr: ended.stderr) { threads[cli] = nil }

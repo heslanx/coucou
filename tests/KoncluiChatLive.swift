@@ -119,8 +119,22 @@ enum KoncluiChatLive {
         let status = await KoncluiProcess.capture(codex, ["login", "status"], environment: env, timeout: 15)
         print("[codex] login:", KoncluiCLI.parseCodexLogin(output: (status?.stdout ?? "") + "\n" + (status?.stderr ?? ""),
                                                            exitCode: status?.exitCode ?? -1))
-        await thread("codex", KoncluiCodexAdapter(model: KoncluiCodexCLI.configuredModel() ?? ""), codex, in: dir,
-                     firstTurn: KoncluiCLITurn(prompt: persona + "\n\n" + first))
+        let adapter = KoncluiCodexAdapter(model: KoncluiCodexCLI.configuredModel() ?? "")
+        await thread("codex", adapter, codex, in: dir, firstTurn: KoncluiCLITurn(prompt: persona + "\n\n" + first))
+
+        // A conversation with email or a dropped file: --ephemeral, no session file.
+        let sessions = URL(fileURLWithPath: home).appendingPathComponent(".codex/sessions")
+        let before = sessionFiles(sessions)
+        let unsaved = await turn(adapter, codex, KoncluiCLITurn(prompt: persona + "\n\nReply with just: unsaved.", web: false,
+                                                                persist: false), in: dir)
+        report("codex", "ephemeral", unsaved)
+        check(!unsaved.text.isEmpty && !unsaved.failed, "codex", "an ephemeral turn answers")
+        check(sessionFiles(sessions).subtracting(before).isEmpty, "codex", "and leaves no session file")
+    }
+
+    static func sessionFiles(_ root: URL) -> Set<String> {
+        let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? []
+        return Set(files.map(\.path))
     }
 
     static func cursor(_ dir: URL) async {
@@ -141,6 +155,33 @@ enum KoncluiChatLive {
                                  userConfig: userConfig)
         }
         await thread("cursor", adapter(), cursor, in: dir, firstTurn: KoncluiCLITurn(prompt: persona + "\n\n" + first))
+
+        // A dropped text file (the route keeps the web off): its text in the prompt, as the engine composes it.
+        let dropDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-drop-\(getpid())")
+        try? FileManager.default.createDirectory(at: dropDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dropDir) }
+        let code = "MAPLE-\(Int.random(in: 1000...9999))"
+        let notes = dropDir.appendingPathComponent("notes.txt")
+        try? (String(repeating: "Filler line about nothing.\n", count: 4000) + "The project code is \(code).\n")
+            .write(to: notes, atomically: true, encoding: .utf8)
+        let fileContext = KoncluiChatEngine.fileContext(name: "notes.txt", text: CLIRelay.inlineText(notes))
+        let ask = "What is the project code in the file? Reply with just the code."
+        let dropped = KoncluiChatEngine.compose(query: ask, context: fileContext, persona: persona, extra: "",
+                                                systemPrompt: .firstTurn, shape: KoncluiTurnShape(resume: nil, history: []))
+        let fileTurn = await turn(adapter(), cursor, KoncluiCLITurn(prompt: dropped.prompt, web: false), in: dir)
+        report("cursor", "dropped file", fileTurn)
+        check(fileTurn.text.contains(code), "cursor", "a 100 KB dropped file reaches it whole, web off")
+
+        // Another provider answered in between: a new thread seeded with the conversation as the relay sends it.
+        let seeded = KoncluiChatEngine.compose(
+            query: "Which word did I ask you to remember, and what did the other assistant answer? Reply in one line.",
+            context: nil, persona: persona, extra: "", systemPrompt: .firstTurn,
+            shape: KoncluiTurnShape(resume: nil, history: [KoncluiExchange(user: first, assistant: "noted."),
+                                                          KoncluiExchange(user: "Name a fruit.", assistant: "Mango.")]))
+        let seededTurn = await turn(adapter(), cursor, KoncluiCLITurn(prompt: seeded.prompt), in: dir)
+        report("cursor", "seeded thread", seededTurn)
+        check(seededTurn.text.uppercased().contains("PINEAPPLE") && seededTurn.text.uppercased().contains("MANGO"),
+              "cursor", "a seeded thread knows the turns another provider answered")
 
         // A file outside any allowed folder: the read is refused (ask mode alone would read it).
         let secretDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-secret-\(getpid())")

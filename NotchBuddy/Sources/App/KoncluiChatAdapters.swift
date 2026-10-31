@@ -24,6 +24,8 @@ struct KoncluiCLITurn: Sendable, Equatable {
     var readDir: URL?
     /// A dropped image passed as a file (`.images` adapters).
     var images: [String] = []
+    /// False: the CLI saves nothing of the turn (`turnsPersistenceOff` adapters, a conversation holding outside text).
+    var persist = true
 }
 
 /// One run of a CLI, as the engine starts it.
@@ -83,6 +85,8 @@ protocol KoncluiCLIAdapter: Sendable {
     var droppedFile: KoncluiDroppedFile { get }
     /// Whether the CLI has a web tool to tell the model about (Codex's is always off).
     var searchesWeb: Bool { get }
+    /// Whether a run can be kept off the CLI's session store, for a conversation that holds email or a dropped file.
+    var turnsPersistenceOff: Bool { get }
     func plan(_ turn: KoncluiCLITurn) -> KoncluiCLIPlan
     /// A second run for a first one that failed in a way one known change fixes (an older CLI lacking a flag).
     func fallback(_ turn: KoncluiCLITurn, stderr: String) -> KoncluiCLIPlan?
@@ -100,6 +104,7 @@ protocol KoncluiCLIAdapter: Sendable {
 
 extension KoncluiCLIAdapter {
     var searchesWeb: Bool { true }
+    var turnsPersistenceOff: Bool { false }
     func fallback(_ turn: KoncluiCLITurn, stderr: String) -> KoncluiCLIPlan? { nil }
     func needsSignIn(stderr: String) -> Bool { CLIRelay.needsSignIn(stderr) }
     func lostThread(stderr: String) -> Bool { KoncluiCLI.isLostThread(stderr: stderr) }
@@ -152,6 +157,8 @@ struct KoncluiTurnShape: Equatable, Sendable {
     var resume: String?
     /// The conversation so far, sent with a turn that does not continue a thread.
     var history: [KoncluiExchange]
+    /// False: nothing of the turn is saved by the CLI, so there is no thread to keep either.
+    var persist = true
 }
 
 enum KoncluiChatEngine {
@@ -173,9 +180,11 @@ enum KoncluiChatEngine {
 
     /// A turn continues the CLI's thread only when that thread holds every answered turn of the visible conversation
     /// (another provider may have answered in between); otherwise a new thread starts with the conversation so far, as
-    /// Coucou's relay sends it.
-    static func shape(_ systemPrompt: KoncluiSystemPrompt, thread: KoncluiThread?,
-                      transcript: [KoncluiExchange]) -> KoncluiTurnShape {
+    /// Coucou's relay sends it. `keepsNothing` (the conversation holds email or a dropped file and the CLI can run
+    /// without saving): every turn sends the conversation and saves nothing, as the relay does.
+    static func shape(_ systemPrompt: KoncluiSystemPrompt, thread: KoncluiThread?, transcript: [KoncluiExchange],
+                      keepsNothing: Bool = false) -> KoncluiTurnShape {
+        if keepsNothing { return KoncluiTurnShape(resume: nil, history: transcript, persist: false) }
         if systemPrompt != .everyTurn, let thread, thread.answers == transcript.count {
             return KoncluiTurnShape(resume: thread.id, history: [])
         }
@@ -248,9 +257,13 @@ struct KoncluiClaudeAdapter: KoncluiCLIAdapter {
 
     private func plan(_ turn: KoncluiCLITurn, safeMode: Bool) -> KoncluiCLIPlan {
         KoncluiCLIPlan(arguments: KoncluiClaudeCLI.arguments(model: model, resume: turn.resume, systemPrompt: turn.system,
-                                                             safeMode: safeMode, web: turn.web, readDir: turn.readDir),
+                                                             safeMode: safeMode, web: turn.web, readDir: turn.readDir,
+                                                             persist: turn.persist),
                        stdin: turn.prompt)
     }
+
+    /// `--no-session-persistence`, as Coucou's relay runs Claude Code.
+    var turnsPersistenceOff: Bool { true }
 
     func stream() -> KoncluiClaudeStream { KoncluiClaudeStream() }
     /// The stream says it (an "authentication_failed" notice); stderr is not read for it.
@@ -270,9 +283,13 @@ struct KoncluiCodexAdapter: KoncluiCLIAdapter {
     var searchesWeb: Bool { false }
 
     func plan(_ turn: KoncluiCLITurn) -> KoncluiCLIPlan {
-        KoncluiCLIPlan(arguments: KoncluiCodexCLI.arguments(model: model, resume: turn.resume, images: turn.images),
+        KoncluiCLIPlan(arguments: KoncluiCodexCLI.arguments(model: model, resume: turn.resume, images: turn.images,
+                                                            persist: turn.persist),
                        stdin: turn.prompt)
     }
+
+    /// `--ephemeral`, as Coucou's relay runs Codex.
+    var turnsPersistenceOff: Bool { true }
 
     func stream() -> KoncluiCodexStream { KoncluiCodexStream() }
     func needsSignIn(stderr: String) -> Bool { false }

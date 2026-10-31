@@ -115,8 +115,9 @@ enum KoncluiClaudeCLI {
     /// `web: false` (the conversation holds email or a dropped file) turns the web tools off: that text could
     /// otherwise steer the model into sending what it read to a website. `readDir`: the folder holding a copy of the
     /// dropped file (CLIRelay.isolate, as Coucou's relay does); Read is the only tool then, limited to that folder.
+    /// `persist: false` (the conversation holds email or a dropped file): nothing is saved to disk, as Coucou's relay runs it.
     static func arguments(model: String, resume sessionID: String?, systemPrompt: String,
-                          safeMode: Bool = true, web: Bool = true, readDir: URL? = nil) -> [String] {
+                          safeMode: Bool = true, web: Bool = true, readDir: URL? = nil, persist: Bool = true) -> [String] {
         var args = ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
                     "--permission-mode", "dontAsk",
                     // As Coucou's relay, and kept when an older CLI is retried without --safe-mode: no settings
@@ -132,6 +133,7 @@ enum KoncluiClaudeCLI {
         }
         args += ["--system-prompt", systemPrompt]
         if safeMode { args.append("--safe-mode") }
+        if !persist { args.append("--no-session-persistence") }
         if !model.isEmpty, model != "default" { args += ["--model", model] }
         if let sessionID, !sessionID.isEmpty { args += ["--resume", sessionID] }
         return args
@@ -237,10 +239,12 @@ enum KoncluiCodexCLI {
     /// (so none of their MCP servers either), no shell (a read-only sandbox still reads the whole disk), no apps,
     /// plugins or web search, and hooks off so the chat does not show up as a Codex session in the notch. `model`:
     /// the one chosen in Codex (`configuredModel`), passed on since its config is not read.
-    static func arguments(model: String, resume threadID: String?, images: [String] = []) -> [String] {
+    /// `persist: false`: no session file, as Coucou's relay runs it (`--ephemeral`).
+    static func arguments(model: String, resume threadID: String?, images: [String] = [], persist: Bool = true) -> [String] {
         var args = ["exec"]
         if let threadID, !threadID.isEmpty { args += ["resume", threadID] }
         args += ["--json", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules"]
+        if !persist { args.append("--ephemeral") }
         for feature in ["hooks", "shell_tool", "unified_exec", "apps", "plugins"] { args += ["--disable", feature] }
         args += ["-c", #"sandbox_mode="read-only""#, "-c", #"web_search="disabled""#]
         if !model.isEmpty, model != "default" { args += ["-m", model] }

@@ -570,6 +570,30 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: []),
                KoncluiTurnShape(resume: nil, history: []), "a cleared chat never continues an old thread")
 
+        // Email or a dropped file in the conversation: a CLI that can run without saving sends it all and saves nothing.
+        expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: transcript, keepsNothing: true),
+               KoncluiTurnShape(resume: nil, history: transcript, persist: false),
+               "a sensitive conversation is sent again, not resumed, and not saved")
+        expect(KoncluiChatEngine.shape(.flag, thread: nil, transcript: [], keepsNothing: true),
+               KoncluiTurnShape(resume: nil, history: [], persist: false), "from its first turn")
+        let claude = KoncluiClaudeAdapter(model: "default")
+        let unsaved = claude.plan(KoncluiCLITurn(prompt: "Q", web: false, persist: false)).arguments
+        expectTrue(unsaved.contains("--no-session-persistence") && !unsaved.contains("--resume"),
+                   "Claude Code saves nothing of a sensitive turn, as the relay")
+        expectTrue(!claude.plan(KoncluiCLITurn(prompt: "Q")).arguments.contains("--no-session-persistence"),
+                   "a plain conversation keeps Claude Code's thread")
+        let olderUnsaved = claude.fallback(KoncluiCLITurn(prompt: "Q", persist: false), stderr: "error: unknown option '--safe-mode'")
+        expectTrue(olderUnsaved?.arguments.contains("--no-session-persistence") == true, "and its retry for an older CLI")
+        let codexUnsaved = KoncluiCodexAdapter(model: "").plan(KoncluiCLITurn(prompt: "Q", web: false, persist: false)).arguments
+        expectTrue(codexUnsaved.contains("--ephemeral") && !codexUnsaved.contains("resume"), "Codex saves nothing either (--ephemeral)")
+        expectTrue(!KoncluiCodexAdapter(model: "").plan(KoncluiCLITurn(prompt: "Q")).arguments.contains("--ephemeral"),
+                   "a plain Codex turn keeps its thread")
+        let cursorAdapter = KoncluiCursorAdapter(workDir: "", configDir: "", currentConfig: nil, userConfig: nil)
+        expectTrue(claude.turnsPersistenceOff && KoncluiCodexAdapter(model: "").turnsPersistenceOff, "Claude Code and Codex have the switch")
+        expectTrue(!cursorAdapter.turnsPersistenceOff && !KoncluiGeminiAdapter(policyPath: "").turnsPersistenceOff
+                   && !KoncluiAntigravityAdapter().turnsPersistenceOff && !KoncluiCopilotAdapter().turnsPersistenceOff,
+                   "Cursor, Gemini CLI, Antigravity and Copilot have none (ADR-009 says what they keep)")
+
         let resumed = KoncluiChatEngine.compose(query: "Now?", context: "Context — App: Mail", persona: "P", extra: "",
                                                 systemPrompt: .firstTurn, shape: KoncluiTurnShape(resume: "t", history: []))
         expect(resumed.prompt, "Now?", "a continued thread gets the question alone")

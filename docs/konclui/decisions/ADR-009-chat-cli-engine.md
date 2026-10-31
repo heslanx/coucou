@@ -73,6 +73,19 @@ for one that runs everything; the web tools are denied too while the conversatio
 (`CLIRelay.arguments`) and plain text, its conversation sent again each turn, now stoppable. `--session-id` (1.0.51)
 would give it a thread; it waits for the JSON events to be documented or checked on a Mac that has Copilot.
 
+**What stays on disk.** Once a conversation holds email or a dropped file, a CLI that can run without saving does
+(`turnsPersistenceOff`), and every turn sends the conversation instead of continuing a thread, as the relay does: Claude
+Code with `--no-session-persistence` (checked: no session under `~/.claude/projects`) and Codex with `--ephemeral`
+(checked live: it answers and writes no file under `~/.codex/sessions`). The others have no such switch:
+
+| CLI | What it keeps of a turn | Removed by Koncluí |
+|---|---|---|
+| Claude Code, Codex | a plain conversation: their usual session files (the thread); with email or a file: nothing | no (their stores) |
+| Cursor | the chat, in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`); its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the chats, when the conversation is cleared and when Koncluí starts; not Cursor's transcripts |
+| Gemini CLI | the session, under `~/.gemini/tmp/<the chat folder's hash>/chats` (deleted by Gemini after 30 days by default) | no (Gemini's store) |
+| Antigravity | its conversation, in its own store; it never answers a conversation with email or a dropped file | no |
+| Copilot | a session per turn under `~/.copilot/session-state` (no thread: each holds the conversation so far) | no (Copilot's store) |
+
 Sources, read on 2026-10-31:
 
 - Cursor: https://cursor.com/docs/cli/reference/output-format, …/parameters, …/permissions, …/configuration; the run
