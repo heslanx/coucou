@@ -358,7 +358,7 @@ struct OverviewView: View {
                 }
             } else {
                 #if !APPSTORE
-                TerminalTarget.activate(sessionBundleId: task.sessionBundleId)
+                TerminalTarget.activate(sessionBundleId: task.sessionBundleId, task: task.id)   // Koncluí: task
                 #endif
             }
         }
@@ -790,7 +790,7 @@ struct ErrorView: View {
 /// The app a session runs in (its terminal, or VS Code), else any known terminal.
 private func openSessionApp(_ task: AgentTask?) {
     if !(task?.pill == "integration_claude" && ClaudeHost.activate(task?.hostApp)),
-       !TerminalTarget.activate(sessionBundleId: task?.sessionBundleId) {
+       !TerminalTarget.activate(sessionBundleId: task?.sessionBundleId, task: task?.id) {   // Koncluí: task
         NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"))
     }
 }

@@ -261,6 +261,7 @@ final class HookServer: @unchecked Sendable {
     private func write(_ session: BoardSession, waiting: BotState?, client: String, to index: Int) {
         let state = AppState.shared
         var task = state.tasks[index]
+        OrcaTerminals.shared.shown(task: task.id, session: session.rawSession)   // Koncluí: the terminal this card opens
         task.state = waiting ?? session.state
         if task.steps != session.steps {
             task.steps = session.steps
