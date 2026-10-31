@@ -167,16 +167,16 @@ lists the checks that ran locally, and protecting `main` cannot require status c
 ## Where things stand (2026-10-30)
 
 `main` of `konclui/konclui-notch` has everything: the app, the Koru prototype, the Alexa skill and the owner's reminders work
-(pull request #1, `858ee90`). The local `main` tracks `konclui/main`, and Orca starts new worktrees of this repository from
-it.
+(pull request #1, `858ee90`), the update service (`updates/`, live at `updates.konclui.com`; pull requests #3 to #5) and the
+Koru product docs (`docs/koru`, ADR-003 to ADR-007; pull request #6). The local `main` tracks `konclui/main`, and Orca starts
+new worktrees of this repository from it.
 
 | Branch | State |
 |---|---|
-| `main` | the primary branch; not protected yet |
-| `heslanx/konclui`, `feat/koru-canvas-prototype` | merged into `main`; to delete once their two checkouts (the Orca worktree, `~/Developments/study/coucou`) move to `main` or to a task branch |
+| `main` | the primary branch, and the only one: the earlier branches were merged and deleted on 2026-10-30; not protected yet |
 
 Next, in order:
 
 1. The owner protects `main` on GitHub (Settings, Branches: require a pull request, block force pushes and deletion).
-2. The two merged branches are deleted, locally and on `konclui`.
-3. `sync/upstream-<date>` with Coucou's 97 new commits.
+2. The owner puts the update service's read-only GitHub token in (`updates/README.md`, "The token").
+3. `sync/upstream-<date>` with Coucou's new commits (136 on 2026-10-30: `git rev-list --count konclui/main..upstream/main`).
