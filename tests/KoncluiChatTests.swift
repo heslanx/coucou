@@ -726,6 +726,18 @@ enum KoncluiChatTests {
         expect(KoncluiChatEngine.ownedFolder(linkedChats.appendingPathComponent("chats"), inside: root), nil, "a link is never deleted as a folder")
         expect(KoncluiChatEngine.ownedFolder(root.appendingPathComponent("missing"), inside: root), nil, "nothing there")
         expect(KoncluiChatEngine.ownedFolder(root, inside: root), nil, "never the root itself")
+        try? fm.createSymbolicLink(at: root.appendingPathComponent("alias"), withDestinationURL: root.appendingPathComponent("cursor"))
+        expect(KoncluiChatEngine.ownedFolder(root.appendingPathComponent("alias/chats"), inside: root), nil,
+               "a link on the way down is refused, even one that stays inside")
+
+        // Koncluí's own folder itself a link: Application Support/Konclui → somewhere else.
+        let linkedRoot = sandbox.appendingPathComponent("LinkedKonclui")
+        let realElsewhere = elsewhere.appendingPathComponent("Konclui-real")
+        try? fm.createDirectory(at: realElsewhere.appendingPathComponent("cursor/chats"), withIntermediateDirectories: true)
+        try? fm.createSymbolicLink(at: linkedRoot, withDestinationURL: realElsewhere)
+        expect(KoncluiChatEngine.ownedFolder(linkedRoot.appendingPathComponent("cursor/chats"), inside: linkedRoot), nil,
+               "a root that is a link is refused: its chats are somewhere else")
+        expectTrue(fm.fileExists(atPath: realElsewhere.appendingPathComponent("cursor/chats").path), "and stay untouched")
         expectTrue(fm.fileExists(atPath: elsewhere.appendingPathComponent("chats").path), "the folder elsewhere is untouched")
     }
 

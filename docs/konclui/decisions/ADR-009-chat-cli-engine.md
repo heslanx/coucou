@@ -89,7 +89,7 @@ remove it**, except Cursor's chats in Koncluí's own folder.
 |---|---|---|---|
 | Claude Code | not kept (`--no-session-persistence`) | its session files under `~/.claude/projects/<the chat folder>` | nothing (Claude Code's store) |
 | Codex | not kept (`--ephemeral`) | its thread, in Codex's database | nothing (Codex's store) |
-| Cursor | **kept**: the chat in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`), and its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the same | the chats in `…/Konclui/cursor/chats`, only as a real folder inside Koncluí's own (`KoncluiChatEngine.ownedFolder`, never through a link); **not** the transcripts under `~/.cursor/projects` |
+| Cursor | **kept**: the chat in Koncluí's own `CURSOR_CONFIG_DIR` (`…/Konclui/cursor/chats`), and its transcript and the folder's trust under `~/.cursor/projects/<the chat folder>` | the same | the chats in `…/Konclui/cursor/chats`, only as a real folder at its physical place inside Koncluí's own, itself not a link (`KoncluiChatEngine.ownedFolder`, never through a link); **not** the transcripts under `~/.cursor/projects` |
 | Gemini CLI | **kept**: the session under `~/.gemini/tmp/<the chat folder's hash>/chats` (Gemini deletes sessions after 30 days by default) | the same | nothing (Gemini's store) |
 | Antigravity | never sent: such a turn goes to Gemini CLI or is refused | its conversation, in its own store | nothing (Antigravity's store) |
 | Copilot | **kept**: a session per turn under `~/.copilot/session-state`, each holding the conversation so far | the same | nothing (Copilot's store) |

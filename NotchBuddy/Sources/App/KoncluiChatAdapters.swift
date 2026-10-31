@@ -274,13 +274,24 @@ enum KoncluiChatEngine {
         return runningFor != current
     }
 
-    /// The canonical path of `folder` when Koncluí may delete it as its own: a real folder, not a link, whose canonical
-    /// path lies inside `root`'s. Nil otherwise (missing, a link, or reached through a link that leads out of `root`).
+    /// The physical path of `folder` when Koncluí may delete it as its own: `root` and `folder` are real folders, not
+    /// links, and the folder's physical path is exactly where it should be under `root` (only the folders above `root`
+    /// may be links). Nil otherwise: missing, a link, `root` itself a link, or a link anywhere on the way down.
     static func ownedFolder(_ folder: URL, inside root: URL) -> String? {
-        let attributes = try? FileManager.default.attributesOfItem(atPath: folder.path)   // does not follow a last link
-        guard attributes?[.type] as? FileAttributeType == .typeDirectory,
-              let path = canonical(folder.path), let base = canonical(root.path) else { return nil }
-        return path.hasPrefix(base + "/") ? path : nil
+        let rootParts = root.standardizedFileURL.pathComponents
+        let parts = folder.standardizedFileURL.pathComponents
+        guard parts.count > rootParts.count, Array(parts.prefix(rootParts.count)) == rootParts,
+              isRealFolder(root), isRealFolder(folder),
+              let parent = canonical(root.deletingLastPathComponent().path),
+              let path = canonical(folder.path) else { return nil }
+        let expected = ([parent == "/" ? "" : parent, root.lastPathComponent] + parts.dropFirst(rootParts.count))
+            .joined(separator: "/")
+        return path == expected ? path : nil
+    }
+
+    /// A folder, not a link to one (`attributesOfItem` does not follow a last link).
+    private static func isRealFolder(_ url: URL) -> Bool {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.type] as? FileAttributeType == .typeDirectory
     }
 
     private static func canonical(_ path: String) -> String? {
