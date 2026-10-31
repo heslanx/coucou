@@ -232,14 +232,19 @@ Branches, remotes, pull requests and releases: [WORKFLOW.md](docs/konclui/WORKFL
 ```
 git fetch upstream
 git merge upstream/main
-# conflicts in brand files (project.yml, Info*.plist, Localizable.xcstrings, whats-new.json,
-# Swift files the script edits): take upstream's side, then re-apply the brand
-git checkout --theirs <file>          # for each conflicting brand file
+scripts/konclui/sync-remerge.sh       # each conflicted file merged again with the brand on both sides; the catalog by key
+# what is left is a Koncluí hook next to an upstream change: keep both, by hand. Never `git checkout --theirs` a file
+# that has hooks (the table below lists them): the hooks go with it. Then `git add` each file.
 python3 scripts/konclui/rebrand.py    # re-applies everything, runs xcodegen
 python3 scripts/konclui/rebrand.py --check   # 0 files would change, 0 stale rules
-./scripts/konclui/test-hooks.sh
+python3 scripts/konclui/voice-pt-templates.py --check
 cd NotchBuddy && xcodebuild -scheme NotchBuddy -configuration Debug build
 ```
+
+Then every suite (`scripts/test-*`, `scripts/konclui/test-*`). A suite that cuts code out of an upstream file between two
+marker lines (`test-konclui-orca.sh`) or matches its text (`KoncluiPageRulesTests.swift`) follows the moved code. A switch
+over `ChatProvider` or `HubPage` that upstream adds needs Koncluí's cases: the build says where. The 2026-10-31 sync
+(Coucou 0.5.8, 205 commits, 14 files in conflict) is the worked example: its merge commit says how each was resolved.
 
 New upstream strings that mention Coucou or Mochi are rebranded by the next run. A new string
 where Koru needs a feminine form (an adjective or pronoun that pointed at Mochi) needs a rule in
@@ -539,6 +544,13 @@ Small and marked `// Koncluí:`; the logic lives in new files (`CoucouKit/Konclu
 
 ## Open items
 
+- Coucou 0.5.8 speaks 16 languages (Korean and Japanese are new); Koncluí's own strings are in 14. In Korean or Japanese
+  Koncluí's screens mix upstream's translation with English for Koncluí's keys. To decide: translate Koncluí's keys (and the
+  COPY rules) into `ko` and `ja`, or leave the two languages out of the Koncluí build.
+- Coucou 0.5.8's "Your AI subscriptions" (a switch per provider: Claude Code for Anthropic, Codex for OpenAI, Gemini, Cursor,
+  Copilot, through `CLIRelay`) does what Koncluí's `claudeCode` and `codex` providers did first. Both work; Settings lists
+  Claude and ChatGPT once (Koncluí's section). To decide: keep Koncluí's providers, or move them onto upstream's switches and
+  keep only the Koncluí Proxy as Koncluí's own (fewer hooks at every sync).
 - `hub.cleanup-key`, `flow.ai-privacy`, `hub.cleanup-privacy` are no longer read by any page (upstream keys, kept so a merge still finds them);
   `notes.engine-detail` is read through `KoncluiClaudeAccess.notesDetailKey` when the source is the key.
 - The failure line of a Notetaker feature is the last one for the app, not per note: after a failed summary of one call the Ajustes page

@@ -77,8 +77,8 @@ Prototypes and side projects (`design/prototype/koru`, `alexa/`) are folders on 
 
 ## Coucou updates
 
-Louis's Coucou keeps moving (0.5.6 on 2026-10-30, 97 commits Koncluí did not have). It comes in on its own branch, at least
-once per upstream release (upstream's `CHANGELOG.md` and its `v*` tags):
+Louis's Coucou keeps moving (the last sync, on 2026-10-31, brought in 0.5.8: 205 commits). It comes in on its own branch, at
+least once per upstream release (upstream's `CHANGELOG.md` and its `v*` tags):
 
 ```
 git fetch konclui && git fetch upstream
@@ -86,8 +86,9 @@ git worktree add ../sync -b sync/upstream-$(date +%F) konclui/main
 cd ../sync && git merge upstream/main
 ```
 
-Then the recipe in KONCLUI.md, "Upstream workflow" (brand conflicts take upstream's side, `rebrand.py` re-applies the brand,
-`rebrand.py --check` reports 0 changes and 0 stale rules, `voice-pt-templates.py --check`, the suites, a build), a pull request,
+Then the recipe in KONCLUI.md, "Upstream workflow" (`scripts/konclui/sync-remerge.sh` merges each conflicted file again with
+the brand on both sides, the rest by hand keeping both sides, `rebrand.py` re-applies the brand, `rebrand.py --check` reports 0
+changes and 0 stale rules, `voice-pt-templates.py --check`, the suites, a build), a pull request,
 and a merge with `gh pr merge <n> --merge`: never squash or rebase a sync, the merge commit is what lets the next merge find
 its base.
 
@@ -160,23 +161,24 @@ Once `block_updates` is on and the person said yes to looking (once, in the notc
 ## CI
 
 Upstream's workflows came with the fork (`.github/workflows/build.yml` runs on a push or a pull request to `main`, on
-`macos-latest`). On `konclui/konclui-notch` the only run (2026-10-29, a push to `main`) failed in 5 seconds without a log; its
-cause was not investigated (a macOS runner on a private repository uses paid minutes). Until CI runs there, each pull request
-lists the checks that ran locally, and protecting `main` cannot require status checks yet.
+`macos-latest`). On `konclui/konclui-notch` every run fails in seconds and never starts: "The job was not started because an
+Actions budget is preventing further use" (the check run's annotation, 2026-10-31; a macOS runner on a private repository
+uses paid minutes). CI runs once the owner raises the organization's Actions budget (Settings, Billing). Until then each
+pull request lists the checks that ran locally, and protecting `main` cannot require status checks.
 
-## Where things stand (2026-10-30)
+## Where things stand (2026-10-31)
 
 `main` of `konclui/konclui-notch` has everything: the app, the Koru prototype, the Alexa skill and the owner's reminders work
-(pull request #1, `858ee90`), the update service (`updates/`, live at `updates.konclui.com`; pull requests #3 to #5) and the
-Koru product docs (`docs/koru`, ADR-003 to ADR-007; pull request #6). The local `main` tracks `konclui/main`, and Orca starts
-new worktrees of this repository from it.
+(pull request #1, `858ee90`), the update service (`updates/`, live at `updates.konclui.com`; pull requests #3 to #5), the
+Koru product docs (`docs/koru`, ADR-003 to ADR-007; pull request #6) and Coucou 0.5.8 (the 2026-10-31 sync). The local
+`main` tracks `konclui/main`, and Orca starts new worktrees of this repository from it.
 
 | Branch | State |
 |---|---|
-| `main` | the primary branch, and the only one: the earlier branches were merged and deleted on 2026-10-30; not protected yet |
+| `main` | the primary branch, and the only one. Protected since 2026-10-31, admins included: a pull request is required (no approval, there is one owner), no force push, no deletion, no required status check (GitHub Actions is out of budget, CI) |
 
 Next, in order:
 
-1. The owner protects `main` on GitHub (Settings, Branches: require a pull request, block force pushes and deletion).
-2. The owner puts the update service's read-only GitHub token in (`updates/README.md`, "The token").
-3. `sync/upstream-<date>` with Coucou's new commits (136 on 2026-10-30: `git rev-list --count konclui/main..upstream/main`).
+1. The owner puts the update service's read-only GitHub token in (`updates/README.md`, "The token").
+2. The two decisions in KONCLUI.md, "Open items": Korean and Japanese, and the AI subscriptions.
+3. The next Coucou sync, at upstream's next release.
