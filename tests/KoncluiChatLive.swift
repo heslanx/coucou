@@ -21,13 +21,14 @@ enum KoncluiChatLive {
         signal(SIGPIPE, SIG_IGN)
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("konclui-chat-live-\(getpid())", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
 
         if routes.contains("claude") { await claude(dir) }
         if routes.contains("codex") { await codex(dir) }
         if routes.contains("cursor") { await cursor(dir) }
         if routes.contains("proxy") { await proxy() }
 
+        // exit() skips a defer: the chat folder (and Cursor's config in it) goes here.
+        try? FileManager.default.removeItem(at: dir)
         print(failures == 0 ? "KoncluiChatLive: all routes answered" : "KoncluiChatLive: \(failures) problem(s)")
         exit(failures == 0 ? 0 : 1)
     }
