@@ -237,6 +237,26 @@ enum KoncluiChatEngine {
     /// Extensions Claude Code reads from an isolated copy rather than as text in the prompt.
     static let copiedExtensions: Set<String> = ["pdf", "jpg", "jpeg", "png", "gif", "webp"]
 
+    /// The Koncluí Proxy's messages for a turn (Anthropic format). `kept`: the conversation the proxy already holds, nil
+    /// when it is rebuilt from the visible chat (another provider answered in between). `context`: the window or file
+    /// blocks the turn carries: on a rebuilt conversation they go on its first message, as on the CLI path; on a kept
+    /// one (or the first turn) with the question.
+    static func proxyMessages(kept: [[String: Any]]?, transcript: [KoncluiExchange], context: [[String: Any]],
+                              query: String) -> [[String: Any]] {
+        var messages = kept ?? transcript.flatMap { exchange -> [[String: Any]] in
+            [["role": "user", "content": [["type": "text", "text": exchange.user]]],
+             ["role": "assistant", "content": exchange.assistant]]
+        }
+        let question: [String: Any] = ["type": "text", "text": query]
+        if kept == nil, !messages.isEmpty, !context.isEmpty {
+            messages[0]["content"] = context + (messages[0]["content"] as? [[String: Any]] ?? [])
+            messages.append(["role": "user", "content": [question]])
+        } else {
+            messages.append(["role": "user", "content": context + [question]])
+        }
+        return messages
+    }
+
     /// What goes with a carried dropped file, as the CLI can take it.
     static func attachment(_ droppedFile: KoncluiDroppedFile, file: URL?, carried: Bool) -> KoncluiAttachment {
         guard carried, let file else { return .none }

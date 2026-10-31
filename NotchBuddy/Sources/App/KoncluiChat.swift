@@ -135,8 +135,9 @@ final class KoncluiChat {
     private var threads = KoncluiThreads()
     /// The proxy is stateless: the whole conversation goes with every request (Anthropic format).
     private var proxyMessages: [[String: Any]] = []
-    /// How many answered turns of the visible conversation `proxyMessages` holds.
+    /// How many answered turns of the visible conversation `proxyMessages` holds, and the window or file it was given.
     private var proxyAnswers = 0
+    private var proxyContext: String?
     private var running: Task<Void, Never>?
     /// The provider whose turn is running: picking another one stops it.
     private var runningProvider: ChatProvider?
@@ -215,6 +216,7 @@ final class KoncluiChat {
         threads = KoncluiThreads()
         proxyMessages = []
         proxyAnswers = 0
+        proxyContext = nil
         holdsOutsideText = false
         holdsMail = false
         Self.removeCursorChats()
@@ -439,26 +441,14 @@ final class KoncluiChat {
         }
         if Task.isCancelled { return }
 
-        // Another provider answered in between: the proxy gets the conversation as the person sees it.
+        // Another provider answered in between: the proxy gets the conversation as the person sees it, with the window
+        // or file on its first message. A conversation it holds gets a window or file it has not been given yet.
         let transcript = Self.transcript(state)
-        if proxyAnswers != transcript.count {
-            proxyMessages = transcript.flatMap { exchange -> [[String: Any]] in
-                [["role": "user", "content": [["type": "text", "text": exchange.user]]],
-                 ["role": "assistant", "content": exchange.assistant]]
-            }
-        }
-        var content: [[String: Any]] = []
-        if proxyMessages.isEmpty, let context {
-            switch context {
-            case .window:
-                if let text = Self.contextText(context) { content.append(["type": "text", "text": text]) }
-            case .file(let name, let url):
-                if let url, let block = ClaudeService.shared.readFileAsBlock(url: url) { content.append(block) }
-                content.append(["type": "text", "text": "File: \(name)"])
-            }
-        }
-        content.append(["type": "text", "text": query])
-        proxyMessages.append(["role": "user", "content": content])
+        let rebuild = proxyAnswers != transcript.count
+        let contextKey = Self.contextKey(context)
+        let carries = contextKey != nil && (rebuild || proxyMessages.isEmpty || contextKey != proxyContext)
+        proxyMessages = KoncluiChatEngine.proxyMessages(kept: rebuild ? nil : proxyMessages, transcript: transcript,
+                                                        context: carries ? Self.proxyBlocks(context) : [], query: query)
 
         guard let body = KoncluiProxy.messagesBody(model: state.activeChatModel,
                                                    system: ClaudeService.makeSystemPrompt(webSearch: false) + extra,
@@ -499,6 +489,7 @@ final class KoncluiChat {
             guard !final.isEmpty else { throw ProxyFailure.empty }
             proxyMessages.append(["role": "assistant", "content": final])
             proxyAnswers = transcript.count + 1
+            if rebuild || carries { proxyContext = carries ? contextKey : nil }
             finish(final, placeholder: placeholder, state: state)
         } catch {
             proxyMessages.removeLast()
@@ -525,6 +516,19 @@ final class KoncluiChat {
     // MARK: Shared pieces
 
     private static var tookTooLong: String { String(localized: "The chat took too long. Ask again.") }
+
+    /// The window or file as the proxy's content blocks: the file itself when Claude reads it (PDF, image, text).
+    private static func proxyBlocks(_ context: PromptContext?) -> [[String: Any]] {
+        switch context {
+        case nil:
+            return []
+        case .window:
+            return contextText(context).map { [["type": "text", "text": $0]] } ?? []
+        case .file(let name, let url):
+            let block = url.flatMap { ClaudeService.shared.readFileAsBlock(url: $0) }
+            return (block.map { [$0] } ?? []) + [["type": "text", "text": "File: \(name)"]]
+        }
+    }
 
     /// Which window or file the turn has, to tell whether a thread already received it.
     private static func contextKey(_ context: PromptContext?) -> String? {

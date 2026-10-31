@@ -30,7 +30,8 @@ writing to the chat (judged against the provider picked when the change is handl
 or file it has not received yet, before the question (a file dropped mid-conversation; Codex's image, Claude Code's
 isolated copy), and never the one it already has (`KoncluiChatEngine.carriesContext`). A stopped turn, by a new message,
 another provider or Clear, also drops that CLI's thread (`KoncluiThreads.cancelRunning`): the CLI may hold part of a turn
-the chat never shows. The Koncluí Proxy's conversation is rebuilt the same way. Never a blank answer: else the CLI's error, its
+the chat never shows. The Koncluí Proxy's conversation is rebuilt the same way, the window or file on its first message
+(`KoncluiChatEngine.proxyMessages`), and a kept one gets a file dropped later with the question. Never a blank answer: else the CLI's error, its
 stderr or "No response text."; the 300 s timeout stays.
 
 Claude Code and Codex moved onto the adapter shape because it removed their two near-identical turns; their command

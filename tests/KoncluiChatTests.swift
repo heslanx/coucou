@@ -142,6 +142,11 @@ let antigravityStreamFailed = [
     #"{"event":"result","result":{"conversation_id":"","status":"ERROR","response":"","error":"invalid model selection","duration_seconds":0.2,"num_turns":0}}"#,
 ]
 
+/// Anthropic messages as sorted JSON, to compare them with a literal.
+func json(_ messages: [[String: Any]]) -> String {
+    String(decoding: try! JSONSerialization.data(withJSONObject: messages, options: [.sortedKeys]), as: UTF8.self)
+}
+
 func feedAll<S>(_ stream: inout S, _ lines: [String], _ feed: (inout S, String) -> Bool) -> [Bool] {
     lines.map { feed(&stream, $0) }
 }
@@ -579,6 +584,22 @@ enum KoncluiChatTests {
                KoncluiTurnShape(resume: nil, history: transcript), "the relay format never continues a thread")
         expect(KoncluiChatEngine.shape(.flag, thread: KoncluiThread(id: "t", answers: 2), transcript: []),
                KoncluiTurnShape(resume: nil, history: []), "a cleared chat never continues an old thread")
+
+        // The Koncluí Proxy's conversation, rebuilt or kept, carries the window or file like the CLI path.
+        let fileBlocks: [[String: Any]] = [["type": "document", "source": "PDF"], ["type": "text", "text": "File: a.pdf"]]
+        expect(json(KoncluiChatEngine.proxyMessages(kept: nil, transcript: transcript, context: fileBlocks, query: "Now?")),
+               #"[{"content":[{"source":"PDF","type":"document"},{"text":"File: a.pdf","type":"text"},{"text":"Hi","type":"text"}],"role":"user"},{"content":"Hello!","role":"assistant"},{"content":[{"text":"Weather?","type":"text"}],"role":"user"},{"content":"Sunny.","role":"assistant"},{"content":[{"text":"Now?","type":"text"}],"role":"user"}]"#,
+               "a rebuilt proxy conversation has the file on its first message")
+        expect(json(KoncluiChatEngine.proxyMessages(kept: nil, transcript: [], context: fileBlocks, query: "Q")),
+               #"[{"content":[{"source":"PDF","type":"document"},{"text":"File: a.pdf","type":"text"},{"text":"Q","type":"text"}],"role":"user"}]"#,
+               "a first turn: the file with the question")
+        let kept: [[String: Any]] = [["role": "user", "content": [["type": "text", "text": "Hi"]]], ["role": "assistant", "content": "Hello!"]]
+        expect(json(KoncluiChatEngine.proxyMessages(kept: kept, transcript: transcript, context: fileBlocks, query: "And this?")),
+               #"[{"content":[{"text":"Hi","type":"text"}],"role":"user"},{"content":"Hello!","role":"assistant"},{"content":[{"source":"PDF","type":"document"},{"text":"File: a.pdf","type":"text"},{"text":"And this?","type":"text"}],"role":"user"}]"#,
+               "a kept conversation: a file dropped now goes with the question")
+        expect(json(KoncluiChatEngine.proxyMessages(kept: kept, transcript: transcript, context: [], query: "More?")),
+               #"[{"content":[{"text":"Hi","type":"text"}],"role":"user"},{"content":"Hello!","role":"assistant"},{"content":[{"text":"More?","type":"text"}],"role":"user"}]"#,
+               "a kept conversation with nothing new: the question alone")
 
         // A stopped turn takes its CLI's thread with it: the CLI may hold part of a turn the chat never shows.
         var book = KoncluiThreads()
