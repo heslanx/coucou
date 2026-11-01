@@ -174,19 +174,24 @@ Coucou, the Orca relay hook and the update service's tests. The build and the Sw
 Mac runner exists or the budget is raised, each pull request lists the ones that ran locally. The server's root password
 is in the owner's Keychain (`konclui-ci-207.180.224.192`), never in git.
 
-## Where things stand (2026-10-31)
+## Where things stand (2026-11-01)
 
 `main` of `konclui/konclui-notch` has everything: the app, the Koru prototype, the Alexa skill and the owner's reminders work
 (pull request #1, `858ee90`), the update service (`updates/`, live at `updates.konclui.com`; pull requests #3 to #5), the
-Koru product docs (`docs/koru`, ADR-003 to ADR-007; pull request #6) and Coucou 0.5.8 (the 2026-10-31 sync). The local
-`main` tracks `konclui/main`, and Orca starts new worktrees of this repository from it.
+Koru product docs (`docs/koru`, ADR-003 to ADR-007; pull request #6), Coucou 0.5.8 (the 2026-10-31 sync, #9), the chat on
+the user's subscriptions (ADR-008, #10, and one engine for every subscription CLI, ADR-009, #13), Koncluí's own strings in
+Korean and Japanese (#12) and Koncluí's checks on the organization's Linux server ("CI", #11). The local `main` tracks
+`konclui/main`, and Orca starts new worktrees of this repository from it.
 
 | Branch | State |
 |---|---|
-| `main` | the primary branch, and the only one. Protected since 2026-10-31, admins included: a pull request is required (no approval, there is one owner), no force push, no deletion, no required status check (GitHub Actions is out of budget, CI) |
+| `main` | the primary branch, and the only one. Protected since 2026-10-31, admins included: a pull request is required (no approval, there is one owner), no force push, no deletion, no required status check (the hosted runners are out of budget; Koncluí's checks run but are not required, so a server outage cannot block a merge) |
 
 Next, in order:
 
-1. The owner puts the update service's read-only GitHub token in (`updates/README.md`, "The token").
-2. The two decisions in KONCLUI.md, "Open items": Korean and Japanese, and the AI subscriptions.
-3. The next Coucou sync, at upstream's next release.
+1. The owner puts the update service's read-only GitHub token in (`updates/README.md`, "The token"): a fine-grained token,
+   `konclui/konclui-notch` only, Contents: Read-only.
+2. The owner's calls: whether Koncluí keeps offering Antigravity (KONCLUI.md, "Open items"), and a Mac for the macOS
+   build in CI (a self-hosted Mac runner, or the Actions budget; "CI" above).
+3. Run the chat's live probe on a Mac with Gemini CLI, Antigravity and Copilot (ADR-009).
+4. The next Coucou sync, at upstream's next release.
