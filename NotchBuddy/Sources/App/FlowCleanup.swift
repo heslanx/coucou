@@ -6,47 +6,35 @@ import Foundation
 /// Only when it is turned on in the Coucou Flow window and a Claude key is set in Settings; the words
 /// then go to Anthropic with that key, and nowhere else. Any problem (no network, slow answer, odd
 /// reply) and the words are pasted as they were heard.
+/// Koncluí: the Claude comes from the subscription (klaude) or the key, and the clean-up falls back to
+/// Apple Intelligence; a failed call is told once on the pill (KoncluiClaudeLive.swift).
 enum FlowCleanup {
-    static let model = "claude-haiku-4-5"
+    static let model = KoncluiClaudeAccess.fastModel   // Koncluí: one name for the fast model
     /// Past this, the words are pasted as heard rather than keeping you waiting.
     static let timeout: TimeInterval = 4
 
-    static var hasKey: Bool {
-        !(KeychainStore.shared.get("anthropic-api-key") ?? "").isEmpty
+    // Koncluí: Claude through the subscription (klaude) or the key; was the key alone (KoncluiClaudeLive.swift).
+    @MainActor static var hasKey: Bool {
+        KoncluiClaudeLive.shared.claudeSource() != .none
+    }
+
+    /// Koncluí: clean-up also runs on Apple Intelligence, which prompt mode and translation cannot.
+    @MainActor static var canClean: Bool {
+        KoncluiClaudeLive.shared.source(for: .cleanup) != .none
     }
 
     static func clean(_ text: String, style: FlowStyle, app: String?, words: [String]) async -> String {
-        guard style != .verbatim, let key = KeychainStore.shared.get("anthropic-api-key"), !key.isEmpty,
-              FlowText.wordCount(text) >= 3 else { return text }
-        var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
-        request.httpMethod = "POST"
-        request.timeoutInterval = timeout
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        let body: [String: Any] = [
-            "model": model,
-            "max_tokens": 2048,
-            "temperature": 0,
-            "system": system(style: style, app: app, words: words),
-            "messages": [["role": "user", "content": "<dictation>\n\(text)\n</dictation>"]],
-        ]
-        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return text }
-        request.httpBody = data
-        do {
-            let (reply, response) = try await URLSession.shared.data(for: request)
-            guard (response as? HTTPURLResponse)?.statusCode == 200,
-                  let json = try? JSONSerialization.jsonObject(with: reply) as? [String: Any],
-                  let content = json["content"] as? [[String: Any]] else { return text }
-            let cleaned = content.compactMap { $0["text"] as? String }.joined()
-                .replacingOccurrences(of: "<dictation>", with: "")
-                .replacingOccurrences(of: "</dictation>", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            return plausible(cleaned, from: text) ? cleaned : text
-        } catch {
-            appendAppLog("nb.log", "[Flow] clean-up skipped: \(error.localizedDescription)")
-            return text
-        }
+        guard style != .verbatim, FlowText.wordCount(text) >= 3 else { return text }
+        // Koncluí: the source (subscription, key or Apple Intelligence), the sending and the failure notice are one
+        // place; a failed call answers nil and the words are pasted as heard.
+        guard let reply = await KoncluiClaudeLive.shared.complete(
+            .cleanup, system: system(style: style, app: app, words: words),
+            user: "<dictation>\n\(text)\n</dictation>", maxTokens: 2048, temperature: 0, timeout: timeout) else { return text }
+        let cleaned = reply
+            .replacingOccurrences(of: "<dictation>", with: "")
+            .replacingOccurrences(of: "</dictation>", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return plausible(cleaned, from: text) ? cleaned : text
     }
 
     /// Prompt mode and translation: one call that cleans the words, shapes them as a prompt when
@@ -54,38 +42,18 @@ enum FlowCleanup {
     /// are pasted as heard.
     static func transform(_ text: String, prompt: Bool, language: FlowLanguage?, style: FlowStyle,
                           app: String?, words: [String]) async -> String {
-        guard prompt || language != nil, let key = KeychainStore.shared.get("anthropic-api-key"), !key.isEmpty,
-              FlowText.wordCount(text) >= 1 else { return text }
-        var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
-        request.httpMethod = "POST"
-        // A prompt takes a little longer to write than a clean-up.
-        request.timeoutInterval = prompt ? 12 : 8
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        let body: [String: Any] = [
-            "model": model,
-            "max_tokens": 2048,
-            "temperature": 0,
-            "system": transformSystem(prompt: prompt, language: language, style: style, app: app, words: words),
-            "messages": [["role": "user", "content": "<dictation>\n\(text)\n</dictation>"]],
-        ]
-        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return text }
-        request.httpBody = data
-        do {
-            let (reply, response) = try await URLSession.shared.data(for: request)
-            guard (response as? HTTPURLResponse)?.statusCode == 200,
-                  let json = try? JSONSerialization.jsonObject(with: reply) as? [String: Any],
-                  let content = json["content"] as? [[String: Any]] else { return text }
-            let out = content.compactMap { $0["text"] as? String }.joined()
-                .replacingOccurrences(of: "<dictation>", with: "")
-                .replacingOccurrences(of: "</dictation>", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            return plausibleTransform(out, from: text, prompt: prompt) ? out : text
-        } catch {
-            appendAppLog("nb.log", "[Flow] prompt or translation skipped: \(error.localizedDescription)")
-            return text
-        }
+        guard prompt || language != nil, FlowText.wordCount(text) >= 1 else { return text }
+        // Koncluí: same single place as `clean`. A prompt takes a little longer to write than a clean-up.
+        guard let reply = await KoncluiClaudeLive.shared.complete(
+            prompt ? .prompt : .translation,
+            system: transformSystem(prompt: prompt, language: language, style: style, app: app, words: words),
+            user: "<dictation>\n\(text)\n</dictation>", maxTokens: 2048, temperature: 0,
+            timeout: prompt ? 12 : 8) else { return text }
+        let out = reply
+            .replacingOccurrences(of: "<dictation>", with: "")
+            .replacingOccurrences(of: "</dictation>", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return plausibleTransform(out, from: text, prompt: prompt) ? out : text
     }
 
     /// Counted in characters, not words: Chinese or Japanese have no spaces, and a prompt is longer

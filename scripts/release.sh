@@ -9,6 +9,10 @@
 # "## <version>" section: it becomes the release notes.
 set -euo pipefail
 
+# Koncluí: this is Coucou's release (Coucou's profile and notary profile, a tag and a cask commit pushed to the public
+# origin, the release published to Louis-CFM/coucou). Koncluí releases with scripts/konclui/release.sh.
+[ -f "$(dirname "$0")/konclui/release.sh" ] && { echo "error: Koncluí releases with ./scripts/konclui/release.sh" >&2; exit 1; }
+
 VERSION="${1:?Usage: $0 <version> [--finish]}"
 MODE="${2:-}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

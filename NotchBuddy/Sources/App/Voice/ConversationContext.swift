@@ -29,7 +29,8 @@ struct ConversationContext {
     /// Try to resolve `raw` as a relative command given context.
     /// Returns nil if the phrase is not relative (caller should parse normally).
     func resolveRelative(_ raw: String, pills: [PillDefinition]) -> VoiceIntent? {
-        let norm = IntentParser.normalise(raw)
+        // Koncluí: "e o Vercel também", "desfaz" are read as their French forms (KoncluiVoiceParserPT.swift).
+        let norm = KoncluiVoicePT.relativeForm(IntentParser.normalise(raw))
         let words = norm.split(separator: " ").map(String.init)
         if let same = resolveSameTarget(norm: norm, words: words, pills: pills) { return same }
         if let rev  = resolveReverse(norm: norm)                                { return rev  }

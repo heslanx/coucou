@@ -171,8 +171,9 @@ final class VoiceSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlayerDe
         let ofGender = voices.filter { Self.gender(of: $0) == wanted }
         let pool = ofGender.isEmpty ? voices : ofGender
 
-        func rank(_ v: AVSpeechSynthesisVoice) -> (Int, Int) {
-            (v.quality.rawValue, v.language == exact ? 1 : 0)
+        func rank(_ v: AVSpeechSynthesisVoice) -> (Int, Int, Int) {
+            // Koncluí: Portuguese ranks the region first, so Brazilian answers get Luciana or Felipe, not a voice from Portugal.
+            KoncluiVoicePick.rank(language: lang, quality: v.quality.rawValue, exactRegion: v.language == exact, name: v.name)
         }
         return pool.max { rank($0) < rank($1) }
     }

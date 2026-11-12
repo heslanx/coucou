@@ -1,0 +1,22 @@
+
+// ---- appended by scripts/konclui/render/render.sh (a temp copy only): the greeting at given times, Koru then Mochi ----
+@MainActor
+func greetingFilm(_ out: String) {
+    let compact = IslandRestingLayout(width: 185 + 160, height: 32)
+    var cells: [(CGImage, String)] = []
+    let times: [(Double, Double)] = [(0.3, .infinity), (0.6, .infinity), (0.9, .infinity), (1.4, .infinity), (1.7, .infinity),
+                                     (2.0, .infinity), (2.6, .infinity), (3.0, .infinity), (4.0, .infinity),
+                                     (4.75, 4.6), (4.85, 4.6), (5.2, 4.6)]
+    for koru in [true, false] {
+        Koru.enabled = koru
+        for (t, tc) in times {
+            let img = render(width: 640, height: 150, scale: 2, bg: .black) { ctx, size in
+                ctx.withCGContext { cg in drawGreeting(cg, size: size, t: t, tc: tc, compact: compact) }
+                if Koru.enabled { drawKoruGreeting(ctx, p: pose(t, tc: tc, compact: compact), t: t, compact: compact) }
+            }
+            cells.append((img, String(format: "%@ %.2f s%@", koru ? "Koru" : "Mochi (before)", t, tc.isFinite ? " (collapsing to the notch)" : "")))
+        }
+    }
+    Koru.enabled = true
+    savePNG(compose(cells, cols: 3, w: 640, h: 150), "\(out)/greeting-view.png")
+}

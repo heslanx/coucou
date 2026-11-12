@@ -207,7 +207,7 @@ enum ShortcutLogic {
             123:"←", 124:"→", 125:"↓", 126:"↑",
             18:"1", 19:"2", 20:"3", 21:"4", 23:"5", 22:"6", 26:"7", 28:"8", 25:"9",
         ]
-        return map[code] ?? "·"
+        return map[code] ?? KoncluiKeyName.label(code)
     }
 
     // MARK: - Card navigation (pure, no AppKit dependency)
@@ -229,7 +229,7 @@ enum ShortcutLogic {
     /// Descriptive table of island-local shortcuts for the Settings view.
     static let islandShortcuts: [(key: String, description: String)] = [
         ("⌘→ / ⌘←",    String(localized: "shortcut.island.next-prev")),
-        ("⌘1 – ⌘9",    String(localized: "shortcut.island.by-number")),
+        ("⌘1 … ⌘9",    String(localized: "shortcut.island.by-number")),
         ("⌘↓ / ⌘↑",    String(localized: "shortcut.island.nav-items")),
         ("⌘O",          String(localized: "shortcut.island.open")),
         ("⌘E",          String(localized: "shortcut.island.diff")),

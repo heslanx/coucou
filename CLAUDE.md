@@ -11,6 +11,13 @@ Coucou is a native macOS app (`NotchBuddy/`); `windows/` is the Tauri version fo
 - `docs/*.html` — the GitHub Pages site (privacy, terms, support, legal notice).
 - `relay/` — the Coucou relay, a stateless Cloudflare Worker that forwards the iPhone Live Activity pushes (it holds the APNs key, which must never ship in an app). See `relay/README.md`.
 
+## Koncluí (this fork)
+This checkout is Koncluí, a fork of Coucou. Read these before changing it; they win over upstream habits where they differ:
+- `KONCLUI.md`: what the fork changes, the rebrand script, feature flags, the hooks in upstream files, the upstream workflow.
+- `docs/konclui/UX.md`: usability, microcopy, accessibility, the review gate and the UI polish pass, for every screen.
+- `docs/konclui/ENGINEERING.md`: code rules (clean code, architecture, pragmatism, simplification) and mergeability.
+- `docs/konclui/WORKFLOW.md`: branches, remotes, pull requests, Coucou syncs, pushes and releases (the main branch is `main` of the private `konclui` remote; never push Koncluí to `origin`).
+
 ## Build
 ```
 cd NotchBuddy && xcodegen && xcodebuild -scheme NotchBuddy -configuration Debug build
@@ -31,4 +38,4 @@ Windows and Linux: `cd windows && npm install && npm run tauri dev`
 - Pill IDs are stable contract values (Keychain, UserDefaults, hook routing): never rename an existing pill ID.
 - New views follow the existing app style. `design/prototype/notch-buddy.html` and `design/captures/` are references for new work, not a reason to change existing views.
 - Every release adds its CHANGELOG.md section, a row in the README Versions table, and commits the regenerated Info.plist with the new version.
-- Every release also adds its What's new, shown once in the notch or the island after Coucou updates itself: an entry for the new version in `NotchBuddy/Resources/whats-new.json` (Mac, the 14 languages) or `windows/src/whats-new/whats-new.json` (Windows and Linux, the 12 languages). 1 to 4 items picked from the CHANGELOG section, each with an icon from `scripts/test-whats-new.py`, a short title and one line, translated in every language. `python3 scripts/test-whats-new.py` checks it; CI and `release.sh` fail without it.
+- Every release also adds its What's new, shown once in the notch or the island after Coucou updates itself: an entry for the new version in `NotchBuddy/Resources/whats-new.json` (Mac, the 16 languages) or `windows/src/whats-new/whats-new.json` (Windows and Linux, the 14 languages). 1 to 4 items picked from the CHANGELOG section, each with an icon from `scripts/test-whats-new.py`, a short title and one line, translated in every language. `python3 scripts/test-whats-new.py` checks it; CI and `release.sh` fail without it.

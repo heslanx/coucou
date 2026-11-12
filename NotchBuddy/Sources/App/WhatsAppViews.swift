@@ -512,7 +512,7 @@ struct WhatsAppSettingsSection: View {
                                 Text(verbatim: kind == .gowa ? "GOWA" : "OpenWA").tag(kind)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .pickerStyle(.segmented).koncluiSegmented()
 
                         TextField(gateway.defaultURL, text: $url)
                             .textFieldStyle(.roundedBorder)
@@ -531,7 +531,7 @@ struct WhatsAppSettingsSection: View {
 
                         HStack(spacing: 8) {
                             Button("whatsapp.save") { save() }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.koncluiPrimary)
                             Button("whatsapp.test") {
                                 save()
                                 testing = true
@@ -540,7 +540,7 @@ struct WhatsAppSettingsSection: View {
                                     testing = false
                                 }
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.koncluiSecondary)
                             .disabled(testing)
                             if testing { ProgressView().controlSize(.small) }
                         }
@@ -595,7 +595,7 @@ struct WhatsAppSettingsSection: View {
                         .font(.system(size: 11))
                     Spacer()
                     Button("whatsapp.install.update") { installer.install() }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                         .controlSize(.small)
                 }
             } else {
@@ -604,7 +604,7 @@ struct WhatsAppSettingsSection: View {
                         .font(.system(size: 13, weight: .semibold))
                         .padding(.horizontal, 6).padding(.vertical, 3)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.koncluiPrimary)
                 .tint(Color(hex: whatsAppAccent))
                 Text("whatsapp.install.hint")
                     .font(.system(size: 10))

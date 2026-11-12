@@ -5,26 +5,30 @@ import SwiftUI
 /// Coucou Flow → Dictionary: the words Coucou must always spell right, and the replacements.
 struct HubDictionaryPage: View {
     @ObservedObject private var store = FlowStore.shared
+    @ObservedObject private var flow = FlowDictation.shared   // Koncluí: an empty dictionary leads to turning dictation on
     @State private var newWord = ""
     @State private var from = ""
     @State private var to = ""
+    /// Koncluí: what a click on "Adicionar" found missing. The button stays enabled and says so under the field (UX.md 1.1).
+    @State private var missing: KoncluiMissing?
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.dictionary"),
                         subtitle: String(localized: "hub.dictionary-sub")) {
             HubCard {
-                HStack(spacing: 8) {
-                    HubField(placeholder: String(localized: "hub.word-placeholder"), text: $newWord, onSubmit: addWord)
-                    Button(String(localized: "hub.add"), action: addWord)
+                HStack(alignment: .top, spacing: 8) {
+                    HubField(placeholder: String(localized: "hub.word-placeholder"), text: $newWord, onSubmit: addWord,
+                             hint: missing == .word ? String(localized: "konclui.hint.word") : nil)
+                    Button(String(localized: "konclui.hub.add-word"), action: addWord)
                         .buttonStyle(HubButtonStyle(primary: true))
-                        .disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 if store.words.isEmpty {
                     HubEmptyState(text: String(localized: "hub.words-empty"), state: .idle, color: "#A78BFA")
+                    if flow.koncluiState != .ready { KoncluiDictationNextStep(centered: true) }   // Koncluí: A3-39
                 } else {
                     HubWrap(spacing: 8) {
                         ForEach(store.words, id: \.self) { word in
-                            HubChip(text: word) { store.words.removeAll { $0 == word } }
+                            HubChip(text: word) { store.removeWordWithUndo(word) }   // Koncluí: Undo (UX.md 1.5)
                         }
                     }
                 }
@@ -36,14 +40,16 @@ struct HubDictionaryPage: View {
                     .font(.system(size: 13))
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 8) {
-                    HubField(placeholder: String(localized: "hub.heard-placeholder"), text: $from, onSubmit: addReplacement)
+                HStack(alignment: .top, spacing: 8) {
+                    HubField(placeholder: String(localized: "hub.heard-placeholder"), text: $from, onSubmit: addReplacement,
+                             hint: missing == .heard ? String(localized: "konclui.hint.heard") : nil)
                     Image(systemName: "arrow.right")
                         .foregroundColor(HubTheme.muted)
-                    HubField(placeholder: String(localized: "hub.written-placeholder"), text: $to, onSubmit: addReplacement)
-                    Button(String(localized: "hub.add"), action: addReplacement)
+                        .frame(height: 34)
+                    HubField(placeholder: String(localized: "hub.written-placeholder"), text: $to, onSubmit: addReplacement,
+                             hint: missing == .written ? String(localized: "konclui.hint.written") : nil)
+                    Button(String(localized: "konclui.hub.add-replacement"), action: addReplacement)
                         .buttonStyle(HubButtonStyle(primary: true))
-                        .disabled(from.trimmingCharacters(in: .whitespaces).isEmpty || to.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ForEach(store.replacements) { replacement in
                     HubDivider()
@@ -59,31 +65,45 @@ struct HubDictionaryPage: View {
                             .font(.system(size: 13, weight: .semibold))
                         Spacer()
                         HubIconButton(symbol: "trash", help: String(localized: "hub.delete")) {
-                            store.replacements.removeAll { $0.id == replacement.id }
+                            store.removeReplacementWithUndo(replacement)   // Koncluí: Undo
                         }
                     }
                 }
             }
         }
+        .koncluiUndoBar()
+        // Koncluí: the line under a field goes away as soon as the person starts to fix it.
+        .onChange(of: newWord) { _, _ in if missing == .word { missing = nil } }
+        .onChange(of: from) { _, _ in if missing == .heard { missing = nil } }
+        .onChange(of: to) { _, _ in if missing == .written { missing = nil } }
     }
 
     private func addWord() {
+        guard !newWord.trimmingCharacters(in: .whitespaces).isEmpty else { missing = .word; return }
+        missing = nil
         store.addWord(newWord)
         newWord = ""
     }
 
     private func addReplacement() {
+        if from.trimmingCharacters(in: .whitespaces).isEmpty { missing = .heard; return }
+        if to.trimmingCharacters(in: .whitespaces).isEmpty { missing = .written; return }
+        missing = nil
         store.addReplacement(from: from, to: to)
         from = ""
         to = ""
     }
 }
 
-/// A word of the dictionary, with its × to remove it.
-private struct HubChip: View {
+/// Koncluí: the field a blocked "Adicionar" or "Salvar" is waiting for.
+private enum KoncluiMissing { case word, heard, written, trigger, text }
+
+/// A word of the dictionary (or a banned word, a VIP), with its × to remove it.
+struct HubChip: View {
     let text: String
     let remove: () -> Void
     @State private var hover = false
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
 
     var body: some View {
         HStack(spacing: 6) {
@@ -94,13 +114,14 @@ private struct HubChip: View {
                     .foregroundColor(hover ? HubTheme.text : HubTheme.muted)
             }
             .buttonStyle(.plain)
+            .koncluiPointer()   // Koncluí
             .accessibilityLabel(String(localized: "hub.delete"))
         }
         .padding(.leading, 11)
         .padding(.trailing, 9)
         .frame(height: 30)
-        .background(RoundedRectangle(cornerRadius: 8).fill(HubTheme.field))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.white.opacity(0.08)))
+        .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(HubTheme.field))
+        .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).strokeBorder(KoncluiTheme.controlStroke(contrast)))
         .onHover { hover = $0 }
     }
 }
@@ -110,9 +131,11 @@ private struct HubChip: View {
 /// Coucou Flow → Snippets: say the trigger, Coucou pastes the whole text.
 struct HubSnippetsPage: View {
     @ObservedObject private var store = FlowStore.shared
+    @ObservedObject private var flow = FlowDictation.shared   // Koncluí: an empty list leads to turning dictation on
     @State private var trigger = ""
     @State private var text = ""
     @State private var editing: UUID?
+    @State private var missing: KoncluiMissing?   // Koncluí: see the Dictionary
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.snippets"),
@@ -120,28 +143,34 @@ struct HubSnippetsPage: View {
             HubCard {
                 Text(editing == nil ? String(localized: "hub.snippet-new") : String(localized: "hub.snippet-edit"))
                     .font(.system(size: 14, weight: .bold))
-                HubField(placeholder: String(localized: "hub.trigger-placeholder"), text: $trigger)
-                TextEditor(text: $text)
-                    .font(.system(size: 13))
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
-                    .frame(height: 90)
-                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(HubTheme.field))
-                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.white.opacity(0.1)))
-                    .overlay(alignment: .topLeading) {
-                        if text.isEmpty {
-                            Text("hub.snippet-text-placeholder")
-                                .font(.system(size: 13))
-                                .foregroundColor(HubTheme.muted)
-                                .padding(.horizontal, 13)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
+                // Koncluí: both fields keep a label above once typing starts (a placeholder vanishes), and a blocked Add says why.
+                HubField(placeholder: String(localized: "hub.trigger-placeholder"), text: $trigger,
+                         label: String(localized: "hub.you-say"),
+                         hint: missing == .trigger ? String(localized: "konclui.hint.trigger") : nil)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("konclui.snippets.pastes").koncluiType(.label).foregroundColor(KoncluiTheme.textTertiary)
+                    TextEditor(text: $text)
+                        .font(.system(size: 13))
+                        .scrollContentBackground(.hidden)
+                        .padding(8)
+                        .frame(height: 90)
+                        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(HubTheme.field))
+                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.white.opacity(0.16)))
+                        .overlay(alignment: .topLeading) {
+                            if text.isEmpty {
+                                Text("hub.snippet-text-placeholder")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(HubTheme.muted)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .allowsHitTesting(false)
+                            }
                         }
-                    }
+                    if missing == .text { KoncluiHint(text: String(localized: "konclui.hint.snippet-text")) }
+                }
                 HStack(spacing: 8) {
-                    Button(editing == nil ? String(localized: "hub.add") : String(localized: "hub.save"), action: save)
+                    Button(editing == nil ? String(localized: "konclui.hub.add-snippet") : String(localized: "hub.save"), action: save)
                         .buttonStyle(HubButtonStyle(primary: true))
-                        .disabled(trigger.trimmingCharacters(in: .whitespaces).isEmpty || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if editing != nil {
                         Button(String(localized: "hub.cancel")) { reset() }
                             .buttonStyle(HubButtonStyle())
@@ -150,6 +179,7 @@ struct HubSnippetsPage: View {
             }
             if store.snippets.isEmpty {
                 HubEmptyState(text: String(localized: "hub.snippets-empty"), color: "#F7B32B")
+                if flow.koncluiState != .ready { KoncluiDictationNextStep(centered: true) }   // Koncluí: A3-39
             }
             ForEach(store.snippets) { snippet in
                 HubCard {
@@ -157,7 +187,7 @@ struct HubSnippetsPage: View {
                         Text("hub.you-say")
                             .font(.system(size: 12))
                             .foregroundColor(HubTheme.secondary)
-                        Text("« \(snippet.trigger) »")
+                        Text(String(format: String(localized: "konclui.hub.trigger-quoted %@"), snippet.trigger))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Color(hex: "#FDBA74"))
                             .padding(.horizontal, 9)
@@ -170,25 +200,30 @@ struct HubSnippetsPage: View {
                             text = snippet.text
                         }
                         HubIconButton(symbol: "trash", help: String(localized: "hub.delete")) {
-                            store.snippets.removeAll { $0.id == snippet.id }
+                            store.removeSnippetWithUndo(snippet)   // Koncluí: Undo
                             if editing == snippet.id { reset() }
                         }
                     }
                     Text(snippet.text)
                         .font(.system(size: 13))
                         .lineSpacing(2)
-                        .foregroundColor(Color(hex: "#D5D7DB"))
+                        .foregroundColor(KoncluiTheme.textBody)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
+        .koncluiUndoBar()   // Koncluí
+        .onChange(of: trigger) { _, _ in if missing == .trigger { missing = nil } }
+        .onChange(of: text) { _, _ in if missing == .text { missing = nil } }
     }
 
     private func save() {
         let t = trigger.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty, !body.isEmpty else { return }
+        guard !t.isEmpty else { missing = .trigger; return }   // Koncluí: the button is enabled; a click says what is missing
+        guard !body.isEmpty else { missing = .text; return }
+        missing = nil
         if let editing, let index = store.snippets.firstIndex(where: { $0.id == editing }) {
             store.snippets[index].trigger = t
             store.snippets[index].text = body
@@ -211,6 +246,10 @@ struct HubSnippetsPage: View {
 struct HubStylesPage: View {
     @ObservedObject var router: HubRouter
     @ObservedObject private var store = FlowStore.shared
+    // Koncluí: which apps this Mac has, asked once per visit (KoncluiInstalledApps).
+    @StateObject private var installed = KoncluiInstalledApps()
+    // Koncluí: the Claude source is found a moment after launch; the page redraws when it is (KoncluiClaudeLive.swift).
+    @ObservedObject private var claude = KoncluiClaudeLive.shared
 
     var body: some View {
         HubPageScaffold(title: String(localized: "hub.page.styles"),
@@ -220,29 +259,19 @@ struct HubStylesPage: View {
                     Toggle("", isOn: $store.cleanupEnabled)
                         .toggleStyle(.switch)
                         .labelsHidden()
-                        .disabled(!FlowCleanup.hasKey && !store.cleanupEnabled)
+                        .disabled(!FlowCleanup.canClean && !store.cleanupEnabled)   // Koncluí: Apple Intelligence counts for clean-up
                 }
-                if !FlowCleanup.hasKey {
-                    HStack(spacing: 10) {
-                        Image(systemName: "key")
-                            .foregroundColor(HubTheme.accent)
-                        Text("hub.cleanup-key")
-                            .font(.system(size: 12.5))
-                            .foregroundColor(Color(hex: "#C7CAD0"))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Button(String(localized: "hub.open-settings")) {
-                            NotificationCenter.default.post(name: .openFullSettings, object: "chat")
-                        }
-                        .buttonStyle(HubButtonStyle())
-                    }
-                }
+                // Koncluí: what to connect (with the key one click away) and why the last clean-up fell back, where the switch is
+                KoncluiClaudeConnectLine(feature: .cleanup)
+                KoncluiClaudeFailureLine(feature: .cleanup)
                 HubDivider()
-                HubRow(title: String(localized: "hub.style-default"), detail: store.defaultStyle.detail) {
-                    stylePicker($store.defaultStyle)
+                // Koncluí: with the clean-up off a style changes nothing, so the row is disabled and says so where the style is.
+                HubRow(title: String(localized: "hub.style-default"),
+                       detail: store.cleanupEnabled ? store.defaultStyle.detail : String(localized: "konclui.hub.styles-off")) {
+                    KoncluiStylePicker(selection: $store.defaultStyle)
+                        .disabled(!store.cleanupEnabled)
                 }
             }
-            .opacity(1)
 
             HStack {
                 HubLabel(String(localized: "hub.style-apps"))
@@ -258,52 +287,65 @@ struct HubStylesPage: View {
                     Label(String(localized: "hub.style-add"), systemImage: "plus")
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)   // Koncluí: the "+" already says it opens; the text then ends on the card's edge
                 .fixedSize()
+                .disabled(!store.cleanupEnabled)
             }
+            if !store.cleanupEnabled { stylesOff }
             HubCard {
-                ForEach(Array(store.appStyles.enumerated()), id: \.element.id) { index, app in
+                ForEach(Array(visibleApps.enumerated()), id: \.element.id) { index, app in
                     if index > 0 { HubDivider() }
                     HStack(spacing: 12) {
                         HubAppIcon(bundleID: app.bundleID)
-                        Text(app.name).font(.system(size: 13.5, weight: .medium))
+                        Text(installed.name(app.bundleID, fallback: app.name)).font(.system(size: 13.5, weight: .medium))
                         Spacer()
-                        stylePicker(Binding(
+                        KoncluiStylePicker(selection: Binding(
                             get: { store.appStyles.first(where: { $0.id == app.id })?.style ?? .natural },
                             set: { value in
                                 if let i = store.appStyles.firstIndex(where: { $0.id == app.id }) { store.appStyles[i].style = value }
                             }))
                         HubIconButton(symbol: "xmark", help: String(localized: "hub.delete")) {
-                            store.appStyles.removeAll { $0.id == app.id }
+                            store.removeAppStyleWithUndo(app)   // Koncluí: Undo
                         }
                     }
                 }
             }
+            // Koncluí: dimmed means disabled, and it is (the list above says why); it was dimmed but fully live.
+            .disabled(!store.cleanupEnabled)
             .opacity(store.cleanupEnabled ? 1 : 0.55)
 
-            HubCard {
-                ForEach(FlowStyle.allCases) { style in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(style.label).font(.system(size: 13, weight: .semibold))
-                        Text(style.detail)
-                            .font(.system(size: 12.5))
-                            .foregroundColor(HubTheme.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Text("hub.cleanup-privacy")
+            // Koncluí: what each style does is in the picker's popover, next to the choice; only the privacy line stays here,
+            // and it says where the words go for the source that answers now (subscription, key or this Mac).
+            if let privacy = claude.privacyLine(for: .cleanup) {
+                Text(verbatim: privacy)
                     .font(.system(size: 12))
                     .foregroundColor(HubTheme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .koncluiUndoBar()
     }
 
-    private func stylePicker(_ selection: Binding<FlowStyle>) -> some View {
-        Picker("", selection: selection) {
-            ForEach(FlowStyle.allCases) { Text($0.label).tag($0) }
+    /// Koncluí: why the lists below do nothing, and the way out, in the same click when the key is there (UX.md 1.1).
+    private var stylesOff: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "info.circle").foregroundColor(KoncluiTheme.textSecondary).accessibilityHidden(true)
+            Text("konclui.hub.styles-off")
+                .koncluiType(.detail)
+                .foregroundColor(KoncluiTheme.textBody)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            if FlowCleanup.canClean {
+                Button(String(localized: "konclui.hub.styles-turn-on")) { store.cleanupEnabled = true }
+                    .buttonStyle(HubButtonStyle())
+            }
         }
-        .labelsHidden()
-        .fixedSize()
+    }
+
+    /// Koncluí: the apps this Mac has (A1-39); what the person added always shows.
+    private var visibleApps: [FlowAppStyle] {
+        KoncluiStyleApps.visible(store.appStyles, id: \.bundleID, defaults: KoncluiFlowStyles.defaultIDs,
+                                 installed: installed.isInstalled)
     }
 
     /// Running apps with windows that have no style of their own yet.

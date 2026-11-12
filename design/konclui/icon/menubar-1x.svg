@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 18">
+  <!-- Koru menu bar glyph at 1x, snapped to the pixel grid (same shape as menubar.svg, square 3 px pupils, 2 px beak). -->
+  <defs>
+    <mask id="face">
+      <rect width="24" height="18" fill="#fff"/>
+      <circle cx="7.5" cy="10.5" r="3.5" fill="#000"/>
+      <circle cx="16.5" cy="10.5" r="3.5" fill="#000"/>
+      <rect x="11" y="12" width="2" height="2" fill="#000"/>
+    </mask>
+  </defs>
+  <g fill="#000">
+    <g mask="url(#face)">
+      <path d="M12 2.5C18.2 2.5 22.5 6.2 22.5 11.2C22.5 15.8 18.6 18 12 18C5.4 18 1.5 15.8 1.5 11.2C1.5 6.2 5.8 2.5 12 2.5Z"/>
+      <path d="M8.8 3.3C6 2.2 3.2 1.2 0.4 0.6C0.8 1.6 1.1 2.6 1.2 3.6C0.8 3.9 0.5 4.3 0.3 4.8C1.1 5.6 1.6 7 1.8 8.6Z"/>
+      <path d="M15.2 3.3C18 2.2 20.8 1.2 23.6 0.6C23.2 1.6 22.9 2.6 22.8 3.6C23.2 3.9 23.5 4.3 23.7 4.8C22.9 5.6 22.4 7 22.2 8.6Z"/>
+    </g>
+    <rect x="6" y="9" width="3" height="3"/>
+    <rect x="15" y="9" width="3" height="3"/>
+  </g>
+</svg>

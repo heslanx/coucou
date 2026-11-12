@@ -1,0 +1,11 @@
+{
+  "name": "konclui-updates",
+  "private": true,
+  "description": "Koncluí's update service: the Mac app's releases from the private repository, without a token in the app",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test"
+  }
+}

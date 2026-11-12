@@ -202,6 +202,7 @@ final class DesktopMochiController {
         p.level = .floating
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         p.ignoresMouseEvents = true
+        p.hidesOnDeactivate = false
         if !p.isVisible { p.orderFront(nil) }
 
         // Squash emote + sound on landing
@@ -260,8 +261,7 @@ final class DesktopMochiController {
 
         phase = .flyingOut
         let s = DesktopMochiController.panelSize
-        let screen = IslandWindowController.islandScreen()
-        let startOrigin = NSPoint(x: screen.frame.midX - s/2, y: screen.frame.maxY - s)
+        let startOrigin = IslandWindowController.homeOrigin(size: s)
         let target = loadSavedPosition()
 
         let p = makeBlankPanel()
@@ -332,8 +332,7 @@ final class DesktopMochiController {
         cancellables.removeAll()
         isSleeping = false
         let s = DesktopMochiController.panelSize
-        let screen = IslandWindowController.islandScreen()
-        let targetOrigin = NSPoint(x: screen.frame.midX - s/2, y: screen.frame.maxY - s)
+        let targetOrigin = IslandWindowController.homeOrigin(size: s)
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.45
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -360,8 +359,7 @@ final class DesktopMochiController {
         isSleeping = false
 
         let s = DesktopMochiController.panelSize
-        let screen = IslandWindowController.islandScreen()
-        let targetOrigin = NSPoint(x: screen.frame.midX - s/2, y: screen.frame.maxY - s)
+        let targetOrigin = IslandWindowController.homeOrigin(size: s)
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.45
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -417,6 +415,7 @@ final class DesktopMochiController {
         p.backgroundColor = .clear
         p.isOpaque = false
         p.hasShadow = false
+        p.hidesOnDeactivate = false
         return p
     }
 
@@ -534,7 +533,8 @@ final class DesktopMochiController {
         let s     = DesktopMochiController.panelSize
 
         // Toggle click-through
-        let overBody   = DesktopMochiLogic.isOverBody(localPoint: local, panelSize: s)
+        let overBody   = Koru.enabled ? KoruScenes.isOverBody(localPoint: local, panelSize: s)
+                                      : DesktopMochiLogic.isOverBody(localPoint: local, panelSize: s)
         let needsMouse = overBody || isDragging
         if p.ignoresMouseEvents == needsMouse {
             p.ignoresMouseEvents = !needsMouse

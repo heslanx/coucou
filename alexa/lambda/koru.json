@@ -1,0 +1,20 @@
+{
+  "type": "APL",
+  "version": "1.7",
+  "theme": "dark",
+  "mainTemplate": {
+    "parameters": ["koru"],
+    "items": [{
+      "type": "Container",
+      "width": "100vw",
+      "height": "100vh",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "items": [
+        {"type": "Image", "source": "${koru.image}", "width": "58vh", "height": "58vh", "scale": "best-fit", "accessibilityLabel": "Koru, a coruja da Koncluí"},
+        {"type": "Text", "text": "${koru.message}", "color": "#ECEDEF", "fontSize": "28dp", "textAlign": "center", "width": "92vw", "maxLines": 2},
+        {"type": "Text", "text": "${koru.hint}", "color": "#9A9FA8", "fontSize": "22dp", "textAlign": "center", "width": "92vw", "maxLines": 2, "spacing": "12dp"}
+      ]
+    }]
+  }
+}
