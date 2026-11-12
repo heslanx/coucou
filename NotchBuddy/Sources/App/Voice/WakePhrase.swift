@@ -21,11 +21,11 @@ enum WakePhrase {
     /// preserving the original casing and punctuation of the command portion.
     ///
     /// Accepted patterns (case-insensitive, after phonetic normalisation):
-    /// - "ok coucou" and variants: "okay coucou", "ok cuckoo", "ok kuku", "ok cou cou" …
-    /// - "hey coucou"
+    /// - "ok koru" and variants: "okay koru", "ok coru", "ok corú", "ok koroo", "ok ko ru" …
+    /// - "hey koru"
     ///
-    /// Word-boundary search means "euh ok coucou add" matches and returns "add".
-    /// Standalone "coucou" never matches (no preceding "ok"/"hey").
+    /// Word-boundary search means "euh ok koru add" matches and returns "add".
+    /// Standalone "koru" never matches (no preceding "ok"/"hey").
     static func split(_ raw: String) -> SplitResult {
         // Split original into whitespace-separated tokens (punctuation stays attached to words)
         let originalWords = raw.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
@@ -35,12 +35,14 @@ enum WakePhrase {
         let normWords = originalWords.map(normWord)
 
         // Wake phrase patterns (normalised).
-        // "ok cou cou" handled as a 3-token pattern in case the STT splits it.
+        // "ok ko ru" handled as a 3-token pattern in case the STT splits it.
         let patterns: [[String]] = [
-            ["ok",  "coucou"],
-            ["ok",  "cou", "cou"],
-            ["hey", "coucou"],
-            ["hey", "cou", "cou"],
+            ["ok",  "koru"],
+            ["ok",  "ko", "ru"],
+            ["ok",  "co", "ru"],
+            ["hey", "koru"],
+            ["hey", "ko", "ru"],
+            ["hey", "co", "ru"],
         ]
 
         // Find LAST occurrence of any pattern
@@ -86,11 +88,17 @@ enum WakePhrase {
     /// Normalise a single word token for wake-phrase matching.
     private static func normWord(_ w: String) -> String {
         var t = normalise(w)
+        // Koncluí: how a Brazilian Portuguese recognizer writes "OK" and "Koru".
+        if ["okei", "oquei", "oquê", "oke"].contains(t) { t = "ok" }
+        if ["kôru", "côru", "córu", "kóru"].contains(t) { t = "koru" }
         t = t
             .replacingOccurrences(of: "cuckoo", with: "coucou")
             .replacingOccurrences(of: "kuku",   with: "coucou")
             .replacingOccurrences(of: "kucou",  with: "coucou")
             .replacingOccurrences(of: "okay",   with: "ok")
+        // How the recognizer writes "Koru" (Koncluí's wake word).
+        if ["korú", "coru", "corú", "koroo", "korou", "kourou", "kouru", "koro", "coro", "corou",
+            "korru", "corru", "kooru", "cooru"].contains(t) { t = "koru" }
         return t
     }
 }

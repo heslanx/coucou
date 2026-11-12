@@ -74,7 +74,7 @@ final class RecapStore {
 
     private static let storageURL: URL = {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appendingPathComponent("NotchBuddy/recap.json")
+        return support.appendingPathComponent("Konclui/recap.json")
     }()
 
     private init() { load() }
@@ -179,9 +179,9 @@ final class RecapStore {
         let allowed = decisions.filter { $0.decision == "allow" || $0.decision == "always" }.count
         let denied  = decisions.filter { $0.decision == "deny" }.count
 
-        // Top agent by session count
+        // Top agent by session count (a session's own pill counts for its client)
         var countByAgent: [String: Int] = [:]
-        for t in turns { countByAgent[t.pillId, default: 0] += 1 }
+        for t in turns { countByAgent[PillCatalog.basePillId(t.pillId), default: 0] += 1 }
         let topAgentId = countByAgent.max { $0.value < $1.value }?.key
         let topAgent = topAgentId.flatMap { PillCatalog.definition(for: $0)?.name } ?? topAgentId
 
@@ -239,6 +239,19 @@ final class RecapStore {
         data = RecapData()
         drafts = [:]
         try? FileManager.default.removeItem(at: Self.storageURL)
+    }
+
+    /// Koncluí: what "Clear history" is about to take, as the closure that puts it back (Undo, UX.md 1.5). Turns recorded
+    /// after the clear stay.
+    func snapshotForUndo() -> @MainActor () -> Void {
+        let saved = data
+        let savedDrafts = drafts
+        return { [self] in
+            data.turns = saved.turns + data.turns
+            data.decisions = saved.decisions + data.decisions
+            drafts.merge(savedDrafts) { current, _ in current }
+            save()
+        }
     }
 
     private func load() {

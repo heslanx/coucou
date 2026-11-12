@@ -1,0 +1,7 @@
+{
+  "name": "koru-alexa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Koru Echo Show development skill",
+  "scripts": { "test": "node --test test/*.test.cjs", "package": "python3 package.py" }
+}

@@ -1,0 +1,48 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "minha coruja",
+      "intents": [
+        {
+          "name": "OwlSoundIntent",
+          "samples": [
+            "tocar coruja",
+            "tocar o som da coruja",
+            "som da coruja",
+            "faça o som da coruja"
+          ]
+        },
+        {
+          "name": "SaleSoundIntent",
+          "samples": [
+            "tocar som de venda",
+            "tocar o som de venda",
+            "som de venda",
+            "demonstrar uma venda"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}

@@ -10,11 +10,20 @@ struct HubSettingsPage: View {
     @State private var confirmClear = false
     @State private var showInDock = FlowHubController.showInDock
     @State private var openAtLaunch = FlowHubController.openAtLaunch
+    // Koncluí: the Claude source is found a moment after launch; the page redraws when it is (KoncluiClaudeLive.swift).
+    @ObservedObject private var claude = KoncluiClaudeLive.shared
 
     var body: some View {
-        HubPageScaffold(title: String(localized: "hub.page.settings")) {
+        HubPageScaffold(title: String(localized: "hub.page.settings"), subtitle: String(localized: "konclui.settings.sub")) {   // Koncluí: a band with one word had no subtitle
             HubLabel(String(localized: "hub.settings.keys"))
+                .settingsHeading("flow.keys")
             HubCard {
+                // Koncluí: the permission shows only while dictation is on and macOS does not trust Koncluí yet, first, with its
+                // button (A2-19). It was a card of its own that also showed while dictation was off.
+                if flow.koncluiState == .needsAccess {
+                    accessibilityRow
+                    HubDivider()
+                }
                 HubRow(title: String(localized: "flow.enable")) {
                     Toggle("", isOn: $flow.isEnabled).toggleStyle(.switch).labelsHidden()
                 }
@@ -33,6 +42,7 @@ struct HubSettingsPage: View {
                         ForEach(FlowPillEdge.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                    .koncluiSegmented()   // Koncluí
                     .labelsHidden()
                     .fixedSize()
                 }
@@ -50,9 +60,20 @@ struct HubSettingsPage: View {
                 HubRow(title: String(localized: "hub.settings.cancel")) {
                     HubKeyCap(text: String(localized: "hub.key-esc"))
                 }
+                // Koncluí: the dictation keys are listed in Atalhos too (KoncluiDictationShortcuts); this links the two (A1-38).
+                HubDivider()
+                Button { FlowHubController.shared.show(.shortcuts) } label: {
+                    Text("konclui.settings.all-shortcuts")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(HubTheme.accent)
+                }
+                .buttonStyle(.plain)
+                .koncluiPointer()
             }
+                .settingsAnchor("flow.keys", cornerRadius: 14)
 
             HubLabel(String(localized: "flow.ai.title"))
+                .settingsHeading("flow.ai")
             HubCard {
                 HubRow(title: String(localized: "flow.prompt-mode"), detail: String(localized: "flow.prompt-mode-detail")) {
                     Toggle("", isOn: $store.promptMode)
@@ -60,6 +81,7 @@ struct HubSettingsPage: View {
                         .labelsHidden()
                         .disabled(!FlowCleanup.hasKey && !store.promptMode)
                 }
+                KoncluiClaudeFailureLine(feature: .prompt)   // Koncluí: the last prompt that fell back (A3-27)
                 HubDivider()
                 HubRow(title: String(localized: "flow.translate"),
                        detail: FlowLanguages.language(store.translateTo).map {
@@ -74,63 +96,46 @@ struct HubSettingsPage: View {
                     .fixedSize()
                     .disabled(!FlowCleanup.hasKey && store.translateTo.isEmpty)
                 }
-                if !FlowCleanup.hasKey {
-                    HStack(spacing: 10) {
-                        Image(systemName: "key")
-                            .foregroundColor(HubTheme.accent)
-                        Text("hub.cleanup-key")
-                            .font(.system(size: 12.5))
-                            .foregroundColor(Color(hex: "#C7CAD0"))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Button(String(localized: "hub.open-settings")) {
-                            NotificationCenter.default.post(name: .openFullSettings, object: "chat")
-                        }
-                        .buttonStyle(HubButtonStyle())
-                    }
-                }
-                Text("flow.ai-privacy")
-                    .font(.system(size: 12))
-                    .foregroundColor(HubTheme.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HubLabel(String(localized: "hub.settings.permission"))
-            HubCard {
-                if flow.trusted {
-                    Label(String(localized: "flow.access-ok"), systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundColor(HubTheme.green)
-                } else {
-                    Text("flow.accessibility")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#C7CAD0"))
+                KoncluiClaudeFailureLine(feature: .translation)   // Koncluí: A3-27
+                // Koncluí: what to connect, with the key one click away; and where the words go for the source that answers now
+                KoncluiClaudeConnectLine(feature: .prompt)
+                if let privacy = claude.privacyLine(for: .prompt) {
+                    Text(verbatim: privacy)
+                        .font(.system(size: 12))
+                        .foregroundColor(HubTheme.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }
-                        .buttonStyle(HubButtonStyle(primary: true))
                 }
             }
+                .settingsAnchor("flow.ai", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.settings.recognition"))
+                .settingsHeading("flow.recognition")
             HubCard {
                 HubRecognitionSettings(language: $language)
             }
+                .settingsAnchor("flow.recognition", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.page.notes"))
+                .settingsHeading("flow.summary")
             HubCard {
                 HubSummaryEnginePicker()
-                Text("notes.engine-detail")
+                // Koncluí: where a transcript goes with the Claude engine (subscription or key), and the last call that failed
+                Text(verbatim: claude.notesDetail)
                     .font(.system(size: 12))
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                KoncluiClaudeFailureLine(feature: .summary)
+                KoncluiClaudeFailureLine(feature: .correction)
                 HubDivider()
                 Text("notes.legal")
                     .font(.system(size: 12))
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+                .settingsAnchor("flow.summary", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.settings.app"))
+                .settingsHeading("flow.app")
             HubCard {
                 HubRow(title: String(localized: "hub.settings.dock"), detail: String(localized: "hub.settings.dock-detail")) {
                     Toggle("", isOn: Binding(get: { showInDock }, set: { showInDock = $0; FlowHubController.showInDock = $0 }))
@@ -144,8 +149,10 @@ struct HubSettingsPage: View {
                         .labelsHidden()
                 }
             }
+                .settingsAnchor("flow.app", cornerRadius: 14)
 
             HubLabel(String(localized: "hub.settings.privacy"))
+                .settingsHeading("flow.privacy")
             HubCard {
                 HubRow(title: String(localized: "hub.settings.keep")) {
                     Picker("", selection: $store.keepDays) {
@@ -160,7 +167,7 @@ struct HubSettingsPage: View {
                 }
                 HubDivider()
                 HStack(spacing: 8) {
-                    Button(String(localized: "hub.settings.clear-history")) { store.clearHistory() }
+                    Button(String(localized: "hub.settings.clear-history")) { store.clearHistoryWithUndo() }   // Koncluí: Undo
                         .buttonStyle(HubButtonStyle())
                     Button(String(localized: "hub.settings.clear-all")) { confirmClear = true }
                         .buttonStyle(HubButtonStyle())
@@ -170,11 +177,40 @@ struct HubSettingsPage: View {
                     .foregroundColor(HubTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+                .settingsAnchor("flow.privacy", cornerRadius: 14)
         }
         .onAppear { flow.recheckTrust() }
+        .koncluiUndoBar()
         .alert(String(localized: "hub.settings.clear-all-confirm"), isPresented: $confirmClear) {
-            Button(String(localized: "hub.settings.clear-all"), role: .destructive) { store.clearEverything() }
+            Button(String(localized: "hub.settings.clear-all"), role: .destructive) { store.clearEverythingWithUndo() }
             Button(String(localized: "hub.cancel"), role: .cancel) {}
+        }
+    }
+
+    /// Koncluí: what is missing, what to do, and the advice to remove and add Koncluí again only when macOS once trusted it (A3-24).
+    private var accessibilityRow: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(KoncluiTheme.attention)
+                    .padding(.top, 2)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("hub.setup-access-title").koncluiType(.bodyStrong)
+                    Text("konclui.flow.accessibility")
+                        .koncluiType(.detail)
+                        .foregroundColor(KoncluiTheme.textBody)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if KoncluiAccessibilityMemory.suggestsRemoveAndAdd(for: flow) {
+                        Text("konclui.flow.accessibility-stale")
+                            .koncluiType(.detail)
+                            .foregroundColor(KoncluiTheme.textBody)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            Button(String(localized: "flow.accessibility-open")) { flow.openAccessibilitySettings() }
+                .buttonStyle(HubButtonStyle(primary: true))
         }
     }
 }
@@ -184,11 +220,7 @@ struct HubKeyCap: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 12.5, weight: .semibold))
-            .padding(.horizontal, 10)
-            .frame(height: 26)
-            .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.08)))
+        KoncluiKeyCap(text: text)   // Koncluí: one key cap for Ajustes and Atalhos
     }
 }
 
@@ -257,10 +289,11 @@ struct HubRecognitionSettings: View {
             Menu {
                 Button(String(localized: "hub.engine.remove"), role: .destructive) { parakeet.remove() }
             } label: {
-                Label(String(localized: "hub.engine.installed"), systemImage: "checkmark.circle.fill")
-                    .foregroundColor(HubTheme.green)
+                // Koncluí: a menu tints its label with the accent; the status draws its own dot and chevron.
+                KoncluiStatus(tone: .ok, text: String(localized: "hub.engine.installed"), door: true)
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
         case .failed:
             Button(String(localized: "hub.engine.retry")) { parakeet.download() }
@@ -282,7 +315,7 @@ private struct HubEngineRow<Trailing: View>: View {
             Button(action: choose) {
                 HStack(spacing: 12) {
                     ZStack {
-                        Circle().strokeBorder(selected ? HubTheme.accent : Color(hex: "#5A5F68"),
+                        Circle().strokeBorder(selected ? HubTheme.accent : Color.white.opacity(KoncluiIncreasedContrast.checkboxStroke),   // Koncluí: 3:1 when off
                                               lineWidth: selected ? 5 : 1.5)
                     }
                     .frame(width: 17, height: 17)
@@ -298,6 +331,7 @@ private struct HubEngineRow<Trailing: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .koncluiPointer()   // Koncluí
             trailing()
         }
     }

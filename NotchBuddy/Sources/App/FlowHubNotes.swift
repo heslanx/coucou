@@ -18,14 +18,15 @@ struct HubNotesPage: View {
         VStack(spacing: 0) {
         HubHero(page: .notes, title: String(localized: "hub.page.notes"),
                 subtitle: String(localized: "hub.notes-promo"), compact: true)
-            .padding(.horizontal, 28)
+            .padding(.horizontal, KoncluiSpace.gutter)
             .padding(.top, 24)
         HStack(spacing: 0) {
             HubNotesList(selected: $selected)
-                .frame(width: 280)
+                .frame(width: KoncluiSpace.notesColumn)
                 .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1) }
             Group {
-                if !parakeet.isReady && taker.notes.isEmpty && taker.recording == nil {
+                // Koncluí: the setup card only when Record is blocked; with Apple's speech the engine row says it.
+                if !parakeet.isReady && taker.notes.isEmpty && taker.recording == nil && KoncluiNoteSpeech.engine == .needsDownload {
                     HubNotesSetup()
                 } else if let note = shown {
                     if note.id == taker.recording?.id {
@@ -40,6 +41,7 @@ struct HubNotesPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         }
+        .koncluiUndoBar()   // Koncluí: a deleted line can be put back
     }
 }
 
@@ -56,11 +58,9 @@ private struct HubNotesList: View {
                 selected = nil
             }
             .padding(.top, 16)
+            KoncluiNoteSpeechRow()   // Koncluí: the engine in use, Parakeet as the optional upgrade
             if let error = taker.startError {
-                Text(error)
-                    .font(.system(size: 12))
-                    .foregroundColor(HubTheme.accent)
-                    .fixedSize(horizontal: false, vertical: true)
+                KoncluiStatus(tone: .error, text: error)   // Koncluí: a failure is red with an icon, never the accent
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 4) {
@@ -88,7 +88,9 @@ private struct HubNotesList: View {
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 10).fill(HubTheme.card))
         }
-        .padding(.horizontal, 14)
+        // Koncluí: the column starts on the header card's left edge (the gutter) and keeps 14 pt free beside its divider.
+        .padding(.leading, KoncluiSpace.gutter)
+        .padding(.trailing, KoncluiSpace.notesColumnInner)
         .padding(.bottom, 14)
     }
 
@@ -134,17 +136,17 @@ struct HubRecordButton: View {
         } label: {
             HStack(spacing: 8) {
                 if taker.isRecording {
-                    RoundedRectangle(cornerRadius: 2).fill(HubTheme.onAccent).frame(width: 10, height: 10)
+                    RoundedRectangle(cornerRadius: 2).fill(.foreground).frame(width: 10, height: 10)   // Koncluí: follows the button's ink, also when disabled
                     Text("notes.stop")
                 } else {
-                    Circle().fill(HubTheme.onAccent).frame(width: 10, height: 10)
+                    Circle().fill(.foreground).frame(width: 10, height: 10)
                     Text("hub.record-call")
                 }
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(HubButtonStyle(primary: true))
-        .disabled(!parakeet.isReady && !taker.isRecording)
+        .disabled(KoncluiNoteSpeech.engine == .needsDownload && !taker.isRecording)   // Koncluí: Apple's speech records
     }
 }
 
@@ -159,7 +161,7 @@ private struct HubNoteRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(note.title)
                     .font(.system(size: 14, weight: selected ? .semibold : .regular))
-                    .foregroundColor(selected ? HubTheme.text : Color(hex: "#D5D7DB"))
+                    .foregroundColor(selected ? HubTheme.text : KoncluiTheme.textBody)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 HStack(spacing: 6) {
@@ -211,13 +213,11 @@ private struct HubNotesSetup: View {
                     .font(.system(size: 15, weight: .bold))
                 Text("notes.setup")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#C7CAD0"))
+                    .foregroundColor(KoncluiTheme.textBody)
                     .fixedSize(horizontal: false, vertical: true)
                 switch parakeet.state {
                 case .unsupported:
-                    Text("hub.engine.unsupported")
-                        .font(.system(size: 13))
-                        .foregroundColor(HubTheme.accent)
+                    KoncluiStatus(tone: .attention, text: String(localized: "hub.engine.unsupported"))   // Koncluí: never the accent
                 case .downloading(let fraction):
                     ProgressView(value: fraction)
                         .progressViewStyle(.linear)
@@ -229,7 +229,7 @@ private struct HubNotesSetup: View {
             }
             .frame(maxWidth: 560)
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, KoncluiSpace.gutter)
         .padding(.top, 20)
     }
 }
@@ -252,7 +252,7 @@ private struct HubLiveNote: View {
                 Circle().fill(HubTheme.red).frame(width: 10, height: 10)
                 TimelineView(.periodic(from: note.start, by: 1)) { context in
                     Text(NoteBuilder.clock(context.date.timeIntervalSince(note.start)))
-                        .font(.system(size: 26, weight: .bold).monospacedDigit())
+                        .koncluiType(.metric)
                 }
                 Spacer()
                 Button(String(localized: "notes.stop")) { taker.stop() }
@@ -262,6 +262,7 @@ private struct HubLiveNote: View {
                 HubLevel(label: String(localized: "notes.me"), level: taker.micLevel, color: HubTheme.speaker(0))
                 HubLevel(label: String(localized: "notes.others"), level: taker.systemLevel, color: HubTheme.speaker(1))
             }
+            KoncluiNoteSpeechProgress()   // Koncluí: Apple's language files installing, or the install that failed
             HubLabel(String(localized: "notes.live"))
             ScrollViewReader { proxy in
                 ScrollView {
@@ -285,7 +286,7 @@ private struct HubLiveNote: View {
                 }
             }
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, KoncluiSpace.gutter)
         .padding(.top, 20)
     }
 }
@@ -380,12 +381,13 @@ private struct HubNoteDetail: View {
                         Text("notes.transcript").tag(1)
                     }
                     .pickerStyle(.segmented)
+                    .koncluiSegmented()   // Koncluí
                     .labelsHidden()
                     .fixedSize()
                     if tab == 0 { summary } else { transcript }
                 }
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, KoncluiSpace.gutter)
             .padding(.top, 20)
             .padding(.bottom, 30)
             .frame(maxWidth: 980, alignment: .leading)
@@ -460,7 +462,7 @@ private struct HubNoteDetail: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .frame(width: 34, height: 34)
-            .background(RoundedRectangle(cornerRadius: 9).fill(Color(hex: "#1D1E22")))
+            .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(KoncluiTheme.control))
         }
     }
 
@@ -560,7 +562,7 @@ private struct HubNoteDetail: View {
                                     Text(verbatim: "•").foregroundColor(HubTheme.muted)
                                     Text(point)
                                         .font(.system(size: 14))
-                                        .foregroundColor(Color(hex: "#D5D7DB"))
+                                        .foregroundColor(KoncluiTheme.textBody)
                                         .textSelection(.enabled)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
@@ -641,7 +643,7 @@ private struct HubEditableLine: View {
             }
         }
         Divider()
-        Button(String(localized: "notes.delete-line"), role: .destructive) { taker.deleteLine(note.id, line: line.id) }
+        Button(String(localized: "notes.delete-line"), role: .destructive) { taker.deleteLineWithUndo(note.id, line: line.id) }   // Koncluí: Undo
     }
 }
 
@@ -665,7 +667,7 @@ private struct HubTodos: View {
                             RoundedRectangle(cornerRadius: 5)
                                 .fill(todo.done ? HubTheme.accent : Color.clear)
                             RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(todo.done ? Color.clear : Color(hex: "#5A5F68"), lineWidth: 1.5)
+                                .strokeBorder(todo.done ? Color.clear : Color.white.opacity(KoncluiIncreasedContrast.checkboxStroke), lineWidth: 1.5)   // Koncluí: 3:1 when off
                             if todo.done {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 9, weight: .heavy))
@@ -678,7 +680,7 @@ private struct HubTodos: View {
                             Text(todo.text)
                                 .font(.system(size: 13))
                                 .strikethrough(todo.done)
-                                .foregroundColor(todo.done ? HubTheme.muted : Color(hex: "#E1E3E6"))
+                                .foregroundColor(todo.done ? HubTheme.muted : HubTheme.body)
                                 .fixedSize(horizontal: false, vertical: true)
                             let extra = [todo.owner, todo.due].compactMap { $0 }.joined(separator: " · ")
                             if !extra.isEmpty {
@@ -703,6 +705,8 @@ private struct HubTodos: View {
 /// Who writes the summaries: Claude, Apple Intelligence, or nobody.
 struct HubSummaryEnginePicker: View {
     @ObservedObject private var taker = NoteTaker.shared
+    // Koncluí: the engine's name says where Claude comes from, which is found a moment after launch.
+    @ObservedObject private var claude = KoncluiClaudeLive.shared
 
     var body: some View {
         HubRow(title: String(localized: "notes.engine")) {

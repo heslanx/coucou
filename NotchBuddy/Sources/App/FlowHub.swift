@@ -6,12 +6,21 @@ import SwiftUI
 /// The pages of the Coucou window: Flow (the dictation, the Notetaker) and the notch's settings.
 enum HubPage: String, CaseIterable, Identifiable {
     case dictation, notes, insights, dictionary, snippets, styles, settings
-    case general, pills, agents, chat, integrations, voice, shortcuts
+    case general, pills, agents, chat, integrations, reminders, voice, shortcuts   // Koncluí: .reminders (A1-13)
+    case mailOverview, mailRules, mailBanned, mailVIP
 
     var id: String { rawValue }
 
-    static let flowPages: [HubPage] = [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings]
-    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .voice, .shortcuts]
+    // Koncluí: a page whose feature flag is off is not listed (KoncluiFeatureRegistry.swift).
+    static var flowPages: [HubPage] {
+        [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings].filter { KoncluiFeatures.isOn($0.featureId) }
+    }
+    static var notchPages: [HubPage] {
+        [.general, .pills, .agents, .chat, .integrations, .reminders, .voice, .shortcuts].filter { KoncluiFeatures.isOn($0.featureId) }
+    }
+    static var mailPages: [HubPage] {
+        [.mailOverview, .mailRules, .mailBanned, .mailVIP].filter { KoncluiFeatures.isOn($0.featureId) }
+    }
 
     /// The section of Settings this page shows, for the notch's pages.
     var settingsSection: String? {
@@ -21,6 +30,7 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .agents:       return "agents"
         case .chat:         return "chat"
         case .integrations: return "integrations"
+        case .reminders:    return "reminders"   // Koncluí
         case .voice:        return "voice"
         case .shortcuts:    return "shortcuts"
         default:            return nil
@@ -39,6 +49,7 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .agents:       return String(localized: "Agents")
         case .chat:         return String(localized: "Chat")
         case .integrations: return String(localized: "Integrations")
+        case .reminders:    return String(localized: "Reminders")   // Koncluí
         case .voice:        return String(localized: "Voice")
         case .shortcuts:    return String(localized: "Shortcuts")
         case .dictation:  return String(localized: "hub.page.dictation")
@@ -48,6 +59,10 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .snippets:   return String(localized: "hub.page.snippets")
         case .styles:     return String(localized: "hub.page.styles")
         case .settings:   return String(localized: "hub.page.settings")
+        case .mailOverview: return String(localized: "hub.mail.overview")
+        case .mailRules:    return String(localized: "hub.mail.rules")
+        case .mailBanned:   return String(localized: "hub.mail.banned")
+        case .mailVIP:      return String(localized: "hub.mail.vip")
         }
     }
 
@@ -65,30 +80,37 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .agents:       return "terminal"
         case .chat:         return "bubble.left.and.bubble.right"
         case .integrations: return "puzzlepiece.extension"
+        case .reminders:    return "bell.badge"   // Koncluí
         case .voice:        return "waveform"
         case .shortcuts:    return "keyboard"
+        case .mailOverview: return "tray"
+        case .mailRules:    return "line.3.horizontal.decrease"
+        case .mailBanned:   return "nosign"
+        case .mailVIP:      return "star"
         }
     }
 }
 
 /// The colors of the Coucou Flow window: the island's dark, with Coucou's orange.
+/// Koncluí: the design system's navy family with mint (KoncluiPalette, docs/konclui/UX.md 11.1); the window itself is
+/// KoncluiBrandBackdrop, the Painel Gestor's sidebar gradient.
 enum HubTheme {
     /// OLED black: the window and the sidebar.
-    static let window = Color.black
-    static let sidebar = Color.black
+    static let window = KoncluiTheme.canvas
+    static let sidebar = Color.clear   // Koncluí: the window's gradient shows through
     /// The big card on the right, where the pages are.
-    static let panel = Color(hex: "#0E0F11")
-    static let card = Color(hex: "#18191C")
-    static let field = Color(hex: "#1F2024")
+    static let panel = KoncluiTheme.panel
+    static let card = KoncluiTheme.card
+    static let field = KoncluiTheme.field
     static let line = Color.white.opacity(0.07)
-    static let text = Color(hex: "#F5F6F8")
-    static let body = Color(hex: "#E1E3E6")
-    static let secondary = Color(hex: "#8E939C")
-    static let muted = Color(hex: "#6B7079")
-    static let accent = Color(hex: "#FB923C")
-    static let onAccent = Color(hex: "#170C04")
-    static let green = Color(hex: "#34D399")
-    static let red = Color(hex: "#FF453A")
+    static let text = KoncluiTheme.textPrimary
+    static let body = KoncluiTheme.textBody
+    static let secondary = KoncluiTheme.textSecondary
+    static let muted = KoncluiTheme.textTertiary   // Koncluí: was #6B7079, 3.5:1 on a card; 4.5:1 now
+    static let accent = KoncluiTheme.accent
+    static let onAccent = KoncluiTheme.onAccent
+    static let green = KoncluiTheme.ok
+    static let red = KoncluiTheme.error
     /// One color per person in a call: you first, then the others.
     static let speakers: [Color] = ["#3B9EFF", "#34D399", "#A78BFA", "#F7B32B", "#F472B6", "#22D3EE"].map { Color(hex: $0) }
 
@@ -116,6 +138,7 @@ extension HubPage {
         case .agents:       return String(localized: "hub.notch.agents")
         case .chat:         return String(localized: "hub.notch.chat")
         case .integrations: return String(localized: "hub.notch.integrations")
+        case .reminders:    return String(localized: "hub.notch.reminders")   // Koncluí
         case .voice:        return String(localized: "hub.notch.voice")
         case .shortcuts:    return String(localized: "hub.notch.shortcuts")
         default:            return nil
@@ -125,7 +148,25 @@ extension HubPage {
 
 @MainActor
 final class HubRouter: ObservableObject {
-    @Published var page: HubPage = .dictation
+    @Published var page: HubPage = HubPage.resolved(.dictation) {
+        // Koncluí: any pick leaves the Features screen; a page whose flag is off falls back to the first one that is on.
+        didSet {
+            showFeatures = false
+            let shown = HubPage.resolved(page)
+            if shown != page { page = shown }
+        }
+    }
+    /// Koncluí: the hidden Features screen (KoncluiFeaturesPage) is shown instead of `page`.
+    @Published var showFeatures = false
+
+    init() {
+        #if DEBUG
+        // Koncluí: `-konclui.debug.page <HubPage rawValue>` opens the window on that page, for screenshots.
+        if let raw = UserDefaults.standard.string(forKey: "konclui.debug.page"), let debugPage = HubPage(rawValue: raw) {
+            page = HubPage.resolved(debugPage)
+        }
+        #endif
+    }
 }
 
 /// Opens the Coucou Flow window: the history of the dictations, the Notetaker, the numbers, the
@@ -177,7 +218,7 @@ final class FlowHubController {
         let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                            backing: .buffered, defer: false)
-        win.title = "Coucou"
+        win.title = "Koncluí"
         win.titlebarAppearsTransparent = true
         win.titleVisibility = .hidden
         win.appearance = NSAppearance(named: .darkAqua)
@@ -197,6 +238,10 @@ final class FlowHubController {
 struct FlowHubView: View {
     @ObservedObject var router: HubRouter
     @ObservedObject var windowState: HubWindowState
+    // Koncluí: the window draws again when a flag changes, and shows the Features screen once unlocked.
+    @ObservedObject private var features = KoncluiFeatureModel.shared
+    @AppStorage(KoncluiFeatures.unlockedKey) private var featuresUnlocked = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion   // Koncluí
 
     var body: some View {
         HStack(spacing: 0) {
@@ -214,15 +259,28 @@ struct FlowHubView: View {
                 .padding(.bottom, 10)
                 .padding(.trailing, 10)
         }
-        .background(HubTheme.window)
+        .background(KoncluiBrandBackdrop())   // Koncluí: the Painel Gestor's sidebar gradient, under the sidebar and around the panel
         .foregroundColor(HubTheme.text)
         .preferredColorScheme(.dark)
         .tint(HubTheme.accent)
+        .disclosureGroupStyle(KoncluiDisclosureStyle())   // Koncluí: a disclosure opens from its whole label.
+        .koncluiTheme()   // Koncluí: GroupBox, Toggle and `.koncluiPrimary` buttons take the hub's look (KoncluiTheme.swift).
         .environment(\.hubVisible, windowState.visible)
-        .environment(\.hubPage, router.page)
+        .environment(\.koncluiMotion, KoncluiMotion.rate(visible: windowState.visible, key: windowState.key, reduceMotion: reduceMotion))   // Koncluí
+        .environment(\.hubPage, router.showFeatures ? .settings : router.page)
+        .onChange(of: featuresUnlocked) { _, unlocked in if !unlocked { router.showFeatures = false } }
     }
 
     @ViewBuilder private var page: some View {
+        // Koncluí: the hidden Features screen takes the page's place.
+        if router.showFeatures && featuresUnlocked {
+            KoncluiFeaturesPage()
+        } else {
+            hubPage
+        }
+    }
+
+    @ViewBuilder private var hubPage: some View {
         switch router.page {
         case .dictation:  HubHomePage(router: router)
         case .notes:      HubNotesPage()
@@ -231,15 +289,14 @@ struct FlowHubView: View {
         case .snippets:   HubSnippetsPage()
         case .styles:     HubStylesPage(router: router)
         case .settings:   HubSettingsPage()
+        case .mailOverview: HubMailOverviewPage()
+        case .mailRules:    HubMailRulesPage()
+        case .mailBanned:   HubMailBannedPage()
+        case .mailVIP:      HubMailVIPPage()
         default:
             if let section = router.page.settingsSection {
-                VStack(alignment: .leading, spacing: 0) {
-                    HubHero(page: router.page, title: router.page.title, subtitle: HubPage.notchSubtitle(router.page))
-                        .padding(.horizontal, 28)
-                        .padding(.top, 24)
-                    SettingsView(embeddedSection: section)
-                        .id(section)
-                }
+                // Koncluí: the compact header is pinned over SettingsView's own scroll as a bar (KoncluiSettingsPage.swift).
+                KoncluiSettingsPage(page: router.page, section: section)
             }
         }
     }
@@ -250,6 +307,10 @@ struct FlowHubView: View {
 private struct HubSidebar: View {
     @ObservedObject var router: HubRouter
     @ObservedObject private var flow = FlowDictation.shared
+    // Koncluí: the sidebar lists only the pages that are on; ⌥-click the wordmark unlocks the Features screen.
+    @ObservedObject private var features = KoncluiFeatureModel.shared
+    @AppStorage(KoncluiFeatures.unlockedKey) private var featuresUnlocked = false
+    @ObservedObject private var search = SettingsSearch.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -258,24 +319,52 @@ private struct HubSidebar: View {
                 // hops and hats): lifted so his body lines up with the name.
                 HubLiveMochi(size: 28)
                     .offset(y: -4)
-                Text(verbatim: "Coucou")
-                    .font(.system(size: 18, weight: .bold))
+                Image("KoncluiLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 16)
+                    .accessibilityLabel(Text(verbatim: "Koncluí"))
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Koncluí: ⌥-click toggles the hidden Features screen.
+                        guard NSEvent.modifierFlags.contains(.option) else { return }
+                        featuresUnlocked.toggle()
+                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                    }
             }
             .padding(.horizontal, 8)
             // Halfway between the window's buttons and "FLOW".
             .padding(.top, 25)
-            .padding(.bottom, 31)
+            .padding(.bottom, 16)
+
+            HubSearchField()
+                .padding(.bottom, 14)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    HubSidebarHeader(text: "Flow")
-                    ForEach(HubPage.flowPages) { page in
-                        HubSidebarItem(page: page, selected: router.page == page) { router.page = page }
-                    }
-                    HubSidebarHeader(text: String(localized: "hub.section.notch"))
-                        .padding(.top, 14)
-                    ForEach(HubPage.notchPages) { page in
-                        HubSidebarItem(page: page, selected: router.page == page) { router.page = page }
+                if !search.query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    HubSearchResults(router: router)
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HubSidebarHeader(text: String(localized: "konclui.hub.section.flow"))
+                        ForEach(HubPage.flowPages) { page in
+                            HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                        }
+                        HubSidebarHeader(text: String(localized: "hub.section.notch"))
+                            .padding(.top, 14)
+                        ForEach(HubPage.notchPages) { page in
+                            HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                        }
+                        if !HubPage.mailPages.isEmpty {   // Koncluí: the Mail pages follow their flags too
+                            HubSidebarHeader(text: "Mail")
+                                .padding(.top, 14)
+                            ForEach(HubPage.mailPages) { page in
+                                HubSidebarItem(page: page, selected: router.page == page && !router.showFeatures) { router.page = page }
+                            }
+                        }
+                        if featuresUnlocked {
+                            KoncluiFeaturesSidebarItem(selected: router.showFeatures) { router.showFeatures = true }
+                                .padding(.top, 14)
+                        }
                     }
                 }
             }
@@ -288,28 +377,14 @@ private struct HubSidebar: View {
         .frame(width: 228)
         .frame(maxHeight: .infinity)
         .background(HubTheme.sidebar)
+        // Koncluí: remember that macOS once trusted Koncluí for Accessibility (KoncluiAccessibilityMemory), A3-24.
+        .onAppear { KoncluiAccessibilityMemory.note(trusted: flow.trusted) }
+        .onChange(of: flow.trusted) { _, now in KoncluiAccessibilityMemory.note(trusted: now) }
     }
 
+    // Koncluí: the status is a door with a popover (KoncluiDictationDoor.swift), not a label that only jumped to Ajustes.
     @ViewBuilder private var status: some View {
-        let ready = flow.isEnabled && flow.trusted
-        Button { router.page = .settings } label: {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(ready ? HubTheme.green : (flow.isEnabled ? HubTheme.accent : HubTheme.muted))
-                    .frame(width: 7, height: 7)
-                Text(ready ? String(format: String(localized: "hub.status-ready %@"), flow.key.label)
-                     : (flow.isEnabled ? String(localized: "hub.status-access") : String(localized: "hub.status-off")))
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#A4A9B1"))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-            }
-            .padding(10)
-            .background(RoundedRectangle(cornerRadius: 10).fill(HubTheme.card))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.white.opacity(0.06)))
-        }
-        .buttonStyle(.plain)
+        KoncluiDictationStatus(router: router)
     }
 }
 
@@ -319,8 +394,7 @@ private struct HubSidebarHeader: View {
 
     var body: some View {
         Text(text.uppercased(with: .current))
-            .font(.system(size: 10.5, weight: .bold))
-            .tracking(1.2)
+            .koncluiType(.label)   // Koncluí: 11 pt minimum
             .foregroundColor(HubTheme.muted)
             .padding(.horizontal, 10)
             .padding(.bottom, 4)
@@ -338,20 +412,23 @@ private struct HubSidebarItem: View {
             HStack(spacing: 10) {
                 Image(systemName: page.symbol)
                     .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(selected ? KoncluiTheme.accent : KoncluiTheme.textBody)   // Koncluí: the platform's mint icon
                     .frame(width: 20)
                 Text(page.title)
                     .font(.system(size: 14, weight: selected ? .semibold : .regular))
                 Spacer(minLength: 0)
             }
-            .foregroundColor(selected ? HubTheme.text : Color(hex: "#B7BBC2"))
+            .foregroundColor(selected ? HubTheme.text : KoncluiTheme.textBody)
             .padding(.horizontal, 10)
             .frame(height: 32)
+            // Koncluí: the selected page as on the platform's sidebar, a mint wash (rgba(83, 255, 200, 0.12))
             .background(RoundedRectangle(cornerRadius: 9)
-                .fill(Color.white.opacity(selected ? 0.08 : (hover ? 0.04 : 0))))
+                .fill(selected ? KoncluiTheme.accent.opacity(0.12) : Color.white.opacity(hover ? 0.06 : 0)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
+        .koncluiPointer()   // Koncluí
     }
 }
 
@@ -384,17 +461,20 @@ struct HubPageScaffold<Trailing: View, Content: View>: View {
     @Environment(\.hubPage) private var page
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                HubHero(page: page, title: title, subtitle: subtitle, trailing: trailing)
-                content()
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: KoncluiSpace.sectionGap) {
+                    HubHero(page: page, title: title, subtitle: subtitle, trailing: trailing)
+                    content()
+                }
+                .padding(.horizontal, KoncluiSpace.gutter)
+                .padding(.top, 24)
+                .padding(.bottom, 28)
+                .frame(maxWidth: 1100, alignment: .leading)
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 24)
-            .padding(.bottom, 28)
-            .frame(maxWidth: 1100, alignment: .leading)
+            .scrollIndicators(.automatic)
+            .settingsSearchScroll(proxy)
         }
-        .scrollIndicators(.automatic)
     }
 }
 
@@ -411,13 +491,14 @@ extension HubPageScaffold where Trailing == EmptyView {
 struct HubCard<Content: View>: View {
     var padding: CGFloat = 18
     @ViewBuilder var content: () -> Content
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) { content() }
+        VStack(alignment: .leading, spacing: KoncluiSpace.rowGap) { content() }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(HubTheme.card))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(HubTheme.line))
+            .background(RoundedRectangle(cornerRadius: KoncluiRadius.card, style: .continuous).fill(HubTheme.card))
+            .overlay(RoundedRectangle(cornerRadius: KoncluiRadius.card, style: .continuous).strokeBorder(KoncluiTheme.hairline(contrast)))
     }
 }
 
@@ -425,12 +506,12 @@ struct HubCard<Content: View>: View {
 struct HubLabel: View {
     let text: String
     init(_ text: String) { self.text = text }
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
 
     var body: some View {
         Text(text.uppercased(with: .current))
-            .font(.system(size: 11.5, weight: .bold))
-            .tracking(1.3)
-            .foregroundColor(HubTheme.muted)
+            .koncluiType(.label)   // Koncluí: the label role, the same as a GroupBox title on the notch pages
+            .foregroundColor(contrast == .increased ? KoncluiTheme.textSecondary : HubTheme.muted)
     }
 }
 
@@ -439,15 +520,16 @@ struct HubRow<Control: View>: View {
     let title: String
     var detail: String? = nil
     @ViewBuilder var control: () -> Control
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: 13.5, weight: .medium))
+                Text(title).koncluiType(.bodyStrong)
                 if let detail {
                     Text(detail)
-                        .font(.system(size: 12))
-                        .foregroundColor(HubTheme.secondary)
+                        .koncluiType(.detail)
+                        .foregroundColor(KoncluiTheme.secondary(contrast))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -459,7 +541,8 @@ struct HubRow<Control: View>: View {
 }
 
 struct HubDivider: View {
-    var body: some View { Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1) }
+    @Environment(\.colorSchemeContrast) private var contrast   // Koncluí
+    var body: some View { Rectangle().fill(KoncluiTheme.hairline(contrast)).frame(height: 1) }
 }
 
 /// Orange (primary) or dark (secondary) button.
@@ -467,17 +550,8 @@ struct HubButtonStyle: ButtonStyle {
     var primary = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: primary ? .bold : .semibold))
-            .foregroundColor(primary ? HubTheme.onAccent : HubTheme.text)
-            .padding(.horizontal, 14)
-            .frame(height: 34)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(primary ? HubTheme.accent : Color(hex: "#1D1E22")))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(primary ? Color.clear : Color.white.opacity(0.1)))
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .contentShape(Rectangle())
+        // Koncluí: one look for every hub button, with a disabled state that never reads as an enabled primary.
+        KoncluiButtonLook(configuration: configuration, kind: primary ? .primary : .secondary)
     }
 }
 
@@ -492,12 +566,13 @@ struct HubIconButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(hover ? HubTheme.text : Color(hex: "#A4A9B1"))
+                .foregroundColor(hover ? HubTheme.text : KoncluiTheme.textSecondary)
                 .frame(width: 28, height: 28)
-                .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(hover ? 0.1 : 0.05)))
+                .background(RoundedRectangle(cornerRadius: KoncluiRadius.control, style: .continuous).fill(Color.white.opacity(hover ? 0.1 : 0.05)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .koncluiPointer()   // Koncluí
         .help(help)
         .accessibilityLabel(help)
         .onHover { hover = $0 }
@@ -509,16 +584,12 @@ struct HubField: View {
     let placeholder: String
     @Binding var text: String
     var onSubmit: () -> Void = {}
+    /// Koncluí: a label above (it stays while typing) and a line below that says what is missing.
+    var label: String? = nil
+    var hint: String? = nil
 
     var body: some View {
-        TextField(placeholder, text: $text)
-            .textFieldStyle(.plain)
-            .font(.system(size: 13))
-            .padding(.horizontal, 12)
-            .frame(height: 34)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(HubTheme.field))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.white.opacity(0.1)))
-            .onSubmit(onSubmit)
+        KoncluiField(label: label, placeholder: placeholder, text: $text, hint: hint, onSubmit: onSubmit)   // Koncluí
     }
 }
 

@@ -11,7 +11,7 @@ struct FlowSettingsBox: View {
                 HStack {
                     Toggle(String(localized: "flow.enable"), isOn: $flow.isEnabled)
                     Spacer()
-                    Button(String(localized: "hub.open")) { FlowHubController.shared.show() }
+                    Button(String(localized: "hub.open")) { FlowHubController.shared.show(.settings) }
                 }
 
                 Text(String(format: String(localized: "flow.how %@"), flow.key.label))

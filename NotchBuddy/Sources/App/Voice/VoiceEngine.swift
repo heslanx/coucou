@@ -319,7 +319,10 @@ final class VoiceEngine: ObservableObject {
             let e = error as NSError
             let msg = "[Voice] pipeline start failed: \(e.domain)/\(e.code) \(e.localizedDescription)"
             appendAppLog("nb.log", msg)
-            audioError = "\(e.domain)/\(e.code): \(e.localizedDescription)"
+            // "No audio input device" is self-explanatory — show it bare.
+            audioError = (e.domain == "VoiceAudio" && e.code == -1)
+                ? e.localizedDescription
+                : "\(e.domain)/\(e.code): \(e.localizedDescription)"
         }
     }
 
@@ -462,7 +465,7 @@ final class VoiceEngine: ObservableObject {
     private var deafWindows = 0
 
     private static func describe(_ st: WakeSpotter.WindowStats) -> String {
-        "partials=\(st.partials) words=\(st.maxWords) coucou-like=\(st.nearWake ? "yes" : "no")"
+        "partials=\(st.partials) words=\(st.maxWords) koru-like=\(st.nearWake ? "yes" : "no")"
     }
 
     private func checkDeafRecognizer(_ st: WakeSpotter.WindowStats, elapsed: TimeInterval) {
@@ -614,7 +617,7 @@ final class VoiceEngine: ObservableObject {
             // Logged once per turn (no words): helps when an answer seems unheard.
             if !loggedDropWhileSpeaking {
                 loggedDropWhileSpeaking = true
-                appendAppLog("nb.log", "[Voice] words heard while Coucou was speaking: ignored")
+                appendAppLog("nb.log", "[Voice] words heard while Koncluí was speaking: ignored")
             }
             return
         }
@@ -704,6 +707,7 @@ final class VoiceEngine: ObservableObject {
         switch VoiceSettings.listenLanguage {
         case "fr": candidates = [Locale(identifier: "fr-FR"), Locale(identifier: "fr-CA")]
         case "en": candidates = [Locale(identifier: "en-US"), Locale(identifier: "en-GB"), Locale(identifier: "en-AU")]
+        case "pt": candidates = VoiceLanguage.pt.listenLocaleIdentifiers.map { Locale(identifier: $0) }   // Koncluí
         default:   candidates = []
         }
         candidates += MacDictation.automaticLocales()

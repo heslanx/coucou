@@ -18,6 +18,9 @@ struct ShortcutsSettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             globalSection
             islandSection
+            #if !APPSTORE
+            KoncluiDictationShortcuts()   // Koncluí: the dictation keys where people look for keys (A1-38)
+            #endif
         }
         .onAppear { reload() }
     }
@@ -37,13 +40,14 @@ struct ShortcutsSettingsView: View {
                 HStack {
                     Spacer()
                     Button(String(localized: "shortcut.reset-defaults")) { resetAll() }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.koncluiSecondary)
                         .controlSize(.small)
                 }
                 .padding(.top, 6)
             }
             .padding(6)
         }
+            .settingsAnchor("shortcuts.global")
     }
 
     /// Shortcuts listed here. The App Store build hides the ones it can't run.
@@ -108,9 +112,14 @@ struct ShortcutsSettingsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(ShortcutLogic.islandShortcuts.enumerated()), id: \.offset) { _, pair in
                     HStack(spacing: 10) {
+                        #if !APPSTORE
+                        KoncluiKeyCap(text: pair.key)   // Koncluí: one key cap for every shortcut (A2-29)
+                            .frame(width: 118, alignment: .leading)
+                        #else
                         Text(pair.key)
                             .font(.system(size: 11, design: .monospaced))
                             .frame(width: 90, alignment: .leading)
+                        #endif
                         Text(pair.description)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
@@ -118,12 +127,13 @@ struct ShortcutsSettingsView: View {
                     }
                     .padding(.vertical, 4)
                     if pair.key != ShortcutLogic.islandShortcuts.last?.key {
-                        Divider().padding(.leading, 100)
+                        Divider().padding(.leading, 128)
                     }
                 }
             }
             .padding(6)
         }
+            .settingsAnchor("shortcuts.island")
     }
 
     // MARK: - Bindings
@@ -177,11 +187,15 @@ struct ShortcutsSettingsView: View {
     }
 
     private func resetAll() {
+        #if !APPSTORE
+        KoncluiShortcutsUndo.resetAll(then: reload)   // Koncluí: Undo (UX.md 1.5)
+        #else
         for action in ShortcutAction.allCases {
             ShortcutLogic.resetToDefault(action)
             HotKeyCenter.shared.reregister(action)
         }
         reload()
+        #endif
     }
 
     private func updateInternalDups() {

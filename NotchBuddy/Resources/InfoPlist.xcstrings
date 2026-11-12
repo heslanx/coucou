@@ -1,0 +1,629 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSAccessibilityUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحتاج Koncluí إلى إذن إمكانية الوصول للصق ما تُمليه، والتقاط مفتاح Esc، وقراءة عنوان النافذة التي ترفقها."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি যা ডিক্টেট করেন তা পেস্ট করতে, Esc কী শুনতে এবং আপনার সংযুক্ত করা উইন্ডোর শিরোনাম পড়তে Koncluí-র অ্যাক্সেসিবিলিটি দরকার।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí braucht die Bedienungshilfen, um Diktiertes einzufügen, die Esc-Taste zu erkennen und den Titel des Fensters zu lesen, das du anhängst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí needs Accessibility to paste what you dictate, to hear the Esc key, and to read the title of the window you attach."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí necesita Accesibilidad para pegar lo que dictas, detectar la tecla Esc y leer el título de la ventana que adjuntas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí a besoin de l'Accessibilité pour coller ce que tu dictes, détecter la touche Échap et lire le titre de la fenêtre que tu joins."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप जो डिक्टेट करते हैं उसे पेस्ट करने, Esc कुंजी सुनने और आपके जोड़े गए विंडो का शीर्षक पढ़ने के लिए Koncluí को एक्सेसिबिलिटी चाहिए।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí memerlukan Aksesibilitas untuk menempelkan hasil dikte, mendeteksi tombol Esc, dan membaca judul jendela yang kamu lampirkan."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí precisa de Acessibilidade para colar o que você dita, ouvir a tecla Esc e ler o título da janela que você anexa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí нужно разрешение «Универсальный доступ», чтобы вставлять продиктованное, реагировать на клавишу Esc и читать заголовок окна, которое вы прикрепляете."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí ต้องใช้การช่วยการเข้าถึงเพื่อวางข้อความที่คุณป้อนด้วยเสียง รับรู้ปุ่ม Esc และอ่านชื่อหน้าต่างที่คุณแนบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí; dikte ettiğin metni yapıştırmak, Esc tuşunu algılamak ve eklediğin pencerenin başlığını okumak için Erişilebilirlik izni ister."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí 需要“辅助功能”权限，用来粘贴你听写的内容、检测 Esc 键，以及读取你附加的窗口的标题。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí 需要「輔助使用」權限，用來貼上你聽寫的內容、偵測 Esc 鍵，以及讀取你附加的視窗標題。"
+          }
+        }
+      }
+    },
+    "NSAppleEventsUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتحكم Koncluí في التطبيقات الأخرى فقط عندما تطلب ذلك: يُظهر الطرفية في المقدمة، ويجهّز بريدًا إلكترونيًا أو يرسله، ويتحكم في الموسيقى وSpotify، ويقرأ عنوان تبويب المتصفح الذي ترفقه."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি বললেই শুধু Koncluí অন্য অ্যাপ নিয়ন্ত্রণ করে: টার্মিনালকে সামনে আনে, ইমেইল তৈরি বা পাঠায়, Music ও Spotify চালায় এবং আপনার সংযুক্ত করা ব্রাউজার ট্যাবের ঠিকানা পড়ে।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí steuert andere Apps nur auf deine Anweisung: Es holt ein Terminal nach vorn, bereitet E-Mails vor oder sendet sie, steuert Musik und Spotify und liest die Adresse des Browser-Tabs, den du anhängst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí controls other apps only when you ask: it brings a terminal forward, prepares or sends an email, plays Music and Spotify, and reads the address of the browser tab you attach."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí solo controla otras apps cuando se lo pides: trae un terminal al frente, prepara o envía un correo, controla Música y Spotify y lee la dirección de la pestaña del navegador que adjuntas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí ne pilote d'autres apps que sur ta demande : il passe un terminal au premier plan, prépare ou envoie un e-mail, pilote Musique et Spotify et lit l'adresse de l'onglet du navigateur que tu joins."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí दूसरे ऐप सिर्फ़ तब चलाता है जब आप कहते हैं: टर्मिनल को आगे लाना, ईमेल तैयार करना या भेजना, Music और Spotify चलाना, और आपके जोड़े गए ब्राउज़र टैब का पता पढ़ना।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí hanya mengendalikan app lain saat kamu memintanya: membawa terminal ke depan, menyiapkan atau mengirim email, mengendalikan Musik dan Spotify, dan membaca alamat tab browser yang kamu lampirkan."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí só controla outros apps quando você pede: traz um terminal para a frente, prepara ou envia um e-mail, controla o Música e o Spotify e lê o endereço da aba do navegador que você anexa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí управляет другими приложениями только по вашей просьбе: выводит терминал на передний план, готовит или отправляет письмо, управляет Музыкой и Spotify и читает адрес вкладки браузера, которую вы прикрепляете."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí ควบคุมแอปอื่นเฉพาะเมื่อคุณสั่ง: นำเทอร์มินัลมาไว้ด้านหน้า เตรียมหรือส่งอีเมล ควบคุม Music และ Spotify และอ่านที่อยู่ของแท็บเบราว์เซอร์ที่คุณแนบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí diğer uygulamaları yalnızca sen istediğinde yönetir: bir terminali öne getirir, e-posta hazırlar veya gönderir, Müzik ve Spotify'ı kontrol eder, eklediğin tarayıcı sekmesinin adresini okur."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在你提出要求时，Koncluí 才会控制其他 App：把终端调到前面、准备或发送邮件、控制“音乐”和 Spotify，以及读取你附加的浏览器标签页的地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在你提出要求時，Koncluí 才會控制其他 App：把終端機帶到最前面、準備或傳送郵件、控制「音樂」和 Spotify，以及讀取你附加的瀏覽器分頁網址。"
+          }
+        }
+      }
+    },
+    "NSAudioCaptureUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يسجّل Koncluí ما يُشغّله جهاز Mac فقط أثناء تدوين مكالمة، ليكتب ما يقوله الآخرون."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি কোনো কল নোট করার সময়ই শুধু Koncluí আপনার Mac যা চালায় তা রেকর্ড করে, অন্য মানুষেরা যা বলে তা লিখে রাখতে।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí nimmt nur während eines Gesprächs, das du mitschreiben lässt, auf, was dein Mac abspielt, um festzuhalten, was die anderen sagen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí records what your Mac plays only while you note a call, to write down what the other people say."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí graba lo que reproduce tu Mac solo mientras tomas notas de una llamada, para escribir lo que dicen las demás personas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí enregistre ce que ton Mac joue uniquement pendant que tu prends des notes d'un appel, pour transcrire ce que disent les autres."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप किसी कॉल के नोट्स बनाते हैं तभी Koncluí आपका Mac जो बजाता है उसे रिकॉर्ड करता है, ताकि दूसरे लोग जो कहते हैं वह लिख सके।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí merekam suara yang diputar Mac-mu hanya saat kamu mencatat panggilan, untuk menuliskan ucapan orang lain."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí grava o que o seu Mac reproduz só enquanto você anota uma chamada, para registrar o que as outras pessoas dizem."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí записывает то, что воспроизводит ваш Mac, только пока вы ведёте заметки о звонке, чтобы записать слова собеседников."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí บันทึกเสียงที่ Mac ของคุณเล่นเฉพาะขณะที่คุณจดบันทึกการโทร เพื่อเขียนสิ่งที่คนอื่นพูด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí, Mac'inin çaldığı sesi yalnızca bir görüşmeyi not ederken kaydeder; diğer kişilerin söylediklerini yazıya dökmek için."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在你记录通话期间，Koncluí 才会录制 Mac 播放的声音，用来写下其他人说的话。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在你記錄通話期間，Koncluí 才會錄下 Mac 播放的聲音，用來寫下其他人說的話。"
+          }
+        }
+      }
+    },
+    "NSContactsUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يبحث Koncluí عن عنوان بريد إلكتروني عندما تطلب منه، بالصوت، تجهيز رسالة بريد."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি ভয়েসে ইমেইল তৈরি করতে বললে Koncluí একটি ইমেইল ঠিকানা খুঁজে দেখে।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí sucht eine E-Mail-Adresse heraus, wenn du per Sprache darum bittest, eine E-Mail vorzubereiten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí looks up an email address when you ask it, by voice, to prepare an email."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí busca una dirección de correo cuando le pides, por voz, que prepare un correo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí cherche une adresse e-mail quand tu lui demandes, à la voix, de préparer un e-mail."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जब आप आवाज़ से ईमेल तैयार करने को कहते हैं, तब Koncluí एक ईमेल पता खोजता है।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí mencari alamat email saat kamu memintanya, lewat suara, menyiapkan email."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí procura um endereço de e-mail quando você pede, por voz, para preparar um e-mail."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí ищет адрес электронной почты, когда вы голосом просите подготовить письмо."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí ค้นหาที่อยู่อีเมลเมื่อคุณสั่งด้วยเสียงให้เตรียมอีเมล"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí, sesle bir e-posta hazırlamasını istediğinde bir e-posta adresi arar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当你用语音让 Koncluí 准备邮件时，它会查找对应的电子邮件地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當你用語音請 Koncluí 準備郵件時，它會查詢對應的電子郵件地址。"
+          }
+        }
+      }
+    },
+    "NSFocusStatusUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يظل Koncluí هادئًا حيال رسائل WhatsApp الجديدة أثناء تفعيل وضع التركيز."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফোকাস চালু থাকলে Koncluí নতুন WhatsApp বার্তা নিয়ে চুপ থাকে।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí bleibt bei neuen WhatsApp-Nachrichten still, solange ein Fokus aktiv ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí stays quiet about new WhatsApp messages while a Focus is on."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí no avisa de mensajes nuevos de WhatsApp mientras hay un modo de concentración activo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí reste discret sur les nouveaux messages WhatsApp pendant qu'une Concentration est active."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ोकस चालू रहने पर Koncluí नए WhatsApp संदेशों के बारे में शांत रहता है।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí tidak memberi tahu pesan WhatsApp baru selama Fokus aktif."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí fica quieto com as novas mensagens do WhatsApp enquanto um Foco está ligado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí не сообщает о новых сообщениях WhatsApp, пока включён режим фокусировки."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí จะไม่แจ้งข้อความ WhatsApp ใหม่ขณะที่เปิดโฟกัสอยู่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir Odak açıkken Koncluí yeni WhatsApp mesajlarında sessiz kalır."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "专注模式开启期间，Koncluí 不会提示新的 WhatsApp 消息。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "專注模式開啟期間，Koncluí 不會提示新的 WhatsApp 訊息。"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم Koncluí الميكروفون عندما تُملي أو تقول «OK Koru» أو تطلب منه تدوين مكالمة."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি যখন ডিক্টেট করেন, “OK Koru” বলেন বা কোনো কল নোট করতে বলেন, তখন Koncluí মাইক্রোফোন ব্যবহার করে।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí nutzt das Mikrofon, wenn du diktierst, „OK Koru“ sagst oder ein Gespräch mitschreiben lässt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí uses the microphone when you dictate, say “OK Koru”, or ask it to note a call."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí usa el micrófono cuando dictas, dices «OK Koru» o le pides que tome notas de una llamada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí utilise le micro quand tu dictes, dis « OK Koru » ou lui demandes de prendre des notes pendant un appel."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जब आप डिक्टेट करते हैं, “OK Koru” बोलते हैं या किसी कॉल के नोट्स बनवाते हैं, तब Koncluí माइक्रोफ़ोन का उपयोग करता है।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí memakai mikrofon saat kamu mendikte, mengucap “OK Koru”, atau memintanya mencatat panggilan."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí usa o microfone quando você dita, diz “OK Koru” ou pede para anotar uma chamada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí использует микрофон, когда вы диктуете, говорите «OK Koru» или просите записать заметки о звонке."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí ใช้ไมโครโฟนเมื่อคุณป้อนข้อความด้วยเสียง พูดว่า “OK Koru” หรือสั่งให้จดบันทึกการโทร"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí, dikte ettiğinde, “OK Koru” dediğinde veya bir görüşmeyi not etmesini istediğinde mikrofonu kullanır."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当你听写、说“OK Koru”或让 Koncluí 记录通话时，它会使用麦克风。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當你聽寫、說「OK Koru」或請 Koncluí 記錄通話時，它會使用麥克風。"
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحوّل Koncluí صوتك إلى نص عندما تُملي أو تقول «OK Koru» أو تدوّن مكالمة. يتولى جهاز Mac التعرف على الكلام، على الجهاز نفسه متى أمكن."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি ডিক্টেট করলে, “OK Koru” বললে বা কল নোট করলে Koncluí আপনার কণ্ঠকে টেক্সটে বদলায়। শনাক্ত করে আপনার Mac, সম্ভব হলে ডিভাইসেই।"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí wandelt deine Stimme in Text um, wenn du diktierst, „OK Koru“ sagst oder ein Gespräch mitschreibst. Die Erkennung übernimmt dein Mac, wenn möglich direkt auf dem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí turns your voice into text when you dictate, say “OK Koru”, or note a call. Your Mac does the recognition, on the device when it can."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí convierte tu voz en texto cuando dictas, dices «OK Koru» o tomas notas de una llamada. El reconocimiento lo hace tu Mac, en el propio dispositivo cuando es posible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí transforme ta voix en texte quand tu dictes, dis « OK Koru » ou prends des notes d'un appel. La reconnaissance est faite par ton Mac, sur l'appareil quand c'est possible."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप डिक्टेट करते हैं, “OK Koru” बोलते हैं या कॉल के नोट्स बनाते हैं, तब Koncluí आपकी आवाज़ को टेक्स्ट में बदलता है। पहचान आपका Mac करता है, संभव हो तो डिवाइस पर ही।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí mengubah suaramu menjadi teks saat kamu mendikte, mengucap “OK Koru”, atau mencatat panggilan. Pengenalan ucapan dilakukan Mac-mu, di perangkat jika memungkinkan."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Koncluí transforma sua voz em texto quando você dita, diz “OK Koru” ou anota uma chamada. Quem reconhece a fala é o seu Mac, no próprio aparelho quando possível."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí превращает ваш голос в текст, когда вы диктуете, говорите «OK Koru» или ведёте заметки о звонке. Речь распознаёт ваш Mac, по возможности прямо на устройстве."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí แปลงเสียงของคุณเป็นข้อความเมื่อคุณป้อนข้อความด้วยเสียง พูดว่า “OK Koru” หรือจดบันทึกการโทร Mac ของคุณเป็นผู้ถอดเสียง โดยทำบนอุปกรณ์เมื่อทำได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koncluí, dikte ettiğinde, “OK Koru” dediğinde veya bir görüşmeyi not ettiğinde sesini metne çevirir. Tanımayı Mac'in yapar; mümkünse cihazın üzerinde."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当你听写、说“OK Koru”或记录通话时，Koncluí 会把你的语音转成文字。识别由你的 Mac 完成，条件允许时在设备上进行。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當你聽寫、說「OK Koru」或記錄通話時，Koncluí 會把你的語音轉成文字。辨識由你的 Mac 完成，條件允許時在裝置上進行。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
