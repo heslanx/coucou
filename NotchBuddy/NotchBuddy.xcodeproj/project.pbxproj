@@ -218,6 +218,7 @@
 		5A3DA40DB6C8161E6CB504C7 /* FlowSettingsBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8436291D94C826F1D9DA3130 /* FlowSettingsBox.swift */; };
 		5B6C4CB6C2FF022E59FC7B54 /* MacUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3701DD3FA89D1E44B7FBC3 /* MacUpdater.swift */; };
 		5B9A00AFB0837731FA678E4E /* IslandStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8212018F09EA1E96FBD63CD /* IslandStateMachine.swift */; };
+		5BB6EC8D4F57F8E03E4F205F /* coucou-mcp.py in Resources */ = {isa = PBXBuildFile; fileRef = 76825547251B5DBD3710376A /* coucou-mcp.py */; };
 		5C6D0BC8C546718CAA82BF90 /* MusicController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F142FB3952B5F0639383047 /* MusicController.swift */; };
 		5CEE5BB641FA988232D182A6 /* KoncluiNoteSpeechChoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32BF3E795B27A4AAC1AB3C07 /* KoncluiNoteSpeechChoice.swift */; };
 		5E92DAF9F98D2B65FD106B22 /* CLIRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39956C0B27F57A21F3521BB8 /* CLIRelay.swift */; };
@@ -384,6 +385,7 @@
 		94E0849D13762C6EC8548FEF /* ClaudePlanCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4263B550838CC5614569D13 /* ClaudePlanCardView.swift */; };
 		94F41FCCE4311A93F6D99661 /* KoncluiVoiceLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3077B77FCB6F0E0BA699649B /* KoncluiVoiceLanguage.swift */; };
 		95F6C4B6CC010D26F106FC98 /* KoncluiOrcaRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBDF98EC69B563E23E64D4AA /* KoncluiOrcaRow.swift */; };
+		9612A4E7526213F3CCE28C61 /* KoncluiReminderKoru.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AE0DD7E8B122B672CAF9F9 /* KoncluiReminderKoru.swift */; };
 		9660D14E061E002393A1A890 /* KoncluiFlowUndo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD5F76143806D6AA31A0D40 /* KoncluiFlowUndo.swift */; };
 		967B525F7D3837F31D740D18 /* ResendPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B5FDDE03F5F711146937E2 /* ResendPoller.swift */; };
 		967BF23D9525219E8D406E3D /* KoncluiKeychainSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4B86820091DF413B5947B9F /* KoncluiKeychainSave.swift */; };
@@ -458,6 +460,7 @@
 		AEFD9957EEAC5337160823CC /* KoncluiRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */; };
 		AFB0ABCC42B84B24C31DC15A /* KoncluiVoicePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16EBA9D5C7555961314D0F1E /* KoncluiVoicePrompts.swift */; };
 		AFCA04C905C4E92BC480E4A2 /* VoiceQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654AF6918593586EFF1989C6 /* VoiceQuery.swift */; };
+		B0016B92D6522B3EA402ACE6 /* KoncluiReminderKoru.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AE0DD7E8B122B672CAF9F9 /* KoncluiReminderKoru.swift */; };
 		B09E884B33A35FA34543C64B /* IntentParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39753CFF90B494D449CCD95 /* IntentParser.swift */; };
 		B0A44483E3128F1B5F09ED22 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D14C4D6FA9E2546B590FE8 /* ReminderModels.swift */; };
 		B0CE5AC8B579866A14BD61D0 /* DemoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF5BD66B00BB64BB80AF38C /* DemoEngine.swift */; };
@@ -608,7 +611,6 @@
 		E82CA1269BF4859EEDE322AE /* MochiStill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045E7300878138F0AC385920 /* MochiStill.swift */; };
 		E9342A768208D5054F6A74AD /* WhatsAppGOWAProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94AA2388D0E7690653E62BBB /* WhatsAppGOWAProcess.swift */; };
 		E9723AAFC6137F30652BD230 /* KoncluiBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDB04294C7C184CC6351BDF /* KoncluiBrand.swift */; };
-		E9897A1DE18273CEE6AC1250 /* coucou-mcp.py in Resources */ = {isa = PBXBuildFile; fileRef = 7AAED4976C314C3F42BCD7DB /* coucou-mcp.py */; };
 		E9C18F039035C78173C306C7 /* MailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F907A5CC3CC05876548E96 /* MailViews.swift */; };
 		E9C21D11BCB72C392436D19E /* ClaudePlanGauge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF22817EC70748F2D1FB2E7 /* ClaudePlanGauge.swift */; };
 		EA4937EF24605DFB893F54CB /* MailTriage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 216717588DFD8663D35BAE8B /* MailTriage.swift */; };
@@ -740,6 +742,7 @@
 		168A9A73B519018FAB0AA465 /* GitHubActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubActivity.swift; sourceTree = "<group>"; };
 		16EBA9D5C7555961314D0F1E /* KoncluiVoicePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiVoicePrompts.swift; sourceTree = "<group>"; };
 		18153DC4BCF742DB6E403997 /* KoruScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoruScenes.swift; sourceTree = "<group>"; };
+		18AE0DD7E8B122B672CAF9F9 /* KoncluiReminderKoru.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiReminderKoru.swift; sourceTree = "<group>"; };
 		192844E7299DEED5C2372067 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1A1A34DE2886E394C879CF64 /* FlowHubWords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHubWords.swift; sourceTree = "<group>"; };
 		1B2EED5205DD7161E51BE1E1 /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
@@ -845,6 +848,7 @@
 		73FA4DF1BE5246CCFFB72E5C /* CodexPlanGauge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlanGauge.swift; sourceTree = "<group>"; };
 		74146BD3F4B9884F6A43936F /* NoteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteModels.swift; sourceTree = "<group>"; };
 		74BA58E1F273995F1C51AAAC /* CaptureCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCardView.swift; sourceTree = "<group>"; };
+		76825547251B5DBD3710376A /* coucou-mcp.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "coucou-mcp.py"; sourceTree = "<group>"; };
 		77A7538E542C7A0696EB3FF2 /* WhatsAppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppController.swift; sourceTree = "<group>"; };
 		787D306C2399FBAE8BBB86ED /* TurnEndPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnEndPolicy.swift; sourceTree = "<group>"; };
 		7889BA1980AB9D261DDE8A25 /* VitalsHoverLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsHoverLine.swift; sourceTree = "<group>"; };
@@ -853,7 +857,6 @@
 		79D8DD79C3DD9BBC584B3CB2 /* HookServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookServer.swift; sourceTree = "<group>"; };
 		79E7E2106BCE86A472ED8051 /* FlowHubMochis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHubMochis.swift; sourceTree = "<group>"; };
 		7A666A5E3F809301028F0DF8 /* NoteTaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTaker.swift; sourceTree = "<group>"; };
-		7AAED4976C314C3F42BCD7DB /* coucou-mcp.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "coucou-mcp.py"; sourceTree = "<group>"; };
 		7C1A7D5CBE2AC084A10C5FF3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7C432FE1286945E42D3E11D7 /* VoiceResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceResultView.swift; sourceTree = "<group>"; };
 		7C48B5C6D890B4C7A62609C0 /* KoncluiPageRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoncluiPageRules.swift; sourceTree = "<group>"; };
@@ -1040,15 +1043,6 @@
 			path = sounds;
 			sourceTree = "<group>";
 		};
-		2938B7560B8A936C0A7638DD /* konclui */ = {
-			isa = PBXGroup;
-			children = (
-				FAE6031CBDD595DB29A02405 /* scripts */,
-			);
-			name = konclui;
-			path = ..;
-			sourceTree = "<group>";
-		};
 		2D4550630644796DA0649B81 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -1155,6 +1149,7 @@
 				0DF5FA716C0B0119AE660993 /* KoncluiRecognition.swift */,
 				35BEEFB143411757063D58C1 /* KoncluiReminderAlert.swift */,
 				4E46CA06E83DEAE2B527F3A2 /* KoncluiReminderEditor.swift */,
+				18AE0DD7E8B122B672CAF9F9 /* KoncluiReminderKoru.swift */,
 				EBA0C770846EA5ABA8BB5EFD /* KoncluiReminderPreview.swift */,
 				EA2AF6D2203CEA29B0D92271 /* KoncluiReminderRules.swift */,
 				637D729ABC5B3EF1F1CE5FF6 /* KoncluiRemindersPage.swift */,
@@ -1276,6 +1271,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		7D8BF2DB65923914E82A6EA0 /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				76825547251B5DBD3710376A /* coucou-mcp.py */,
+			);
+			path = scripts;
+			sourceTree = "<group>";
+		};
 		9207F9B32D9C7844F5332A31 /* PhoneLink */ = {
 			isa = PBXGroup;
 			children = (
@@ -1290,6 +1293,15 @@
 				C2DFAEAF1DD1CBF03D3C314E /* TurnRecorder.swift */,
 			);
 			path = PhoneLink;
+			sourceTree = "<group>";
+		};
+		A397809FDB32D2E19DB585EB /* coucou */ = {
+			isa = PBXGroup;
+			children = (
+				7D8BF2DB65923914E82A6EA0 /* scripts */,
+			);
+			name = coucou;
+			path = ..;
 			sourceTree = "<group>";
 		};
 		AEBA361B10A737C684E95B82 /* NotificationContent */ = {
@@ -1317,7 +1329,7 @@
 			children = (
 				506824380E9C80B9BC6DCE72 /* Assets.xcassets */,
 				60401D1023D17C3FD30D7113 /* PhoneAssets.xcassets */,
-				2938B7560B8A936C0A7638DD /* konclui */,
+				A397809FDB32D2E19DB585EB /* coucou */,
 				D3593DF62D69E62DA5121807 /* Resources */,
 				B382DF6D17081F63DA1CC08B /* Sources */,
 				6CF11AAA7898712CF6DB364A /* Products */,
@@ -1407,14 +1419,6 @@
 				2A1C4152EBDBD7C24CABFFD7 /* TurnSnapshot.swift */,
 			);
 			path = CoucouKit;
-			sourceTree = "<group>";
-		};
-		FAE6031CBDD595DB29A02405 /* scripts */ = {
-			isa = PBXGroup;
-			children = (
-				7AAED4976C314C3F42BCD7DB /* coucou-mcp.py */,
-			);
-			path = scripts;
 			sourceTree = "<group>";
 		};
 		FB8E4AAB0B5E949069B8D03D /* Voice */ = {
@@ -1619,7 +1623,7 @@
 				DCAC390FF9EC65B945A15B24 /* Assets.xcassets in Resources */,
 				A6812FF3480E8B9010B9FDD7 /* InfoPlist.xcstrings in Resources */,
 				7AEED9FBB924F0DD1D07E1A5 /* Localizable.xcstrings in Resources */,
-				E9897A1DE18273CEE6AC1250 /* coucou-mcp.py in Resources */,
+				5BB6EC8D4F57F8E03E4F205F /* coucou-mcp.py in Resources */,
 				F06EE0A97CB77096A337AA8B /* sounds in Resources */,
 				20020883EEC68D17A3091396 /* whats-new.json in Resources */,
 			);
@@ -1784,6 +1788,7 @@
 				AEFD9957EEAC5337160823CC /* KoncluiRecognition.swift in Sources */,
 				34E8B7BFE2DA7B6EA82E40D8 /* KoncluiReminderAlert.swift in Sources */,
 				921E84FA811AB8A5243071FC /* KoncluiReminderEditor.swift in Sources */,
+				9612A4E7526213F3CCE28C61 /* KoncluiReminderKoru.swift in Sources */,
 				7F8E8335B7C72ACF23914E44 /* KoncluiReminderPreview.swift in Sources */,
 				C50D1BFEB90FA8C464D1DB03 /* KoncluiReminderRules.swift in Sources */,
 				2EA00C208F0121BC7B046DA9 /* KoncluiReminderTrial.swift in Sources */,
@@ -2154,6 +2159,7 @@
 				B26E115D058E28C1279AED8C /* KoncluiRecognition.swift in Sources */,
 				EFD12A7D94F7C8E8F07C31A0 /* KoncluiReminderAlert.swift in Sources */,
 				363778A4ECB48866BD11408C /* KoncluiReminderEditor.swift in Sources */,
+				B0016B92D6522B3EA402ACE6 /* KoncluiReminderKoru.swift in Sources */,
 				725C236F0DAC280880233C0C /* KoncluiReminderPreview.swift in Sources */,
 				EB5AEE6358BD72E64CBF900E /* KoncluiReminderRules.swift in Sources */,
 				16FC76E651E557B6B580651F /* KoncluiReminderTrial.swift in Sources */,

@@ -228,6 +228,63 @@ enum KoncluiReminderAlertRules {
         if -delta < 60 { return .now }
         return .late(-delta)
     }
+
+    /// What the alert's Koru and her alarm clock do (KoncluiReminderKoru.swift): before the time the clock ticks and she
+    /// waits; at the time it rings and she jumps; past it, it keeps ringing and she sweats a little. Never a scolding
+    /// (design/prototype/koru/docs/MOTION.md, PRODUCT-02).
+    enum Cue: Equatable { case waiting, ringing, overdue }
+
+    static func cue(_ when: When) -> Cue {
+        switch when {
+        case .ahead: return .waiting
+        case .now: return .ringing
+        case .late: return .overdue
+        }
+    }
+
+    /// The moments the cue changes after `now`, for a view that redraws only then: just inside "agora" (`when`'s second),
+    /// then just inside "late" (its minute).
+    static func cueChanges(due: Date, after now: Date) -> [Date] {
+        [due.addingTimeInterval(-0.5), due.addingTimeInterval(60.5)].filter { $0 > now }
+    }
+}
+
+/// The alarm clock beside the alert's Koru, as numbers: where its hands point and how it rings. Angles are radians,
+/// clockwise from 12.
+enum KoncluiAlarmClockMotion {
+    /// It rings in bursts with a rest between them, not as a constant buzz.
+    static let burst: Double = 1.0
+    static let period: Double = 2.4
+    static let shakesPerSecond: Double = 11
+
+    /// The hour and minute hands at a time of day; the clock shows the reminder's own time, as the headline does.
+    static func hands(at date: Date, calendar: Calendar = .current) -> (hour: Double, minute: Double) {
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        let hour = Double((parts.hour ?? 0) % 12), minute = Double(parts.minute ?? 0)
+        return (2 * .pi * (hour + minute / 60) / 12, 2 * .pi * minute / 60)
+    }
+
+    /// The second hand, a tick a second.
+    static func secondHand(at date: Date, calendar: Calendar = .current) -> Double {
+        2 * .pi * Double(calendar.component(.second, from: date)) / 60
+    }
+
+    /// How hard it rings, 0 to 1, `elapsed` seconds after it started: eased in and out over a burst, then still.
+    static func strength(elapsed: Double) -> Double {
+        guard elapsed >= 0 else { return 0 }
+        let phase = elapsed.truncatingRemainder(dividingBy: period)
+        return phase < burst ? sin(.pi * phase / burst) : 0
+    }
+
+    /// The shake, −1 to 1: how far it leans on its feet at `elapsed` seconds.
+    static func swing(elapsed: Double) -> Double {
+        strength(elapsed: elapsed) * sin(2 * .pi * shakesPerSecond * elapsed)
+    }
+
+    /// Which burst `elapsed` falls in (one sweat drop each while she is late).
+    static func burstIndex(elapsed: Double) -> Int {
+        elapsed < 0 ? -1 : Int(elapsed / period)
+    }
 }
 
 // MARK: - The editor's draft

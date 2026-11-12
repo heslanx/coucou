@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 
 // Koncluí: the reminder's alert, "Despertador com a Koru" (design/konclui/reminders/reminder-alerts-10.html, option 11, the
-// owner's pick). The Koru perches on top; the time is the headline, with how far it is ("agora", "em 1 min 54 s", "há 3
-// min"); one primary button the whole width (a meeting link first, as "Entrar na reunião", else "Concluir"); the snooze
-// lengths offered on the spot. Full screen is the same column, larger, over the blurred desktop; it covers the whole
+// owner's pick). The Koru perches on top with her alarm clock, which rings at the time (KoncluiReminderKoru.swift); the
+// time is the headline, with how far it is ("agora", "em 1 min 54 s", "há 3 min"); one primary button the whole width (a
+// meeting link first, as "Entrar na reunião", else "Concluir"); the snooze lengths offered on the spot. Full screen is the same column, larger, over the blurred desktop; it covers the whole
 // screen. Keys: ⏎ is the primary, esc closes (ReminderPanel's cancelOperation).
 //
 // The window stays the owner's (ReminderWindowController): two hooks there take this view and its height. Every button
@@ -264,8 +264,9 @@ struct KoncluiReminderAlertView: View {
 
     // MARK: - Pieces
 
+    /// The Koru with her alarm clock (KoncluiReminderKoru.swift): it rings at the time, and she reacts.
     private func koru(size: CGFloat) -> some View {
-        HubLiveMochi(color: "#F5F6F8", size: size)
+        KoncluiReminderKoru(due: reminder.nextFireDate, size: size)
             .frame(width: size * 1.5, height: size * 1.1)
             .scaleEffect(shown ? 1 : 0.7, anchor: .bottom)
             .accessibilityHidden(true)

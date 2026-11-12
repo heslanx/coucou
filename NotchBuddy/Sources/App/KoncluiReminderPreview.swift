@@ -259,10 +259,23 @@ struct KoncluiReminderPreview: View {
         .allowsHitTesting(false)
     }
 
+    /// The Koru and her alarm clock as the alert has them (KoncluiReminderKoru), still: the clock rings at the reminder's time.
     private func koru(_ size: CGFloat) -> some View {
-        MochiStill(showBadge: false)
-            .frame(width: size, height: size)
-            .accessibilityHidden(true)
+        let shift = size * KoncluiReminderStage.clockOffset / 2
+        let hands = KoncluiAlarmClockMotion.hands(at: draft.dueAt)
+        return ZStack {
+            MochiStill(showBadge: false)
+                .frame(width: size, height: size)
+                .offset(x: -shift)
+            Canvas { context, canvas in
+                KoncluiAlarmClock.draw(context, centerX: canvas.width / 2 + shift, base: KoruScenes.rest(canvasWidth: size).base,
+                                       unit: size * KoncluiReminderStage.clockUnit,
+                                       pose: .init(hour: hands.hour, minute: hands.minute, second: nil, ring: 0.8))
+            }
+            .frame(width: size * 2, height: size)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 
     /// KoncluiReminderAlertView's column, at the preview's sizes.

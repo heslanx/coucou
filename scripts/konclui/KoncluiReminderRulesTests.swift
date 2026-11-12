@@ -150,6 +150,27 @@ struct KoncluiReminderRulesTests {
         check(A.when(now.addingTimeInterval(-20), now: now) == .now, "within a minute is now")
         check(A.when(now.addingTimeInterval(-180), now: now) == .late(180), "a late reminder says how late")
 
+        // The Koru and her alarm clock: calm ahead, ringing at the time, worried past it; redrawn only when that changes.
+        check(A.cue(A.when(now.addingTimeInterval(115), now: now)) == .waiting, "ahead, the clock only ticks")
+        check(A.cue(A.when(now.addingTimeInterval(-20), now: now)) == .ringing, "at the time, it rings")
+        check(A.cue(A.when(now.addingTimeInterval(-180), now: now)) == .overdue, "late, it keeps ringing and she frets")
+        let changes = A.cueChanges(due: now.addingTimeInterval(115), after: now)
+        check(changes.map { A.cue(A.when(now.addingTimeInterval(115), now: $0)) } == [.ringing, .overdue],
+              "each change lands inside the next cue")
+        check(A.cueChanges(due: now.addingTimeInterval(-20), after: now).count == 1, "ringing: only the turn to late is left")
+        check(A.cueChanges(due: now.addingTimeInterval(-180), after: now).isEmpty, "late: nothing changes any more")
+        typealias C = KoncluiAlarmClockMotion
+        let halfPast = C.hands(at: date(2026, 10, 30, 14, 30), calendar: calendar)
+        check(abs(halfPast.hour - 75 * .pi / 180) < 1e-9 && abs(halfPast.minute - .pi) < 1e-9, "14:30: hour at 75°, minute at 180°")
+        let quarter = C.hands(at: date(2026, 10, 30, 9, 15), calendar: calendar)
+        check(abs(quarter.hour - 277.5 * .pi / 180) < 1e-9 && abs(quarter.minute - .pi / 2) < 1e-9, "9:15: hour at 277.5°, minute at 90°")
+        check(abs(C.secondHand(at: now.addingTimeInterval(30.6), calendar: calendar) - .pi) < 1e-9, "30.6 s: the second hand ticks at 180°")
+        check(abs(C.strength(elapsed: 0.5) - 1) < 1e-9, "mid burst it rings hardest")
+        check(C.strength(elapsed: 1.7) == 0 && C.swing(elapsed: 1.7) == 0, "between bursts it rests")
+        check(abs(C.strength(elapsed: 2.9) - 1) < 1e-9, "the next burst comes 2.4 s after the first")
+        check(C.strength(elapsed: -1) == 0, "nothing before it starts")
+        check(C.burstIndex(elapsed: 0.2) == 0 && C.burstIndex(elapsed: 2.5) == 1, "bursts are counted")
+
         // Every key the rules name exists in the 16 languages.
         let path = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "NotchBuddy/Resources/Localizable.xcstrings"
         if let data = FileManager.default.contents(atPath: path),
