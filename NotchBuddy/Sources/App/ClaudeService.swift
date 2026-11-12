@@ -249,13 +249,14 @@ final class ClaudeService {
     private var relayHistory: [(user: String, assistant: String)] = []
 
     private func chatThroughSubscription(_ provider: ChatProvider, query: String, context: PromptContext?, state: AppState) async {
-        // Koncluí: with email in the conversation, only a tool that can work without the web (KoncluiChatAccess.swift)
-        if conversationHoldsMail, provider.installedCLI != nil, provider.koncluiMailCLI == nil {
-            await showError(String(format: String(localized: "konclui.mail.needs-offline %@"),
+        // Koncluí: with email or a file in the conversation, only a tool that can work without the web (KoncluiChatAccess.swift)
+        if conversationHoldsOutsideText, provider.installedCLI != nil, provider.koncluiMailCLI == nil {
+            let refusal = conversationHoldsMail ? "konclui.mail.needs-offline %@" : "konclui.file.needs-offline %@"
+            await showError(String(format: String(localized: String.LocalizationValue(refusal)),
                                    provider.installedCLI?.displayName ?? provider.displayName), state: state)
             return
         }
-        guard let cli = conversationHoldsMail ? provider.koncluiMailCLI : provider.installedCLI else {
+        guard let cli = conversationHoldsOutsideText ? provider.koncluiMailCLI : provider.installedCLI else {
             let tool = provider.subscriptionCLIs.first?.displayName ?? provider.displayName
             await showError(String(format: String(localized: "chat.subscriptions.error.missing"), tool), state: state)
             return
@@ -293,7 +294,7 @@ final class ClaudeService {
         }()
         let request = CLIRequest(
             model: provider == .anthropic ? model : nil,
-            system: systemPrompt + extraSystem,
+            system: turnSystemPrompt + extraSystem,   // Koncluí: no web claim when the web is off
             prompt: CLIRelay.chatPrompt(history: relayHistory, context: contextLine, query: query),
             web: !readsFile && !conversationHoldsOutsideText,   // Koncluí: email and earlier files are untrusted text too
             readDir: readDir,
@@ -316,6 +317,9 @@ final class ClaudeService {
     /// Resolved once: NSFullUserName() is a system call, and the name cannot change under us
     /// while the app runs.
     private let systemPrompt = ClaudeService.makeSystemPrompt()
+    /// Koncluí: the prompt that does not promise web search, for a conversation that holds email or a file.
+    private let noWebSystemPrompt = ClaudeService.makeSystemPrompt(webSearch: false)
+    private var turnSystemPrompt: String { conversationHoldsOutsideText ? noWebSystemPrompt : systemPrompt }
     /// Added to the system prompt for this turn (the chat's Mail switch).
     private var extraSystem = ""
 
@@ -411,7 +415,7 @@ final class ClaudeService {
         var body: [String: Any] = [
             "model": model,
             "max_tokens": 4096,
-            "system": systemPrompt + extraSystem,
+            "system": turnSystemPrompt + extraSystem,   // Koncluí: no web claim when the web is off
             "messages": conversationMessages,
         ]
         if !conversationHoldsOutsideText { body["tools"] = webSearchTools }   // Koncluí: no web search with email or a file in the conversation
@@ -650,13 +654,16 @@ final class ClaudeService {
             ["type": "web_search_20250305", "name": "web_search", "max_uses": 3]
         ]
 
-        let body: [String: Any] = [
+        // Koncluí: a dropped file is read with no web at all, as on every other route
+        var readsFile = false
+        if case .file = context { readsFile = true }
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": 1024,
-            "tools": tools,
             "system": system,
             "messages": [["role": "user", "content": userContent]],
         ]
+        if !readsFile { body["tools"] = tools }
 
         do {
             let result = try await callAPI(body: body, key: key, beta: "web-search-2025-03-05")
